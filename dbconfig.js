@@ -90,7 +90,7 @@ async function getConnectionLocal(idempresa) {
         // Configuración de conexión al servidor MariaDB (sin base de datos)
         const config = {
             host: '149.56.182.49',
-            port: 44347,
+           // port: 44347,
             user: 'root',
             password: 'Ve5P4nAdt6UiT8',
         };
@@ -219,4 +219,4 @@ async function loadCompaniesFromRedis() {
     }
 }
 
-module.exports = { getConnectionLocal, getFromRedis, redisClient, getProdDbConfig, executeQuery, getCompanyById };
+module.exports = { getConnection,getConnectionLocal, getFromRedis, redisClient, getProdDbConfig, executeQuery, getCompanyById };
