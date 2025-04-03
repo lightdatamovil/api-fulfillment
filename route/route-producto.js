@@ -143,7 +143,7 @@ producto.post('/producto', async (req, res) => {
 producto.post("/getProducts", async (req, res) => {
     const Producto= new ProductO1();
     const data = req.body;
-    const connection = await getConnection(data.idEmpresa);
+    const connection = await getConnectionLocal(data.idEmpresa);
    const  response = await Producto.traerProducto(connection);
     return res.status(200).json({
         estado: true,
@@ -166,3 +166,4 @@ producto.get("/", async (req, res) => {
 
 
 module.exports = producto;
+
