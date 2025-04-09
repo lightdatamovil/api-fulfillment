@@ -231,7 +231,7 @@ async  traerProductoId(connection, id) {
       }
 
       // COMBO
-      if (row.comboDid && !comboMap.has(row.comboDid)) {
+      if (row.comboDid && !comboMap.has(row.comboDid) &&row.esCombo == 1) {
         producto.combo.push({
           did: row.comboDid,
           cantidad: row.cantidad
