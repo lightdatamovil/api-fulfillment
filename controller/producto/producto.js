@@ -159,42 +159,108 @@ async traerProducto( connection) {
 }
 
 
-async traerProductoId(connection, id) {
+async  traerProductoId(connection, id) {
   try {
-  const query = `SELECT p.titulo,p.sku,p.didCLiente,p.habilitado,p.esCombo,p.imagen, 
-  pe.url,pe.did,pe.flex,pe.habilitado as habilitadoEcommerce,pe.sync,
-  pd.didDeposito,pd.habilitado as habilitadoDeposito,
-  pc.did,pc.cantidad
-
+    const query = `
+      SELECT 
+        p.did,
+        p.didCliente AS cliente,
   
-  FROM productos as p 
-  left join productos_combos as pc on pc.didProducto = p.did 
-  left join productos_depositos as pd on pd.didProducto = p.did
-  left join productos_ecommerces as pe on pe.didProducto = p.did 
-  where p.did = ? and p.elim = 0 and p.superado = 0 `;
+        p.titulo,
+        p.sku,
+        p.descripcion,
+        p.habilitado,
+        p.esCombo,
+        p.imagen,
 
+        pe.flex,
+        pe.url AS link,
+ 
+        pe.habilitado AS habilitadoEcommerce,
+        pe.sync,
 
-  
-  const results = await executeQuery(connection, query, [id],true);
+        pc.did AS comboDid,
+        pc.cantidad,
 
-  
-  return results;
-  
+        pd.didDeposito,
+        pd.habilitado AS habilitadoDeposito
 
+      FROM productos AS p
+      LEFT JOIN productos_combos AS pc ON pc.didProducto = p.did 
+      LEFT JOIN productos_depositos AS pd ON pd.didProducto = p.did
+      LEFT JOIN productos_ecommerces AS pe ON pe.didProducto = p.did 
+      WHERE p.did = ? AND p.elim = 0 AND p.superado = 0
+    `;
 
-}
-catch (error) {
-  console.error("Error al traer el producto:", error.message);
-  throw {
+    const rows = await executeQuery(connection, query, [id], true);
+
+    if (!rows.length) return null;
+
+    const producto = {
+      did: rows[0].did,
+      cliente: rows[0].cliente,
+      idEmpresa: rows[0].idEmpresa,
+      titulo: rows[0].titulo,
+      sku: rows[0].sku,
+      descripcion: rows[0].descripcion,
+      habilitado: rows[0].habilitado,
+      esCombo: rows[0].esCombo,
+      imagen: rows[0].imagen || "",
+      ecommerce: [],
+      combo: [],
+      depositos: [],
+    };
+
+    const ecommerceMap = new Set();
+    const comboMap = new Set();
+    const depositoMap = new Set();
+
+    for (const row of rows) {
+      // ECOMMERCE
+      if (row.flex && !ecommerceMap.has(row.flex + row.link)) {
+        producto.ecommerce.push({
+          flex: row.flex,
+          link: row.link,
+          sku: row.sku_ecommerce,
+          habilitado: row.habilitadoEcommerce,
+          sync: row.sync
+        });
+        ecommerceMap.add(row.flex + row.link);
+      }
+
+      // COMBO
+      if (row.comboDid && !comboMap.has(row.comboDid)) {
+        producto.combo.push({
+          did: row.comboDid,
+          cantidad: row.cantidad
+        });
+        comboMap.add(row.comboDid);
+      }
+
+      // DEPOSITOS
+      if (row.didDeposito && !depositoMap.has(row.didDeposito)) {
+        producto.depositos.push({
+          did: row.didDeposito,
+          habilitado: row.habilitadoDeposito
+        });
+        depositoMap.add(row.didDeposito);
+      }
+    }
+
+    return producto;
+
+  } catch (error) {
+    console.error("Error al traer el producto:", error.message);
+    throw {
       status: 500,
       response: {
-          estado: false,
-          error: -1,
+        estado: false,
+        error: -1,
       },
-  };
+    };
+  }
 }
 
-}
 
 
 
