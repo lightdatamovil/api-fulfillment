@@ -143,7 +143,7 @@ async forzarDelete(connection,did) {
 }
 async traerProducto( connection) {
     try {
-        const query = 'SELECT * FROM productos';
+        const query = 'SELECT didCliente,sku,titulo,habilitado,did FROM productos';
         const results = await executeQuery(connection, query, []);
         return results;
     } catch (error) {
