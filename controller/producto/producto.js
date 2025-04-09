@@ -175,6 +175,7 @@ async  traerProductoId(connection, id) {
 
         pe.flex,
         pe.url AS link,
+        pe.sku AS skuEcommerce,
  
         pe.habilitado AS habilitadoEcommerce,
         pe.sync,
@@ -223,6 +224,7 @@ async  traerProductoId(connection, id) {
           link: row.link,
           sku: row.sku_ecommerce,
           habilitado: row.habilitadoEcommerce,
+          sku: row.skuEcommerce,
           sync: row.sync
         });
         ecommerceMap.add(row.flex + row.link);
