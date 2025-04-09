@@ -156,6 +156,52 @@ async traerProducto( connection) {
             },
         };
     }
-}}
+}
+
+
+async traerProductoId(connection, id) {
+  try {
+  const query = `SELECT p.titulo,p.sku,p.didCLiente,p.habilitado,p.esCombo,p.imagen, 
+  pe.url,pe.did,pe.flex,pe.habilitado as habilitadoEcommerce,pe.sync,
+  pd.didDeposito,pd.habilitado as habilitadoDeposito,
+  pc.did,pc.cantidad
+
+  
+  FROM productos as p 
+  left join productos_combos as pc on pc.didProducto = p.did 
+  left join productos_depositos as pd on pd.didProducto = p.did
+  left join productos_ecommerces as pe on pe.didProducto = p.did 
+  where p.did = ? and p.elim = 0 and p.superado = 0 `;
+
+
+  
+  const results = await executeQuery(connection, query, [id],true);
+
+  
+  return results;
+  
+
+
+}
+catch (error) {
+  console.error("Error al traer el producto:", error.message);
+  throw {
+      status: 500,
+      response: {
+          estado: false,
+          error: -1,
+      },
+  };
+}
+
+}
+
+
+
+
+
+
+
+}
 
 module.exports =  ProductO1 ;

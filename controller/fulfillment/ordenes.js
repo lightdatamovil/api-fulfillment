@@ -3,7 +3,7 @@ const { logYellow, logBlue } = require('../../fuctions/logsCustom');
 
 
 class Ordenes {
-    constructor({
+    constructor(
         did = "",
         didEnvio = "",
         didCliente = "",
@@ -16,9 +16,9 @@ class Ordenes {
         descargado = 0,
         fecha_armado = null,
         quien_armado = "",
-        idEmpresa = null,
+     
         connection = null,
-      } = {}) {
+    ) {
         this.did = did;
         this.didEnvio = didEnvio;
         this.didCliente = didCliente;
@@ -31,7 +31,7 @@ class Ordenes {
         this.descargado = descargado;
         this.fecha_armado = fecha_armado;
         this.quien_armado = quien_armado;
-        this.idEmpresa = String(idEmpresa);
+     
         this.connection = connection;
       }
   // Método para convertir a JSON
@@ -42,7 +42,7 @@ class Ordenes {
   // Método para insertar en la base de datos
   async insert() {
     try {
-        if (this.didProducto === null) {
+        if (this.did === null || this.did== 0 || this.did === "") {
             // Si `didEnvio` es null, crear un nuevo registro
             return this.createNewRecord(this.connection);
         } else {
@@ -97,9 +97,25 @@ async createNewRecord(connection) {
 
 
         const insertResult = await executeQuery(connection, insertQuery, values);
-        return { insertId: insertResult.insertId };
+        const insertId = insertResult.insertId;
+        if(this.did == 0 || this.did == null){
+            
+            const updateQuery = 'UPDATE ordenes SET did = ? WHERE id = ?';
+          await executeQuery(connection, updateQuery, [insertId, insertId]);
+        }
+
+        return { insertId: insertId };
     } catch (error) {
         throw error;
     }
+}
+async eliminar (connection,did) {
+    try {
+        const deleteQuery = 'UPDATE ordenes set elim = 1 WHERE did = ?';
+        await executeQuery(connection, deleteQuery, [did]);
+    } catch (error) {
+        throw error;
+    }
+
 }}
 module.exports = Ordenes;

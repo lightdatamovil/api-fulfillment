@@ -3,7 +3,7 @@ const { logYellow, logBlue } = require('../../fuctions/logsCustom');
 
 
 class Ordenes_items {
-    constructor({
+    constructor(
         did = "",
         didOrden = "",
         codigo = "",
@@ -17,9 +17,9 @@ class Ordenes_items {
       descargado = 0,
       superado = 0,
       elim = 0,
-        idEmpresa = null,
+        
         connection = null,
-      } = {}) {
+      ) {
         this.did = did;
         this.didOrden = didOrden;
         this.codigo = codigo;
@@ -33,8 +33,8 @@ class Ordenes_items {
         this.descargado = descargado;
         this.superado = superado || 0;
         this.elim = elim || 0;
-        this.idEmpresa = String(idEmpresa);
-      }
+
+        this.connection = connection;}
   // Método para convertir a JSON
   toJSON() {
     return JSON.stringify(this);
@@ -43,7 +43,7 @@ class Ordenes_items {
   // Método para insertar en la base de datos
   async insert() {
     try {
-        if (this.didProducto === null) {
+        if (this.did === null || this.did === 0) {
             // Si `didEnvio` es null, crear un nuevo registro
             return this.createNewRecord(this.connection);
         } else {
@@ -95,10 +95,11 @@ async createNewRecord(connection) {
 
         const values = filteredColumns.map((column) => this[column]);
         const insertQuery = `INSERT INTO ordenes_items (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
-
-
         const insertResult = await executeQuery(connection, insertQuery, values);
-        return { insertId: insertResult.insertId };
+    
+      const insertId = insertResult.insertId;
+    
+        return { insertId: insertId };
     } catch (error) {
         throw error;
     }

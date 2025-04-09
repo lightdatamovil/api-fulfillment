@@ -15,6 +15,8 @@ const ProductoCombo = require('../controller/producto/productoCombo');
 const ProductoDeposito = require('../controller/producto/productoDeposito');
 const ProductoEcommerce = require('../controller/producto/productoEcommerce');
 const ProductO1 = require('../controller/producto/producto');
+const Ordenes = require('../controller/fulfillment/ordenes');
+const Ordenes_items = require('../controller/fulfillment/ordenes_items');
 
 
 
@@ -335,6 +337,81 @@ router.post("/getProducts", async (req, res) => {
         estado: true,
         productos: response
     });
+})
+
+router.post("/orden", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnection(data.idEmpresa);
+
+    try {
+
+        if (data.operador == "eliminar"){ 
+            const orden = new Ordenes(); // Instanciar la clase
+            await orden.eliminar(connection, data.did);
+            return res.status(200).json({
+                estado: true,
+                message: "Orden Eliminada"
+            });
+            
+        }
+        else{
+        const orden =new Ordenes(
+            data.did ?? 0,
+            data.didEnvio,
+            data.didCliente,
+            data.didCuenta,
+            data.status,
+            data.flex,
+            data.number,
+            data.observaciones,
+            data.armado,
+            data.descargado,
+            data.fecha_armado,
+            data.quien_armado,
+          
+            connection  
+        );
+        const response = await orden.insert();
+        console.log("Respuesta de insert:", response);
+
+
+for (const item of data.ordenes_items) {
+        const ordenes_items = new Ordenes_items(
+            item.did ?? 0,
+            response.insertId,
+          item.codigo,
+          item.imagen,
+          item.descripcion,
+          item.ml_id,
+          item.dimensions,
+          item.cantidad,
+          item.variacion,
+          item.seller_sku,
+          item.descargado || 0,
+          item.superado || 0,
+          item.elim || 0,
+          connection
+        );
+
+let resulta2= await ordenes_items.insert();
+console.log("Respuesta de insert:", resulta2);
+}}
+            
+        
+        return res.status(200).json({
+            estado: response.estado !== undefined ? response.estado : false,
+            message: response.message || response
+        });
+    } catch (error) {
+        console.error('Error durante la operación:', error);
+        return res.status(500).json({
+            estado: false,
+            error: -1,
+            message: error.message || error
+        });
+    } finally {
+        connection.end();
+    }
 })
 
 

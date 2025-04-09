@@ -102,7 +102,7 @@ async createNewRecord(connection) {
         const insertResult = await executeQuery(connection, insertQuery, values);
         const insertId = insertResult.insertId;
         
-        if(this.did == 0 || this.did == null){
+        if(this.did == 0 || this.did == null || this.did == ""){
             
             const updateQuery = 'UPDATE fulfillment_cuentas SET did = ? WHERE id = ?';
           await executeQuery(connection, updateQuery, [insertId, insertId]);
