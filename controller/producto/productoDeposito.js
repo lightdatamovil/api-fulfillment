@@ -51,7 +51,7 @@ class ProductoDeposito {
 
       if (results.length > 0) {
         const updateQuery = 'UPDATE productos_depositos SET superado = 1 WHERE didDeposito = ? AND didProducto = ?';
-        await executeQuery(connection, updateQuery, [this.did,this.didDeposito,this.didProducto]);
+        await executeQuery(connection, updateQuery, [this.did,this.didProducto]);
         return this.createNewRecord(connection);
       } else {
         return this.createNewRecord(connection);
