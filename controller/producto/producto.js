@@ -219,7 +219,7 @@ async  traerProductoId(connection, id) {
       // ECOMMERCE
       if (row.flex && !ecommerceMap.has(row.flex + row.link)) {
         producto.ecommerce.push({
-          flex: row.flex,
+          tienda: row.flex,
           link: row.link,
           sku: row.sku_ecommerce,
           habilitado: row.habilitadoEcommerce,

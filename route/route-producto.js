@@ -157,7 +157,7 @@ producto.post("/getProductsId", async (req, res) => {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
     const producto= new ProductO1();
-    const response = await producto.traerProductoId(connection, data.id);
+    const response = await producto.traerProductoId(connection, data.did);
     return res.status(200).json({
         estado: true,
         productos: response
