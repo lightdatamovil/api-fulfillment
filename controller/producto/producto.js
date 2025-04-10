@@ -186,6 +186,7 @@ async  traerProductoId(connection, id) {
         pc.did AS comboDid,
         pc.cantidad,
         pc.combo,
+        p.posicion,
         
 
         pd.didDeposito,
@@ -216,6 +217,7 @@ console.log(rows,"rows");
       ecommerce: [],
       combo: JSON.parse(rows[0].combo) || rows[0].combo,
       depositos: [],
+      posicion: rows[0].posicion
     };
 
     const ecommerceMap = new Set();

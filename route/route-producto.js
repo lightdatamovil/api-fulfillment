@@ -75,6 +75,7 @@ producto.post('/producto', async (req, res) => {
         data.did ?? 0,
         productId,
         0, // cantidad general (se maneja dentro de combo)
+        data.combo,
         data.quien,
         0,
         0,
