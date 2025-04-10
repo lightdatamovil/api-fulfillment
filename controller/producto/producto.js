@@ -144,21 +144,62 @@ async forzarDelete(connection,did) {
         throw error;
     }
 }
-async traerProducto( connection) {
-    try {
-        const query = 'SELECT didCliente,sku,titulo,habilitado,did FROM productos';
-        const results = await executeQuery(connection, query, []);
-        return results;
-    } catch (error) {
-        console.error("Error al traer el producto:", error.message);
-        throw {
-            status: 500,
-            response: {
-                estado: false,
-                error: -1,
-            },
-        };
+async traerProductos(connection, data = {}) {
+  try {
+    let condiciones = [];
+    let valores = [];
+    let joins = '';
+
+    // Condiciones fijas si es necesario
+    condiciones.push('p.elim = 0', 'p.superado = 0');
+
+    if (data.flex !== undefined) {
+      joins += 'INNER JOIN productos_ecommerces pe ON pe.didProducto = p.did';
+      condiciones.push('pe.flex = ?');
+      valores.push(data.flex);
     }
+
+    if (data.habilitado !== undefined) {
+      condiciones.push('p.habilitado = ?');
+      valores.push(data.habilitado);
+    }
+
+    if (data.esCombo !== undefined) {
+      condiciones.push('p.esCombo = ?');
+      valores.push(data.esCombo);
+    }
+
+    if (data.cliente !== undefined) {
+      condiciones.push('p.didCliente = ?');
+      valores.push(data.cliente);
+    }
+
+    if (data.sku !== undefined && data.sku.trim() !== '') {
+      condiciones.push('p.sku LIKE ?');
+      valores.push(`%${data.sku}%`);
+    }
+
+    const whereClause = condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
+    const query = `
+      SELECT p.didCliente, p.sku, p.titulo, p.habilitado, p.did
+      FROM productos AS p
+      ${joins}
+      ${whereClause}
+    `;
+
+    const results = await executeQuery(connection, query, valores);
+    return results;
+
+  } catch (error) {
+    console.error("Error al traer productos:", error.message);
+    throw {
+      status: 500,
+      response: {
+        estado: false,
+        error: -1,
+      },
+    };
+  }
 }
 
 

@@ -151,17 +151,6 @@ producto.post('/producto', async (req, res) => {
 
 
 
-producto.post("/getProducts", async (req, res) => {
-    const Producto= new ProductO1();
-    const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
-   const  response = await Producto.traerProducto(connection);
-    return res.status(200).json({
-        estado: true,
-        productos: response
-    });
-})
-
 
 
 producto.post("/getProductsId", async (req, res) => {
@@ -262,11 +251,11 @@ producto.post("/updateDepositos", async (req, res) => {
      
     });
 })
-producto.post("/filtro", async (req, res) => {
+producto.post("/getProducts", async (req, res) => {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
     const producto= new ProductO1();
-    const response = await producto.filtro(connection, data);
+    const response = await producto.traerProductos(connection, data);
     return res.status(200).json({
         estado: true,
         productos: response
