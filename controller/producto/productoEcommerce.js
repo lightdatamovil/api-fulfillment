@@ -7,7 +7,7 @@ class ProductoEcommerce {
     flex = 0,
     url = "",
     habilitado = 0,
-    sync_automatico = 0,
+    sync = 0,
     sku = "",
     quien = 0,
     superado = 0,
@@ -19,7 +19,7 @@ class ProductoEcommerce {
     this.flex = flex;
     this.url = url;
     this.habilitado = habilitado;
-    this.sync_automatico = sync_automatico;
+    this.sync = sync;
     this.sku = sku;
     this.quien = quien || 0;
     this.superado = superado;
@@ -59,8 +59,8 @@ class ProductoEcommerce {
 
 
   if (results.length > 0) {
-    const updateQuery = 'UPDATE productos_ecommerces SET superado = 1 WHERE did = ?';
-    await executeQuery(connection, updateQuery, [results[0].did]);
+    const updateQuery = 'UPDATE productos_ecommerces SET superado = 1 WHERE didProducto = ? ';
+    await executeQuery(connection, updateQuery, [this.didProducto]);
     return this.createNewRecord2(connection,results[0].did); ;
   } else {
     return this.createNewRecord(connection);

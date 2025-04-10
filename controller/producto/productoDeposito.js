@@ -55,8 +55,7 @@ class ProductoDeposito {
 
 
 
-      
-if (results[0].habilitado != this.habilitado) {
+
 
 
   if (results.length > 0) {
@@ -69,12 +68,9 @@ if (results[0].habilitado != this.habilitado) {
     return this.createNewRecord2(connection,results[0].did);
   } else {
     return this.createNewRecord(connection);
-  }
+  
 }
-else{
 
-  return "Salio mal "
-}
     } catch (error) {
       throw error;
     }
