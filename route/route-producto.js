@@ -262,6 +262,16 @@ producto.post("/updateDepositos", async (req, res) => {
      
     });
 })
+producto.post("/filtro", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+    const producto= new ProductO1();
+    const response = await producto.filtro(connection, data);
+    return res.status(200).json({
+        estado: true,
+        productos: response
+    });
+})
 
 
 producto.get("/", async (req, res) => {

@@ -138,6 +138,7 @@ console.log("llegamos");
       throw error;
     }
   }
+  
 }
 
 module.exports = ProductoCombo;

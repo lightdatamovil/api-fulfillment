@@ -127,6 +127,7 @@ class ProductoEcommerce {
       throw error;
     }
   }
-}
 
+ 
+}
 module.exports = ProductoEcommerce;

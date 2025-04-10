@@ -265,7 +265,57 @@ console.log(rows,"rows");
     };
   }
 }
+async filtro(connection,data) {
+  try {
+    let condiciones = ['p.elim = 0', 'p.superado = 0'];
+    let valores = [];
 
+    let joins = '';
+
+    if (data.flex && Array.isArray(data.flex) && data.flex.length > 0) {
+      joins += 'INNER JOIN productos_ecommerces pe ON pe.didProducto = p.did';
+      const placeholders = data.flex.map(() => '?').join(',');
+      condiciones.push(`pe.flex IN (${placeholders})`);
+      valores.push(...data.flex);
+    }
+
+    if (data.habilitado !== undefined) {
+      condiciones.push('p.habilitado = ?');
+      valores.push(data.habilitado);
+    }
+
+    if (data.esCombo !== undefined) {
+      condiciones.push('p.esCombo = ?');
+      valores.push(data.esCombo);
+    }
+
+    if (data.cliente !== undefined) {
+      condiciones.push('p.didCliente = ?');
+      valores.push(data.cliente);
+    }
+
+    if (data.sku !== undefined && data.sku.trim() !== '') {
+      condiciones.push('p.sku LIKE ?');
+      valores.push(`%${data.sku}%`);
+    }
+
+    const whereClause = condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
+    const filtroQuery = `
+      SELECT p.* 
+      FROM productos AS p 
+      ${joins}
+      ${whereClause}
+    `;
+
+
+    const results = await executeQuery(connection, filtroQuery, valores);
+    console.log(results,"results");
+    
+    return results;
+  } catch (error) {
+    throw error;
+  }
+}
 
 
 
