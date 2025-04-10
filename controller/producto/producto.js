@@ -265,18 +265,16 @@ console.log(rows,"rows");
     };
   }
 }
-async filtro(connection,data) {
+async filtro(connection, data) {
   try {
     let condiciones = ['p.elim = 0', 'p.superado = 0'];
     let valores = [];
-
     let joins = '';
 
-    if (data.flex && Array.isArray(data.flex) && data.flex.length > 0) {
+    if (data.flex !== undefined) {
       joins += 'INNER JOIN productos_ecommerces pe ON pe.didProducto = p.did';
-      const placeholders = data.flex.map(() => '?').join(',');
-      condiciones.push(`pe.flex IN (${placeholders})`);
-      valores.push(...data.flex);
+      condiciones.push('pe.flex = ?');
+      valores.push(data.flex);
     }
 
     if (data.habilitado !== undefined) {
@@ -307,10 +305,9 @@ async filtro(connection,data) {
       ${whereClause}
     `;
 
-
     const results = await executeQuery(connection, filtroQuery, valores);
-    console.log(results,"results");
-    
+    console.log(results, "results");
+
     return results;
   } catch (error) {
     throw error;
