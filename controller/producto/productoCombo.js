@@ -61,7 +61,7 @@ console.log("llegamos");
 
   if (results.length > 0) {
     const updateQuery = 'UPDATE productos_combos SET superado = 1 WHERE did = ?';
-    await executeQuery(connection, updateQuery, [this.did]);
+    await executeQuery(connection, updateQuery, [results[0].did]);
     combazo = JSON.parse(combazo)
     return this.createNewRecord2(connection,results[0].did);
   } else {
@@ -118,8 +118,7 @@ console.log("llegamos");
       const insertResult = await executeQuery(connection, insertQuery, values);
   
 
-        console.log("hola",did);
-        
+ 
         const updateQuery = 'UPDATE productos_combos SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [did, insertResult.insertId]);
       
