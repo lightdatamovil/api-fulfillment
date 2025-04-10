@@ -185,6 +185,7 @@ async  traerProductoId(connection, id) {
 
         pc.did AS comboDid,
         pc.cantidad,
+        
 
         pd.didDeposito,
         pd.habilitado AS habilitadoDeposito
@@ -193,7 +194,7 @@ async  traerProductoId(connection, id) {
       LEFT JOIN productos_combos AS pc ON pc.didProducto = p.did 
       LEFT JOIN productos_depositos AS pd ON pd.didProducto = p.did
       LEFT JOIN productos_ecommerces AS pe ON pe.didProducto = p.did 
-      WHERE p.did = ? AND p.elim = 0 AND p.superado = 0
+      WHERE p.did = ? AND p.elim = 0 AND p.superado = 0 and pc.elim = 0 AND pc.superado = 0 AND pd.elim = 0 AND pd.superado = 0 AND pe.elim = 0 AND pe.superado = 0
     `;
 
     const rows = await executeQuery(connection, query, [id], true);
@@ -240,7 +241,10 @@ async  traerProductoId(connection, id) {
           cantidad: row.cantidad
         });
         comboMap.add(row.comboDid);
+
       }
+      console.log(comboMap,"comboMap");
+      
 
       // DEPOSITOS
       if (row.didDeposito && !depositoMap.has(row.didDeposito)) {
