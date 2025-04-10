@@ -54,8 +54,9 @@ class ProductoEcommerce {
     try {
       const checkDidProductoEcommerceQuery = 'SELECT id,did,url, sku,habilitado,flex FROM productos_ecommerces WHERE flex = ? AND didProducto = ? AND elim = 0 AND superado = 0';
       const results = await executeQuery(connection, checkDidProductoEcommerceQuery, [this.flex,this.didProducto],true);
-if( results[0].url != this.url || results[0].habilitado != this.habilitado || results[0].sku != this.sku){
-  
+
+
+
 
   if (results.length > 0) {
     const updateQuery = 'UPDATE productos_ecommerces SET superado = 1 WHERE did = ?';
@@ -63,7 +64,7 @@ if( results[0].url != this.url || results[0].habilitado != this.habilitado || re
     return this.createNewRecord2(connection,results[0].did); ;
   } else {
     return this.createNewRecord(connection);
-  }
+  
 }
     } catch (error) {
       throw error;
