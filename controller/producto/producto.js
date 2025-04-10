@@ -11,6 +11,7 @@ class ProductO1 {
     imagen = "",
     habilitado = 0,
     esCombo = 0,
+    posicion="",
     quien = 0,
     superado = 0,
     elim = 0,
@@ -24,6 +25,7 @@ class ProductO1 {
     this.imagen = imagen;
     this.habilitado = habilitado;
     this.esCombo = esCombo;
+    this.posicion = posicion;
     this.quien = quien || 0;
     this.superado = superado;
     this.elim = elim;
@@ -52,6 +54,7 @@ class ProductO1 {
       };
     }
   }
+
 
   async checkAndUpdateDidProducto(connection) {
     try {

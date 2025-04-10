@@ -56,7 +56,6 @@ class ProductoEcommerce {
       const results = await executeQuery(connection, checkDidProductoEcommerceQuery, [this.flex,this.didProducto],true);
 if( results[0].url != this.url || results[0].habilitado != this.habilitado || results[0].sku != this.sku){
   
-console.log(results,"results[0].url != this.url || results[0].habilitado != this.habilitado || results[0].sku != this.sku");
 
   if (results.length > 0) {
     const updateQuery = 'UPDATE productos_ecommerces SET superado = 1 WHERE did = ?';

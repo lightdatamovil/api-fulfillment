@@ -53,19 +53,18 @@ class ProductoDeposito {
       const checkDidProductoDepositoQuery = 'SELECT did,habilitado FROM productos_depositos WHERE didDeposito = ? AND didProducto = ? AND elim = 0 AND superado = 0';
       const results = await executeQuery(connection, checkDidProductoDepositoQuery, [this.didDeposito, this.didProducto],true);
 
-console.log(results,"results");
-console.log(this.habilitado,"this.habilitado");
+
 
       
 if (results[0].habilitado != this.habilitado) {
 
 
   if (results.length > 0) {
-    console.log("llegamossssssssss");
+
     
     const updateQuery = 'UPDATE productos_depositos SET superado = 1 WHERE didDeposito = ? AND didProducto = ?';
     await executeQuery(connection, updateQuery, [this.did,this.didProducto]);
-    console.log(results,"results[0].did");
+ 
     
     return this.createNewRecord2(connection,results[0].did);
   } else {
@@ -118,7 +117,7 @@ else{
       const insertResult = await executeQuery(connection, insertQuery, values);
       
     
-        console.log("LLEGAMOS DID 0",did2);
+  
         
         const updateQuery = 'UPDATE productos_depositos SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [did2, insertResult.insertId]);

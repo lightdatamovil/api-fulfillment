@@ -46,14 +46,13 @@ class ProductoCombo {
   }
 
   async checkAndUpdateDidProductoCombo(connection) {
-console.log("dsa");
+
 
     try {
       const checkDidProductoComboQuery = 'SELECT did,combo FROM productos_combos WHERE didProducto = ? AND superado = 0 AND elim = 0';
       const results = await executeQuery(connection, checkDidProductoComboQuery, [this.did]);
 
-console.log( results,"results");
-console.log(this.combo,"this.combo");
+
 let combazo= JSON.stringify(results[0].did)
 
 if (combazo !== results[0].combo)
