@@ -79,8 +79,8 @@ producto.post('/producto', async (req, res) => {
         data.quien,
         0,
         0,
-        comboArray, // Ahora es un solo JSON string, no un array
-        connection
+        connection,
+
     );
 
     await productoCombo.insert();
@@ -120,6 +120,7 @@ producto.post('/producto', async (req, res) => {
                     ecommerceItem.link,
                     ecommerceItem.habilitado,
                     ecommerceItem.sync,
+                    ecommerceItem.sku,
                     data.quien,
                     0,
                     0,
@@ -129,9 +130,10 @@ producto.post('/producto', async (req, res) => {
             }
         }
 
+
         return res.status(200).json({
-            estado: true,
-            didCuenta: productoResult.insertId
+            estado: true
+            
         });
     }
     } catch (error) {
@@ -145,6 +147,10 @@ producto.post('/producto', async (req, res) => {
         connection.end();
     }
 });
+
+
+
+
 producto.post("/getProducts", async (req, res) => {
     const Producto= new ProductO1();
     const data = req.body;

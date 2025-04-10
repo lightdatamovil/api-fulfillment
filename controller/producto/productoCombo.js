@@ -15,7 +15,7 @@ class ProductoCombo {
     this.did = did;
     this.didProducto = didProducto;
     this.cantidad = cantidad;
-    this.combo = combo;
+    this.combo = JSON.stringify(combo);
     this.quien = quien || 0;
     this.superado = superado;
     this.elim = elim;

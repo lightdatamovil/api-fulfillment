@@ -33,7 +33,7 @@ class ProductoEcommerce {
 
   async insert() {
     try {
-      if (this.did === null || this.did === "") {
+      if (this.did === null || this.did === "" || this.did === 0) {
         return this.createNewRecord(this.connection);
       } else {
         return this.checkAndUpdateDidProductoEcommerce(this.connection);
