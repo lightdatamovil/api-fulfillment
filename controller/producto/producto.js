@@ -185,6 +185,7 @@ async  traerProductoId(connection, id) {
 
         pc.did AS comboDid,
         pc.cantidad,
+        pc.combo,
         
 
         pd.didDeposito,
@@ -197,9 +198,10 @@ async  traerProductoId(connection, id) {
       WHERE p.did = ? AND p.elim = 0 AND p.superado = 0 and pc.elim = 0 AND pc.superado = 0 AND pd.elim = 0 AND pd.superado = 0 AND pe.elim = 0 AND pe.superado = 0
     `;
 
-    const rows = await executeQuery(connection, query, [id], true);
+    const rows = await executeQuery(connection, query, [id]);
 
     if (!rows.length) return null;
+console.log(rows,"rows");
 
     const producto = {
       did: rows[0].did,
@@ -212,7 +214,7 @@ async  traerProductoId(connection, id) {
       esCombo: rows[0].esCombo,
       imagen: rows[0].imagen || "",
       ecommerce: [],
-      combo: [],
+      combo: JSON.parse(rows[0].combo) || rows[0].combo,
       depositos: [],
     };
 
@@ -235,15 +237,7 @@ async  traerProductoId(connection, id) {
       }
 
       // COMBO
-      if (row.comboDid && !comboMap.has(row.comboDid) &&row.esCombo == 1) {
-        producto.combo.push({
-          did: row.comboDid,
-          cantidad: row.cantidad
-        });
-        comboMap.add(row.comboDid);
-
-      }
-      console.log(comboMap,"comboMap");
+   
       
 
       // DEPOSITOS
