@@ -55,14 +55,15 @@ class ProductoCombo {
 
 let combazo= JSON.stringify(results[0].did)
 
-if (combazo !== results[0].combo)
+if (combazo != results[0].combo)
   {
+console.log("llegamos");
 
   if (results.length > 0) {
     const updateQuery = 'UPDATE productos_combos SET superado = 1 WHERE did = ?';
     await executeQuery(connection, updateQuery, [this.did]);
     combazo = JSON.parse(combazo)
-    return this.createNewRecord2(connection,combazo);
+    return this.createNewRecord2(connection,results[0].did);
   } else {
     return this.createNewRecord(connection);
   }
@@ -116,10 +117,12 @@ if (combazo !== results[0].combo)
       const insertQuery = `INSERT INTO productos_combos (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
       const insertResult = await executeQuery(connection, insertQuery, values);
   
-      if (this.did == 0 || this.did == null) {
+
+        console.log("hola",did);
+        
         const updateQuery = 'UPDATE productos_combos SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [did, insertResult.insertId]);
-      }
+      
   
       return { insertId: insertResult.insertId };
     } catch (error) {
