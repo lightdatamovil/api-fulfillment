@@ -13,6 +13,7 @@ async function createTables(connection) {
                 imagen VARCHAR(255),
                 habilitado INT NOT NULL DEFAULT 0,
                 esCombo INT NOT NULL DEFAULT 0,
+                posicion VARCHAR(128),
                 autofecha DATETIME DEFAULT CURRENT_TIMESTAMP,
                 quien INT,
                 superado INT DEFAULT 0,
