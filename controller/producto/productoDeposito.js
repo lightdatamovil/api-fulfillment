@@ -30,6 +30,8 @@ class ProductoDeposito {
       if (this.did === null || this.did === "" || this.did === 0) {
         return this.createNewRecord(this.connection);
       } else {
+  
+        
         return this.checkAndUpdateDidProductoDeposito(this.connection);
       }
     } catch (error) {
@@ -46,16 +48,34 @@ class ProductoDeposito {
 
   async checkAndUpdateDidProductoDeposito(connection) {
     try {
-      const checkDidProductoDepositoQuery = 'SELECT id FROM productos_depositos WHERE did = ?';
-      const results = await executeQuery(connection, checkDidProductoDepositoQuery, [this.did]);
+    
+      
+      const checkDidProductoDepositoQuery = 'SELECT did,habilitado FROM productos_depositos WHERE didDeposito = ? AND didProducto = ? AND elim = 0 AND superado = 0';
+      const results = await executeQuery(connection, checkDidProductoDepositoQuery, [this.didDeposito, this.didProducto],true);
 
-      if (results.length > 0) {
-        const updateQuery = 'UPDATE productos_depositos SET superado = 1 WHERE didDeposito = ? AND didProducto = ?';
-        await executeQuery(connection, updateQuery, [this.did,this.didProducto]);
-        return this.createNewRecord(connection);
-      } else {
-        return this.createNewRecord(connection);
-      }
+console.log(results,"results");
+console.log(this.habilitado,"this.habilitado");
+
+      
+if (results[0].habilitado != this.habilitado) {
+
+
+  if (results.length > 0) {
+    console.log("llegamossssssssss");
+    
+    const updateQuery = 'UPDATE productos_depositos SET superado = 1 WHERE didDeposito = ? AND didProducto = ?';
+    await executeQuery(connection, updateQuery, [this.did,this.didProducto]);
+    console.log(results,"results[0].did");
+    
+    return this.createNewRecord2(connection,results[0].did);
+  } else {
+    return this.createNewRecord(connection);
+  }
+}
+else{
+
+  return "Salio mal "
+}
     } catch (error) {
       throw error;
     }
@@ -80,6 +100,31 @@ class ProductoDeposito {
       }
       
       return { insertId: insertResult.insertId };
+    } catch (error) {
+      throw error;
+    }
+  }
+  async createNewRecord2(connection,did2) {
+    try {
+      const columnsQuery = 'DESCRIBE productos_depositos';
+      const results = await executeQuery(connection, columnsQuery, []);
+
+      const tableColumns = results.map((column) => column.Field);
+      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+
+      const values = filteredColumns.map((column) => this[column]);
+      const insertQuery = `INSERT INTO productos_depositos (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+      
+      const insertResult = await executeQuery(connection, insertQuery, values);
+      
+    
+        console.log("LLEGAMOS DID 0",did2);
+        
+        const updateQuery = 'UPDATE productos_depositos SET did = ? WHERE id = ?';
+        await executeQuery(connection, updateQuery, [did2, insertResult.insertId]);
+    
+      
+      return { success: true, insertId: insertResult.insertId };
     } catch (error) {
       throw error;
     }

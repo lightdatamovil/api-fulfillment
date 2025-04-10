@@ -8,6 +8,7 @@ class ProductoEcommerce {
     url = "",
     habilitado = 0,
     sync_automatico = 0,
+    sku = "",
     quien = 0,
     superado = 0,
     elim = 0,
@@ -19,6 +20,7 @@ class ProductoEcommerce {
     this.url = url;
     this.habilitado = habilitado;
     this.sync_automatico = sync_automatico;
+    this.sku = sku;
     this.quien = quien || 0;
     this.superado = superado;
     this.elim = elim;
@@ -50,16 +52,20 @@ class ProductoEcommerce {
 
   async checkAndUpdateDidProductoEcommerce(connection) {
     try {
-      const checkDidProductoEcommerceQuery = 'SELECT id FROM productos_ecommerces WHERE did = ?';
-      const results = await executeQuery(connection, checkDidProductoEcommerceQuery, [this.did]);
+      const checkDidProductoEcommerceQuery = 'SELECT id,did,url, sku,habilitado,flex FROM productos_ecommerces WHERE flex = ? AND didProducto = ? AND elim = 0 AND superado = 0';
+      const results = await executeQuery(connection, checkDidProductoEcommerceQuery, [this.flex,this.didProducto],true);
+if( results[0].url != this.url || results[0].habilitado != this.habilitado || results[0].sku != this.sku){
+  
+console.log(results,"results[0].url != this.url || results[0].habilitado != this.habilitado || results[0].sku != this.sku");
 
-      if (results.length > 0) {
-        const updateQuery = 'UPDATE productos_ecommerces SET superado = 1 WHERE did = ?';
-        await executeQuery(connection, updateQuery, [this.did]);
-        return this.createNewRecord(connection);
-      } else {
-        return this.createNewRecord(connection);
-      }
+  if (results.length > 0) {
+    const updateQuery = 'UPDATE productos_ecommerces SET superado = 1 WHERE did = ?';
+    await executeQuery(connection, updateQuery, [results[0].did]);
+    return this.createNewRecord2(connection,results[0].did); ;
+  } else {
+    return this.createNewRecord(connection);
+  }
+}
     } catch (error) {
       throw error;
     }
@@ -82,6 +88,30 @@ class ProductoEcommerce {
         const updateQuery = 'UPDATE productos_ecommerces SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
       }
+      
+      return { insertId: insertResult.insertId };
+    } catch (error) {
+      throw error;
+    }
+  }
+  async createNewRecord2(connection,did) {
+    try {
+      const columnsQuery = 'DESCRIBE productos_ecommerces';
+      const results = await executeQuery(connection, columnsQuery, []);
+
+      const tableColumns = results.map((column) => column.Field);
+      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+
+      const values = filteredColumns.map((column) => this[column]);
+      const insertQuery = `INSERT INTO productos_ecommerces (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+      
+      const insertResult = await executeQuery(connection, insertQuery, values);
+      
+      console.log("aloha",insertResult.insertId,did);
+      
+        const updateQuery = 'UPDATE productos_ecommerces SET did = ? WHERE id = ?';
+        await executeQuery(connection, updateQuery, [did, insertResult.insertId]);
+   
       
       return { insertId: insertResult.insertId };
     } catch (error) {

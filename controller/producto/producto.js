@@ -97,7 +97,7 @@ class ProductO1 {
     try {
         const checkDeleteQuery = 'SELECT did FROM productos_combos WHERE did = ? AND superado = 0 AND elim = 0';
         const results = await executeQuery(connection, checkDeleteQuery, [did]);
-        console.log("results", results);
+
 
         return results.length > 0; 
     } catch (error) {

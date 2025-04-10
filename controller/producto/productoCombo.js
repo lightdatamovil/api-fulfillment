@@ -5,20 +5,20 @@ class ProductoCombo {
     did = "",
     didProducto = 0,
     cantidad = 0,
+    combo = {},
     quien = 0,
     superado = 0,
     elim = 0,
-    combo = {},
     connection = null
 
   ) {
     this.did = did;
     this.didProducto = didProducto;
     this.cantidad = cantidad;
+    this.combo = combo;
     this.quien = quien || 0;
     this.superado = superado;
     this.elim = elim;
-    this.combo = combo;
     this.connection = connection;
   }
 
@@ -46,17 +46,29 @@ class ProductoCombo {
   }
 
   async checkAndUpdateDidProductoCombo(connection) {
+console.log("dsa");
+
     try {
-      const checkDidProductoComboQuery = 'SELECT id FROM productos_combos WHERE did = ?';
+      const checkDidProductoComboQuery = 'SELECT did,combo FROM productos_combos WHERE didProducto = ? AND superado = 0 AND elim = 0';
       const results = await executeQuery(connection, checkDidProductoComboQuery, [this.did]);
 
-      if (results.length > 0) {
-        const updateQuery = 'UPDATE productos_combos SET superado = 1 WHERE did = ?';
-        await executeQuery(connection, updateQuery, [this.did]);
-        return this.createNewRecord(connection);
-      } else {
-        return this.createNewRecord(connection);
-      }
+console.log( results,"results");
+console.log(this.combo,"this.combo");
+let combazo= JSON.stringify(results[0].did)
+
+if (combazo !== results[0].combo)
+  {
+
+  if (results.length > 0) {
+    const updateQuery = 'UPDATE productos_combos SET superado = 1 WHERE did = ?';
+    await executeQuery(connection, updateQuery, [this.did]);
+    combazo = JSON.parse(combazo)
+    return this.createNewRecord2(connection,combazo);
+  } else {
+    return this.createNewRecord(connection);
+  }
+
+ }
     } catch (error) {
       throw error;
     }
@@ -86,6 +98,36 @@ class ProductoCombo {
     }
   }
 
+  async createNewRecord2(connection, did) {
+    try {
+      const columnsQuery = 'DESCRIBE productos_combos';
+      const results = await executeQuery(connection, columnsQuery, []);
+  
+      const tableColumns = results.map((column) => column.Field);
+      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+  
+      const values = filteredColumns.map((column) => {
+        const val = this[column];
+        if (typeof val === 'object' && val !== null) {
+          return JSON.stringify(val);
+        }
+        return val;
+      });
+  
+      const insertQuery = `INSERT INTO productos_combos (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+      const insertResult = await executeQuery(connection, insertQuery, values);
+  
+      if (this.did == 0 || this.did == null) {
+        const updateQuery = 'UPDATE productos_combos SET did = ? WHERE id = ?';
+        await executeQuery(connection, updateQuery, [did, insertResult.insertId]);
+      }
+  
+      return { insertId: insertResult.insertId };
+    } catch (error) {
+      throw error;
+    }
+  }
+  
 
   async delete() {
     try {

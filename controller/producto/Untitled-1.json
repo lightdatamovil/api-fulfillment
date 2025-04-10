@@ -1,0 +1,32 @@
+{
+	"did": 8,
+	"cliente": "1",
+	"idEmpresa": 270,
+	"titulo": "Teclado logitech 125",
+	"sku": "5536",
+	"descripcion": "Teclado para pc marca logitech color negro",
+	"habilitado": 1,
+	"esCombo": 0,
+	"imagen": "",
+	"ecommerce": [
+		{
+			"flex": "1",
+			"link": "www.tecladonegro.com",
+			"sku": "445566",
+			"habilitado": 1,
+			"sync": 0
+		}
+	],
+	"combo": [
+		{
+			"did": 1,
+			"cantidad": 20
+		}
+	],
+	"depositos": [
+		{
+			"did": 1,
+			"habilitado": 1
+		}
+	]
+}

@@ -61,7 +61,7 @@ producto.post('/producto', async (req, res) => {
         const productId= productoResult.insertId;
 
         // Procesar combos
-      if (data.combo && Array.isArray(data.combo)) {
+      if (data.combo && Array.isArray(data.combo) ) {    
     // Convertir `combo` en un único objeto JSON
     const comboArray = JSON.stringify(data.combo.map(item => ({
         did: item.did,
@@ -86,10 +86,13 @@ producto.post('/producto', async (req, res) => {
 
         // Procesar depósitos
         if (data.depositos && Array.isArray(data.depositos)) {
+
+
+
             for (const deposito of data.depositos) {
                 const productoDeposito = new ProductoDeposito(
-                    data.depositos.did ?? 0,    
-                    productoResult.insertId,
+                    deposito.did ?? 0,    
+            data.did ??  productoResult.insertId,
                     deposito.did,
 
                     deposito.habilitado, // habilitado
@@ -163,7 +166,93 @@ producto.post("/getProductsId", async (req, res) => {
         productos: response
     });
 })
+producto.post("/updateProducts", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+    const producto= new ProductO1(
+        data.did ?? 0,
+        data.cliente,
+        data.sku,
+        data.titulo,
+        data.descripcion,
+        data.imagen,
+        data.habilitado,
+        data.esCombo,
+        data.quien,
+        data.superado ?? 0,
+        data.elim ?? 0,
+        connection
+    );
+    const response = await producto.checkAndUpdateDidProducto(connection, data.did);
+    return res.status(200).json({
+        estado: true,
+        productos: response
+    });
+})
+producto.post("/updateCombos", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+ 
+        const combo = new ProductoCombo(
+            data.did ?? 0,
+            data.did,
+            data.cantidad ?? 0,
+            data.combo,
+          
+        );
+        await combo.checkAndUpdateDidProductoCombo(connection);
+    
 
+    return res.status(200).json({
+        estado: true,
+   
+    });
+})
+producto.post("/updateEcommerce", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+    for (const ecommerceItem of data.ecommerce) {
+        const productoEcommerce = new ProductoEcommerce(
+            data.did ?? 0,
+            data.did,
+            ecommerceItem.tienda,
+
+            ecommerceItem.link,
+            ecommerceItem.habilitado,
+            ecommerceItem.sync,
+            ecommerceItem.sku,
+            data.quien,
+            0,
+            0,
+            connection
+        );
+        await productoEcommerce.checkAndUpdateDidProductoEcommerce(connection);
+    }
+    return res.status(200).json({
+        estado: true,
+    
+    });
+})
+
+producto.post("/updateDepositos", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+    for (const deposito of data.depositos) {
+        const productoDeposito = new ProductoDeposito(
+            deposito.did ?? 0,    
+              data.did ??  productoResult.insertId,
+              deposito.did,
+              deposito.habilitado, // habilitado
+        );
+        console.log(productoDeposito,"productoDeposito");
+        
+        await productoDeposito.checkAndUpdateDidProductoDeposito(connection);
+    }
+    return res.status(200).json({
+        estado: true,
+     
+    });
+})
 
 
 producto.get("/", async (req, res) => {
