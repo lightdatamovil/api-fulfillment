@@ -148,11 +148,6 @@ producto.post('/producto', async (req, res) => {
     }
 });
 
-
-
-
-
-
 producto.post("/getProductsId", async (req, res) => {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
