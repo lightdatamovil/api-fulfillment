@@ -30,6 +30,8 @@ app.use(cors({
 // Importar rutas
 const router = require('./route/route-fulfillment');
 const producto = require('./route/route-producto');
+const cliente = require('./route/route-cliente');
+const fmas = require('./route/route-fmas');
 
 
 // Middleware para asegurar que las empresas estén actualizadas
@@ -43,6 +45,8 @@ app.use(async (req, res, next) => {
 // Usar las rutas
 app.use('/fulfillment', router);
 app.use('/producto', producto);
+app.use('/cliente', cliente);
+app.use('/fmas', fmas);
 
 // Ruta raíz que devuelve un mensaje "Hola"
 app.get('/', (req, res) => {

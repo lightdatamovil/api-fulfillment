@@ -181,14 +181,39 @@ async traerProductos(connection, data = {}) {
 
     const whereClause = condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
     const query = `
-      SELECT p.didCliente, p.sku, p.titulo, p.habilitado, p.did
+      SELECT p.didCliente, p.sku, p.titulo, p.habilitado, p.did AS productId,
+             v.did AS variantId, v.sku AS variantSku, v.cantidad AS variantCantidad
       FROM productos AS p
+      LEFT JOIN variantes AS v ON v.didProducto = p.did
       ${joins}
       ${whereClause}
     `;
 
     const results = await executeQuery(connection, query, valores);
-    return results;
+
+    // Agrupar los resultados por producto
+    const productos = results.reduce((acc, row) => {
+      const { productId, variantId, variantSku, variantCantidad, ...producto } = row;
+
+      // Si el producto no está en el acumulador, lo inicializamos
+      if (!acc[productId]) {
+        acc[productId] = { ...producto, variantes: [] };
+      }
+
+      // Si hay una variante, la agregamos al producto
+      if (variantId) {
+        acc[productId].variantes.push({
+          variantId,
+          variantSku,
+          variantCantidad
+        });
+      }
+
+      return acc;
+    }, {});
+
+    // Convertir el objeto acumulador a un array
+    return Object.values(productos);
 
   } catch (error) {
     console.error("Error al traer productos:", error.message);

@@ -11,6 +11,8 @@ const ProductoCombo = require('../controller/producto/productoCombo');
 const ProductoDeposito = require('../controller/producto/productoDeposito');
 const ProductoEcommerce = require('../controller/producto/productoEcommerce');
 const ProductO1 = require('../controller/producto/producto');
+const Variante = require('../controller/producto/variante');
+const StockConsolidado = require('../controller/producto/stock_consolidado');
 
 
 
@@ -65,8 +67,8 @@ producto.post('/producto', async (req, res) => {
       if (data.combo && Array.isArray(data.combo) ) {    
     // Convertir `combo` en un único objeto JSON
     const comboArray = JSON.stringify(data.combo.map(item => ({
-        did: item.did,
-        cantidad: parseInt(item.cantidad, 10) // Convertir cantidad a número
+        VariantId: item.did,
+        cantidad: parseInt(item.cantidad) // Convertir cantidad a número
     })));
 
     console.log("Combo antes de insertar:", comboArray); // Verifica el formato correcto
@@ -85,6 +87,51 @@ producto.post('/producto', async (req, res) => {
 
     await productoCombo.insert();
 }
+
+if (data.variantes && Array.isArray(data.variantes)) {
+
+
+
+    for (const variante of data.variantes) {
+        const varianteA = new Variante(
+            variante.did ?? 0,
+            productId,    
+            variante.sku,
+            variante.cantidad,
+            variante.variante,
+            variante.habilitado, // habilitado
+            data.quien,
+            0,
+            0,
+          
+            connection
+            
+        );
+        console.log(varianteA,"productoDeposito");
+        
+ const resultsVariante =    await varianteA.insert();
+ const variantId = resultsVariante.insertId;
+
+
+
+
+        const stockConsolidado = new StockConsolidado(
+            data.did ?? 0, // did se genera automáticamente
+            productId,
+            variantId, // didVariante (puede ser 0 si no se relaciona con una variante específica)
+            variante.cantidad, // Asignar la cantidad total
+            data.quien,
+            0,
+            0,
+            connection
+        );
+    
+        await stockConsolidado.insert();
+    }
+    }
+
+
+
 
         // Procesar depósitos
         if (data.depositos && Array.isArray(data.depositos)) {
@@ -108,7 +155,7 @@ producto.post('/producto', async (req, res) => {
                 await productoDeposito.insert();
             }
         }
-
+    
         // Procesar ecommerce
         if (data.ecommerce && Array.isArray(data.ecommerce)) {
             for (const ecommerceItem of data.ecommerce) {

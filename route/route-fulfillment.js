@@ -377,8 +377,8 @@ router.post("/orden", async (req, res) => {
 
 for (const item of data.ordenes_items) {
         const ordenes_items = new Ordenes_items(
-            item.did ?? 0,
-            response.insertId,
+            data.did ?? 0,
+            data.did ?? response.insertId,
           item.codigo,
           item.imagen,
           item.descripcion,
@@ -399,8 +399,8 @@ console.log("Respuesta de insert:", resulta2);
             
         
         return res.status(200).json({
-            estado: response.estado !== undefined ? response.estado : false,
-            message: response.message || response
+            estado: true,
+        
         });
     } catch (error) {
         console.error('Error durante la operación:', error);
