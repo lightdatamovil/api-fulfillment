@@ -126,7 +126,7 @@ cliente.post("/getUsuarios", async (req, res) => {
   
       return res.status(200).json({
         estado: true,
-        usuario: response
+        usuarios: response
       });
     } catch (error) {
       console.error('Error durante la operación:', error);
@@ -150,7 +150,7 @@ cliente.post("/getUsuarios", async (req, res) => {
   
       return res.status(200).json({
         estado: true,
-        usuarios: response
+        usuario: response
       });
     } catch (error) {
       console.error('Error durante la operación:', error);
