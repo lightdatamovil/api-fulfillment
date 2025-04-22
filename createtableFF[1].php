@@ -148,11 +148,13 @@ $Aschemasql["productos_combos"] =  "CREATE TABLE IF NOT EXISTS `productos_combos
 );
 ";
 
-$Aschemasql["productos_ecommerces"] = "CREATE TABLE IF NOT EXISTS `productos_ecommerces`  (
+$Aschemasql["productos_ecommerce"] = "CREATE TABLE IF NOT EXISTS `productos_ecommerce`  (
 
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `did` int(11) NOT NULL,
   `didProducto` int(11) NOT NULL,
+  `didVariante` int(11) NOT NULL,
+  `cantidad` int(11) NOT NULL,
   `flex` int(11) NOT NULL,
   `url` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
   `habilitado` int(11) NOT NULL DEFAULT 0,
@@ -211,9 +213,9 @@ $Aschemasql["stock_consolidado"] = "CREATE TABLE IF NOT EXISTS `stock_consolidad
 );
 ";
 
-$Aschemasql["variantes"] = "CREATE TABLE IF NOT EXISTS `variantes`  (
+$Aschemasql["producto_variaciones"] = "CREATE TABLE IF NOT EXISTS `producto_variaciones`  (
 
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+ `id` int(11) NOT NULL AUTO_INCREMENT,
   `did` int(11) NULL DEFAULT NULL,
   `didProducto` int(11) NULL DEFAULT NULL,
   `sku` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
@@ -230,7 +232,7 @@ $Aschemasql["variantes"] = "CREATE TABLE IF NOT EXISTS `variantes`  (
 
 $Aschemasql["ordenes"] = "CREATE TABLE IF NOT EXISTS `ordenes`  (
   
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `did` int NOT NULL,
   `didEnvio` int NOT NULL,
   `didCliente` int NOT NULL,
@@ -246,12 +248,13 @@ $Aschemasql["ordenes"] = "CREATE TABLE IF NOT EXISTS `ordenes`  (
   `quien_armado` int NOT NULL,
   `autofecha` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `superado` int NOT NULL DEFAULT '0',
-  `elim` int NOT NULL DEFAULT '0'
+  `elim` int NOT NULL DEFAULT '0',
+   PRIMARY KEY (`id`) USING BTREE
 );
 ";
 
 $Aschemasql["ordenes_items"] = "CREATE TABLE IF NOT EXISTS `ordenes_items`  (
- `id` int NOT NULL,
+ `id` int NOT NULL AUTO_INCREMENT,
   `didOrden` int NOT NULL,
   `codigo` varchar(128) NOT NULL,
   `imagen` varchar(256) NOT NULL,
@@ -264,9 +267,43 @@ $Aschemasql["ordenes_items"] = "CREATE TABLE IF NOT EXISTS `ordenes_items`  (
   `descargado` int NOT NULL DEFAULT '0',
   `autofecha` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `superado` int NOT NULL DEFAULT '0',
-  `elim` int NOT NULL DEFAULT '0'
+  `elim` int NOT NULL DEFAULT '0',
+   PRIMARY KEY (`id`) USING BTREE
 );
 ";
+
+$Aschemasql["atributos"] = "CREATE TABLE IF NOT EXISTS `atributos`  (
+
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(50) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `descripcion` text CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `orden` int(11) NULL DEFAULT 0,
+  `habilitado` tinyint(1) NULL DEFAULT 1,
+  `did` int(11) NULL DEFAULT NULL,
+  `quien` int(11) NULL DEFAULT NULL,
+  `superado` int(11) NULL DEFAULT NULL,
+  `elim` int(11) NULL DEFAULT NULL,
+  `autofecha` datetime NULL DEFAULT NULL,
+  `codigo` varchar(6) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+
+ 
+); ";
+
+$Aschemasql["atributos_valores"] = "CREATE TABLE IF NOT EXISTS `atributos_valores`  (
+
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `did` int(11) NOT NULL,
+  `didProducto` int(11) NOT NULL,
+  `didAtributo` int(11) NOT NULL,
+  `valor` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `habilitado` int(11) NOT NULL DEFAULT 0,
+  `autofecha` datetime NULL DEFAULT current_timestamp(),
+  `quien` int(11) NULL DEFAULT NULL,
+  `superado` int(11) NULL DEFAULT 0,
+  `elim` int(11) NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE
+); ";
 
 
 

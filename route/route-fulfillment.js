@@ -341,7 +341,7 @@ router.post("/getProducts", async (req, res) => {
 
 router.post("/orden", async (req, res) => {
     const data = req.body;
-    const connection = await getConnection(data.idEmpresa);
+    const connection = await getConnectionLocal(data.idEmpresa);
 
     try {
 
@@ -372,13 +372,16 @@ router.post("/orden", async (req, res) => {
             connection  
         );
         const response = await orden.insert();
+
         console.log("Respuesta de insert:", response);
+        console.log(response.insertId,"response.insertId");
+        
 
 
 for (const item of data.ordenes_items) {
         const ordenes_items = new Ordenes_items(
             data.did ?? 0,
-            data.did ?? response.insertId,
+            response.insertId ?? data.didItem,
           item.codigo,
           item.imagen,
           item.descripcion,
@@ -392,6 +395,8 @@ for (const item of data.ordenes_items) {
           item.elim || 0,
           connection
         );
+  
+        
 
 let resulta2= await ordenes_items.insert();
 console.log("Respuesta de insert:", resulta2);

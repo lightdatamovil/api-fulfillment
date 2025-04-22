@@ -13,6 +13,8 @@ const ProductoEcommerce = require('../controller/producto/productoEcommerce');
 const ProductO1 = require('../controller/producto/producto');
 const Variante = require('../controller/producto/variante');
 const StockConsolidado = require('../controller/producto/stock_consolidado');
+const Atributo = require('../controller/producto/atributos');
+const Atributo_valor = require('../controller/producto/atributo_valor');
 
 
 
@@ -96,10 +98,7 @@ if (data.variantes && Array.isArray(data.variantes)) {
         const varianteA = new Variante(
             variante.did ?? 0,
             productId,    
-            variante.sku,
-            variante.cantidad,
-            variante.variante,
-            variante.habilitado, // habilitado
+          variante.data,
             data.quien,
             0,
             0,
@@ -125,6 +124,28 @@ if (data.variantes && Array.isArray(data.variantes)) {
             0,
             connection
         );
+
+        if (data.ecommerce && Array.isArray(data.ecommerce)) {
+            for (const ecommerceItem of data.ecommerce) {
+                const productoEcommerce = new ProductoEcommerce(
+                    data.did ?? 0,
+                    productoResult.insertId,
+                    variantId ?? 0,
+                    ecommerceItem.tienda,
+    
+                    ecommerceItem.link,
+                    ecommerceItem.habilitado,
+                    ecommerceItem.sync,
+                    ecommerceItem.sku,
+                    data.quien,
+                    0,
+                    0,
+                    connection
+                );
+                await productoEcommerce.insert();
+            }
+        }
+
     
         await stockConsolidado.insert();
     }
@@ -157,26 +178,7 @@ if (data.variantes && Array.isArray(data.variantes)) {
         }
     
         // Procesar ecommerce
-        if (data.ecommerce && Array.isArray(data.ecommerce)) {
-            for (const ecommerceItem of data.ecommerce) {
-                const productoEcommerce = new ProductoEcommerce(
-                    data.did ?? 0,
-                    productoResult.insertId,
-                    ecommerceItem.tienda,
-    
-                    ecommerceItem.link,
-                    ecommerceItem.habilitado,
-                    ecommerceItem.sync,
-                    ecommerceItem.sku,
-                    data.quien,
-                    0,
-                    0,
-                    connection
-                );
-                await productoEcommerce.insert();
-            }
-        }
-
+       
 
         return res.status(200).json({
             estado: true
@@ -255,6 +257,7 @@ producto.post("/updateEcommerce", async (req, res) => {
         const productoEcommerce = new ProductoEcommerce(
             data.did ?? 0,
             data.did,
+            data.didVariante ?? 0,
             ecommerceItem.tienda,
 
             ecommerceItem.link,
@@ -304,6 +307,92 @@ producto.post("/getProducts", async (req, res) => {
     });
 })
 
+producto.post("/atributos", async (req, res) => {
+    try {
+        const data = req.body;
+        const connection = await getConnectionLocal(data.idEmpresa);
+
+        const atributo = new Atributo(    data.did ?? 0,
+            data.nombre,
+            data.descripcion,
+            data.orden, 
+            data.codigo,
+            data.quien,
+            data.superado ?? 0,
+            data.elim ?? 0,
+      
+            connection);
+        const response = await atributo.insert( );
+
+        for (const valor of data.valores) {
+
+        const atributoValor = new Atributo_valor(
+            valor.did ?? 0,
+            response.insertId,
+            valor.valor,
+            data.orden,
+            valor.codigo,
+            data.quien,
+            data.superado ?? 0,
+            data.elim ?? 0,
+            connection
+        );
+        await atributoValor.insert();}
+
+        return res.status(200).json({
+            estado: true,
+            productos: response
+        });
+    } catch (error) {
+        console.error("Error en /atributos:", error);
+        return res.status(500).json({
+            estado: false,
+            mensaje: "Error al obtener los atributos del producto.",
+            error: error.message
+        });
+    }
+});
+
+producto.post("/getAtributos", async (req, res) => {
+    try {
+        const data = req.body;
+        const connection = await getConnectionLocal(data.idEmpresa);
+        const atributo = new Atributo();
+        const response = await atributo.getAll(connection);
+        
+        return res.status(200).json({
+            estado: true,
+            atributos: response
+        });
+    } catch (error) {
+        console.error("Error en /getAtributos:", error);
+        return res.status(500).json({
+            estado: false,
+            mensaje: "Ocurrió un error al obtener los atributos",
+            error: error.message
+        });
+    }
+});
+producto.post("/getAtributos_valor", async (req, res) => {
+    try {
+        const data = req.body;
+        const connection = await getConnectionLocal(data.idEmpresa);
+        const atributo = new Atributo_valor();
+        const response = await atributo.getAll(connection);
+        
+        return res.status(200).json({
+            estado: true,
+            atributos: response
+        });
+    } catch (error) {
+        console.error("Error en /getAtributos:", error);
+        return res.status(500).json({
+            estado: false,
+            mensaje: "Ocurrió un error al obtener los atributos",
+            error: error.message
+        });
+    }
+});
 
 producto.get("/", async (req, res) => {
     res.status(200).json({

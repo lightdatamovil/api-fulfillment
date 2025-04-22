@@ -245,63 +245,55 @@ cliente.post ("/getClientes", async (req, res) => {
 });
     
 cliente.post('/clienteCuenta', async (req, res) => {
-    const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
 
-    try {
-      
-        if (data.operador === 'eliminar') {
-            const clienteCuenta = new Cliente_cuenta();
-       const response=  await clienteCuenta.delete(connection, data.did);
-       console.log("Respuesta de delete:", response);
-       return res.status(200).json({
+  try {
+    // Si el operador es "eliminar"
+    if (data.operador === 'eliminar') {
+      const clienteCuenta = new Cliente_cuenta();
+      const response = await clienteCuenta.delete(connection, data.did);
+
+      return res.status(200).json({
         estado: response.estado !== undefined ? response.estado : false,
         message: response.message || response
+      });
+    }
+
+    // Si es creación o actualización
+    const clienteCuenta = new Cliente_cuenta(
+      data.did ?? 0,
+      data.diCliente,
+      data.tipo,
+      JSON.stringify(data.data ?? {}), // Importante: guardar como string JSON
+      data.depositos ?? "",
+      data.quien ?? 0,
+      data.superado ?? 0,
+      data.elim ?? 0,
+      connection
+    );
+
+    const clienteResult = await clienteCuenta.insert();
+    const clienteId = clienteResult.insertId;
+
+    return res.status(200).json({
+      estado: true,
+      message: "Cliente cuenta guardado correctamente",
+      didUsuario: clienteId
     });
-    
-        }
-        else{
 
-        // Crear nuevo producto
-        const clienteCuenta = new Cliente_cuenta(
-            data.did ?? 0,
-            data.diCliente,
-            data.data,
-            data.ml_id_vendedor,
-            data.ml_user,
-            data.depositos,
-  
-            data.quien ,
-            data.superado ?? 0,
-            data.elim ?? 0,
-            connection
-        );
-
-        const clienteResult = await clienteCuenta.insert();
-
-        const clienteId= clienteResult.insertId;
-
-
-    
-
-        return res.status(200).json({
-            estado: true,
-            message: "Cliente creado correctamente",
-            didUsuario: clienteId
-            
-        });
-    }
-    } catch (error) {
-        console.error('Error durante la operación:', error);
-        return res.status(500).json({
-            estado: false,
-            error: -1,
-            message: error.message || error
-        });
-    } finally {
-        connection.end();
-    }
+  } catch (error) {
+    console.error('Error durante la operación:', error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error
+    });
+  } finally {
+    connection.end();
+  }
 });
+
 
 cliente.post ("/getClientesCuentas", async (req, res) => {
     const data = req.body;

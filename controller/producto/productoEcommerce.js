@@ -4,6 +4,7 @@ class ProductoEcommerce {
   constructor(
     did = "",
     didProducto = 0,
+    didVariante = 0,
     flex = 0,
     url = "",
     habilitado = 0,
@@ -16,6 +17,7 @@ class ProductoEcommerce {
   ) {
     this.did = did;
     this.didProducto = didProducto;
+    this.didVariante = didVariante;
     this.flex = flex;
     this.url = url;
     this.habilitado = habilitado;
@@ -52,14 +54,14 @@ class ProductoEcommerce {
 
   async checkAndUpdateDidProductoEcommerce(connection) {
     try {
-      const checkDidProductoEcommerceQuery = 'SELECT id,did,url, sku,habilitado,flex FROM productos_ecommerces WHERE flex = ? AND didProducto = ? AND elim = 0 AND superado = 0';
+      const checkDidProductoEcommerceQuery = 'SELECT id,did,url, sku,habilitado,flex FROM productos_ecommerce WHERE flex = ? AND didProducto = ? AND elim = 0 AND superado = 0';
       const results = await executeQuery(connection, checkDidProductoEcommerceQuery, [this.flex,this.didProducto],true);
 
 
 
 
   if (results.length > 0) {
-    const updateQuery = 'UPDATE productos_ecommerces SET superado = 1 WHERE didProducto = ? ';
+    const updateQuery = 'UPDATE productos_ecommerce SET superado = 1 WHERE didProducto = ? ';
     await executeQuery(connection, updateQuery, [this.didProducto]);
     return this.createNewRecord2(connection,results[0].did); ;
   } else {
@@ -73,19 +75,19 @@ class ProductoEcommerce {
 
   async createNewRecord(connection) {
     try {
-      const columnsQuery = 'DESCRIBE productos_ecommerces';
+      const columnsQuery = 'DESCRIBE productos_ecommerce';
       const results = await executeQuery(connection, columnsQuery, []);
 
       const tableColumns = results.map((column) => column.Field);
       const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
       const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO productos_ecommerces (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+      const insertQuery = `INSERT INTO productos_ecommerce (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
       
       const insertResult = await executeQuery(connection, insertQuery, values);
       
       if (this.did == 0 || this.did == null) {
-        const updateQuery = 'UPDATE productos_ecommerces SET did = ? WHERE id = ?';
+        const updateQuery = 'UPDATE productos_ecommerce SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
       }
       
@@ -96,20 +98,20 @@ class ProductoEcommerce {
   }
   async createNewRecord2(connection,did) {
     try {
-      const columnsQuery = 'DESCRIBE productos_ecommerces';
+      const columnsQuery = 'DESCRIBE productos_ecommerce';
       const results = await executeQuery(connection, columnsQuery, []);
 
       const tableColumns = results.map((column) => column.Field);
       const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
       const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO productos_ecommerces (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+      const insertQuery = `INSERT INTO productos_ecommerce (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
       
       const insertResult = await executeQuery(connection, insertQuery, values);
       
       console.log("aloha",insertResult.insertId,did);
       
-        const updateQuery = 'UPDATE productos_ecommerces SET did = ? WHERE id = ?';
+        const updateQuery = 'UPDATE productos_ecommerce SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [did, insertResult.insertId]);
    
       
@@ -121,7 +123,7 @@ class ProductoEcommerce {
 
   async delete() {
     try {
-      const deleteQuery = 'UPDATE productos_ecommerces SET elim = 1 WHERE did = ?';
+      const deleteQuery = 'UPDATE productos_ecommerce SET elim = 1 WHERE did = ?';
       await executeQuery(this.connection, deleteQuery, [this.did]);
     } catch (error) {
       throw error;

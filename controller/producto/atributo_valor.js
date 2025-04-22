@@ -1,25 +1,28 @@
 const e = require('cors');
 const { getConnection, executeQuery } = require('../../dbconfig');
 
-class Variante {
+class Atributo_valor {
   constructor(
     did = "",
-    didProducto = 0,
- data = "",
-  
-
+didAtributo = 0,
+    valor = "",
+    orden = 0,
+    codigo = "",
     quien = 0,
     superado = 0,
     elim = 0,
     connection = null
   ) {
     this.did = did;
-    this.didProducto = didProducto || 0;
+    this.didAtributo = didAtributo || 0;
+    this.valor = valor || "";
+    this.orden = orden || 0;
 
-    this.data = data || "";
+    this.codigo = codigo || "";
     this.quien = quien || 0;
-    this.superado = superado;
-    this.elim = elim;
+    this.superado = superado || 0;
+    this.elim = elim || 0;
+  
     this.connection = connection;
   }
 
@@ -49,11 +52,11 @@ class Variante {
 
   async checkAndUpdateDidProducto(connection) {
     try {
-      const checkDidProductoQuery = 'SELECT id FROM producto_variaciones WHERE did = ?';
+      const checkDidProductoQuery = 'SELECT id FROM atributos_valores WHERE did = ?';
       const results = await executeQuery(connection, checkDidProductoQuery, [this.did]);
 
       if (results.length > 0) {
-        const updateQuery = 'UPDATE producto_variaciones SET superado = 1 WHERE did = ?';
+        const updateQuery = 'UPDATE atributos_valores SET superado = 1 WHERE did = ?';
         await executeQuery(connection, updateQuery, [this.did]);
         return this.createNewRecord(connection);
       } else {
@@ -66,19 +69,19 @@ class Variante {
 
   async createNewRecord(connection) {
     try {
-      const columnsQuery = 'DESCRIBE producto_variaciones';
+      const columnsQuery = 'DESCRIBE atributos_valores';
       const results = await executeQuery(connection, columnsQuery, []);
 
       const tableColumns = results.map((column) => column.Field);
       const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
       const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO producto_variaciones (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+      const insertQuery = `INSERT INTO atributos_valores (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
       
       const insertResult = await executeQuery(connection, insertQuery, values);
       
       if (this.did == 0 || this.did == null) {
-        const updateQuery = 'UPDATE producto_variaciones SET did = ? WHERE id = ?';
+        const updateQuery = 'UPDATE atributos_valores SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
       }
       
@@ -91,11 +94,11 @@ class Variante {
 
   async delete(connection,did) {
     try {
-        const deleteQuery = 'UPDATE producto_variaciones SET elim = 1 WHERE did = ?';
+        const deleteQuery = 'UPDATE atributos_valores SET elim = 1 WHERE did = ?';
         await executeQuery(connection, deleteQuery, [did]);
         return {
             estado: true,
-            message: "Variante eliminado correctamente."
+            message: "atributo eliminado correctamente."
         };
     }
     catch (error) {
@@ -103,8 +106,17 @@ class Variante {
     }
 }
 
+async getAll(connection) {
+    try {
+        const selectQuery = 'SELECT * FROM atributos_valores WHERE elim = 0 and superado = 0';
+        const results = await executeQuery(connection, selectQuery, []);
+        return results;
+    } catch (error) {
+        throw error;
+    }
+  }
 
 
 }
 
-module.exports =  Variante; ;
+module.exports =  Atributo_valor; ;
