@@ -88,7 +88,7 @@ cliente.post("/login", async (req, res) => {
     const usuario =  new Usuario();
 
     try {
-        const response = await usuario.login(connection, data.usuario, data.contraseña,data.codigo,data.idEmpresa);
+        const response = await usuario.login(connection, data.usuario, data.contraseña,data.codigo);
 
         return res.status(200).json({
             estado: true,

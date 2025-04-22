@@ -211,11 +211,11 @@ class Usuario {
     }
   }
 
-  async login(connection, usuario, password, codigo = null, empresa) {
+  async login(connection, usuario, password, codigo = null) {
     try {
       // Primero verificamos si el código de la empresa existe en la tabla 'sistema_empresa'
       const empresaQuery = 'SELECT * FROM sistema_empresa WHERE codigo = ? ';
-      const empresaResult = await executeQuery(connection, empresaQuery, [codigo,empresa]);
+      const empresaResult = await executeQuery(connection, empresaQuery, [codigo]);
   
       // Si no existe el código de la empresa, retornamos un error
       if (empresaResult.length === 0) {
