@@ -28,12 +28,23 @@ cliente.post('/usuario', async (req, res) => {
         }
         else{
 
+          const usuarioRegex = /^[a-zA-Z0-9_]+$/;  // Solo permite letras, números y guion bajo
+          if (!usuarioRegex.test(data.usuario)) {
+              return res.status(400).json({
+                  estado: false,
+                  message: "El campo 'usuario' no puede contener caracteres especiales ni espacios."
+              });
+          }
+
+
+
         // Crear nuevo producto
         const usuario = new Usuario(
             data.did ?? 0,
             data.nombre,
             data.apellido,
             data.mail,
+            data.usuario,
             data.contraseña,
             data.imagen,
             data.habilitado,
@@ -59,6 +70,30 @@ cliente.post('/usuario', async (req, res) => {
             
         });
     }
+    } catch (error) {
+        console.error('Error durante la operación:', error);
+        return res.status(500).json({
+            estado: false,
+            error: -1,
+            message: error.message || error
+        });
+    } finally {
+        connection.end();
+    }
+});
+
+cliente.post("/login", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+    const usuario =  new Usuario();
+
+    try {
+        const response = await usuario.login(connection, data.usuario, data.contraseña,data.codigo,data.idEmpresa);
+
+        return res.status(200).json({
+            estado: true,
+            usuario: response
+        });
     } catch (error) {
         console.error('Error durante la operación:', error);
         return res.status(500).json({
