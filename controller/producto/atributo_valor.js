@@ -7,6 +7,7 @@ class Atributo_valor {
 didAtributo = 0,
     valor = "",
     orden = 0,
+    habilitado = 0,
     codigo = "",
     quien = 0,
     superado = 0,
@@ -17,6 +18,7 @@ didAtributo = 0,
     this.didAtributo = didAtributo || 0;
     this.valor = valor || "";
     this.orden = orden || 0;
+    this.habilitado = habilitado || 1;
 
     this.codigo = codigo || "";
     this.quien = quien || 0;
