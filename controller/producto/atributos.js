@@ -171,7 +171,7 @@ async getAll(connection,did) {
         a.descripcion,
         av.did AS valor_id,
         av.codigo AS valor_codigo,
-        av.valor AS valor_nombre
+        av.valor AS valor_nombre,
         a.habilitado
       FROM atributos a
       LEFT JOIN atributos_valores av ON av.didAtributo = a.did AND av.elim = 0
