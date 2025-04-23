@@ -394,6 +394,37 @@ producto.post("/getAtributos_valor", async (req, res) => {
     }
 });
 
+producto.post("/stockConsolidado", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+try {
+    const stock = new StockConsolidado(
+        data.did ?? 0,
+        data.didProducto ?? 0,
+        data.didVariante ?? 0,
+        data.stock,
+        data.quien,
+        data.superado ?? 0,
+        data.elim ?? 0,
+        connection
+
+    );
+ 
+    return res.status(200).json({
+        estado: true,
+        productos: response
+    });
+} catch (error) {
+    console.error("Error en /stock:", error);
+    return res.status(500).json({
+        estado: false,
+        mensaje: "Error al obtener los atributos del producto.",
+        error: error.message
+    });
+} finally{
+    connection.end();
+}
+});
 producto.get("/", async (req, res) => {
     res.status(200).json({
         estado: true,

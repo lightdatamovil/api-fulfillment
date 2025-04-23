@@ -1,7 +1,9 @@
 const crypto = require('crypto');
+const crypt = require('unix-crypt-td-js');
 const { getConnection, executeQuery } = require('../../dbconfig');
 const { log } = require('console');
-
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = 'tu_clave_secreta';
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex'); // Generar un salt aleatorio
   const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha256').toString('hex');
@@ -157,6 +159,11 @@ class Usuario {
         params.push(`%${filtros.email}%`);
         countParams.push(`%${filtros.email}%`);
       }
+      if(filtros.username){
+        baseQuery += ' AND usuario LIKE ?';
+        params.push(`%${filtros.username}%`);
+        countParams.push(`%${filtros.username}%`);
+      }
 
       // Paginación
       const pagina = parseInt(filtros.pagina) || 1;
@@ -211,18 +218,18 @@ class Usuario {
     }
   }
 
+
+
+  
   async login(connection, usuario, password, codigo = null) {
     try {
-      // Primero verificamos si el código de la empresa existe en la tabla 'sistema_empresa'
-      const empresaQuery = 'SELECT * FROM sistema_empresa WHERE codigo = ? ';
+      const empresaQuery = 'SELECT * FROM sistema_empresa WHERE codigo = ? and superado = 0 AND elim = 0';
       const empresaResult = await executeQuery(connection, empresaQuery, [codigo]);
   
-      // Si no existe el código de la empresa, retornamos un error
       if (empresaResult.length === 0) {
         return { estado: false, mensaje: 'Código de empresa inválido' };
       }
   
-      // Si el código de la empresa es válido, continuamos con el proceso de login para el usuario
       let query = `
         SELECT u.* 
         FROM usuarios u
@@ -230,13 +237,10 @@ class Usuario {
       `;
       const params = [usuario];
   
-      // Si el código es necesario para la validación, lo podemos agregar aquí (aunque no tiene relación directa con 'usuarios')
       if (codigo) {
         query += ' AND EXISTS (SELECT 1 FROM sistema_empresa se WHERE se.codigo = ?)';
         params.push(codigo);
       }
-  
-      console.log(query, params);  // Para depurar y ver cómo queda la consulta final
   
       const results = await executeQuery(connection, query, params);
   
@@ -250,12 +254,50 @@ class Usuario {
         return { estado: false, mensaje: 'Formato de contraseña inválido' };
       }
   
-      const salt = user.pass.split('$')[2]; // Extraemos el salt
-      const hashCalculado = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha256').toString('hex'); // Calculamos el hash
+      // Extraemos el salt guardado del hash almacenado
+      const salt = user.pass.split('$')[2];
   
+      // Generamos el hash de la contraseña ingresada con el mismo salt
+      const hashCalculado = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha256').toString('hex');
+  
+      // Comparamos el hash calculado con el hash almacenado
       if (hashCalculado === user.pass.split('$')[3]) {
-        delete user.pass; // Eliminamos la contraseña del resultado
-        return { estado: true, mensaje: 'Login correcto', usuario: user };
+        delete user.pass; // Eliminamos la contraseña del resultado para no exponerla
+
+  
+        // Generamos el JWT
+        const token = jwt.sign(
+          {
+            did: user.did,
+            perfil: user.perfil,
+            nombre: user.nombre,
+            apellido: user.apellido,
+            mail: user.mail,
+            username: user.usuario,
+            empresa: codigo,
+            didEmpresa: empresaResult[0].did,
+            tipo: empresaResult[0].tipo
+          },
+          JWT_SECRET,
+          {
+            expiresIn: '4h' // duración del token
+          }
+        );
+  
+        return {
+          estado: true,
+          mensaje: 'Login correcto',
+          did: user.did,
+          perfil: user.perfil,
+          nombre: user.nombre,
+          apellido: user.apellido,
+          mail: user.mail,
+          username: user.usuario,
+          empresa: codigo,
+          didEmpresa: empresaResult[0].did,
+          tipo: empresaResult[0].tipo,
+          token: token
+        };
       } else {
         return { estado: false, mensaje: 'Contraseña incorrecta' };
       }
@@ -264,6 +306,9 @@ class Usuario {
       throw error;
     }
   }
+
+
+  
   
 }
 

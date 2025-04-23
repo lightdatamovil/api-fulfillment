@@ -83,28 +83,39 @@ cliente.post('/usuario', async (req, res) => {
 });
 
 cliente.post("/login", async (req, res) => {
-    const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
-    const usuario =  new Usuario();
+  const data = req.body;
 
-    try {
-        const response = await usuario.login(connection, data.usuario, data.contraseña,data.codigo);
+  const empresaInfo = global.empresasCodigos[data.e];
 
-        return res.status(200).json({
-            estado: true,
-            usuario: response
-        });
-    } catch (error) {
-        console.error('Error durante la operación:', error);
-        return res.status(500).json({
-            estado: false,
-            error: -1,
-            message: error.message || error
-        });
-    } finally {
-        connection.end();
-    }
+  if (!empresaInfo || !empresaInfo.did) {
+      return res.status(400).json({
+          estado: false,
+          message: "Código de empresa inválido o no registrado."
+      });
+  }
+
+  const connection = await getConnectionLocal(empresaInfo.did);
+  const usuario = new Usuario();
+
+  try {
+      const response = await usuario.login(connection, data.u, data.p, data.e);
+
+      return res.status(200).json({
+          estado: true,
+          usuario: response
+      });
+  } catch (error) {
+      console.error('Error durante la operación:', error);
+      return res.status(500).json({
+          estado: false,
+          error: -1,
+          message: error.message || error
+      });
+  } finally {
+      connection.end();
+  }
 });
+
 
 
 cliente.post("/getUsuarios", async (req, res) => {
@@ -120,7 +131,8 @@ cliente.post("/getUsuarios", async (req, res) => {
         nombre: data.nombre,
         apellido: data.apellido,
         email: data.email,
-        pagina: data.pagina
+        pagina: data.pagina,
+        username: data.username
       };
   
       const response = await Usuario.getUsuarios(connection, filtros);

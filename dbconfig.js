@@ -91,8 +91,8 @@ async function getConnectionLocal(idempresa) {
         const config = {
             host: '149.56.182.49',
             port: 44347,
-            user: 'root',
-            password: 'Ve5P4nAdt6UiT8',
+            user: `ue${idempresa}`,
+            password: `78451296_${idempresa}`,
         };
 
         // Conexión sin base de datos para verificar existencia y crearla si es necesario

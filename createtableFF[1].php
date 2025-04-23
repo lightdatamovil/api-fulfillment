@@ -305,6 +305,19 @@ $Aschemasql["atributos_valores"] = "CREATE TABLE IF NOT EXISTS `atributos_valore
   PRIMARY KEY (`id`) USING BTREE
 ); ";
 
+$Aschemasql["sistema_empresa"] = "CREATE TABLE IF NOT EXISTS `sistema_empresa`  (
+
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'autoincrement ',
+  `did` int(11) NOT NULL,
+  `nombre` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `codigo` varchar(6) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `tipo` int(11) NOT NULL DEFAULT 1,
+  `superado` int(11) NOT NULL DEFAULT 0,
+  `elim` int(11) NOT NULL DEFAULT 0,
+  `autofecha` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE
+);";
+
 
 
 
@@ -319,7 +332,7 @@ foreach($Aempresas as $empresa){
 		
 		$mysqli->select_db($db_nombre);
 		
-		$Atables = ['clientes', 'clientes_cuentas', 'usuarios', 'productos_depositos', 'productos', 'productos_ecommerces','productos_combos', 'stock' ,"stock_consolidado","variantes", 'ecommerces', 'data_empresa' , 'ordenes', 'ordenes_items',"depositos"];
+		$Atables = ['clientes', 'clientes_cuentas', 'usuarios', 'productos_depositos', 'productos', 'productos_ecommerce','productos_combos', 'stock' ,"stock_consolidado", 'ecommerces', 'ordenes', 'ordenes_items',"depositos","atributos","atributos_valores","sistema_empresa", "producto_variaciones"];
 				
 		foreach($Atables as $schema){
 			

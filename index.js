@@ -1,40 +1,35 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { redisClient, getFromRedis } = require('./dbconfig');
 const cors = require('cors');
+const { redisClient, getFromRedis } = require('./dbconfig');
+const { cargarEmpresasMap } = require('./fuctions/empresaMap');
 
-// Variable global para almacenar empresas
+// Inicializar variable global
+global.empresasCodigos = {};
+cargarEmpresasMap();
+
+// Variable local para empresas de Redis
 let empresasDB = null;
 
-
-// Función para actualizar las empresas desde Redis
 async function actualizarEmpresas() {
   try {
     const empresasDataJson = await getFromRedis('empresasData');
     empresasDB = empresasDataJson || [];
-  
   } catch (error) {
     console.error('Error al actualizar empresas desde Redis:', error);
   }
 }
 
-// Configuración del servidor Express
 const app = express();
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
-  origin: '*', // Permite solo este origen
-  methods: ['GET', 'POST'], // Limitar los métodos HTTP
-  allowedHeaders: ['Content-Type'], // Permitir ciertos encabezados
+  origin: '*',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
 }));
-// Importar rutas
-const router = require('./route/route-fulfillment');
-const producto = require('./route/route-producto');
-const cliente = require('./route/route-cliente');
-const fmas = require('./route/route-fmas');
 
-
-// Middleware para asegurar que las empresas estén actualizadas
+// Middleware para actualizar empresas desde Redis si no están
 app.use(async (req, res, next) => {
   if (!empresasDB) {
     await actualizarEmpresas();
@@ -42,40 +37,30 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Usar las rutas
-app.use('/fulfillment', router);
-app.use('/producto', producto);
-app.use('/cliente', cliente);
-app.use('/fmas', fmas);
+// Rutas
+app.use('/fulfillment', require('./route/route-fulfillment'));
+app.use('/producto', require('./route/route-producto'));
+app.use('/cliente', require('./route/route-cliente'));
+app.use('/fmas', require('./route/route-fmas'));
+app.use('/empresa', require('./route/route-empresa'));
 
-// Ruta raíz que devuelve un mensaje "Hola"
 app.get('/', (req, res) => {
   res.status(200).json({
     estado: true,
     mesanje: "Hola chris"
+  });
 });
-});
-
-
-
 
 const PORT = 13000;
 
-
-
-
-// Iniciar servidor con Redis
 (async () => {
   try {
-    // Actualizar las empresas antes de inici
     await actualizarEmpresas();
-    
-    // Iniciar servidor
+
     app.listen(PORT, () => {
       console.log(`Servidor escuchando en http://localhost:${PORT}`);
     });
-    
-    // Manejar cierre del servidor
+
     process.on('SIGINT', async () => {
       console.log('Cerrando servidor...');
       await redisClient.disconnect();
