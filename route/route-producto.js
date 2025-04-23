@@ -15,6 +15,8 @@ const Variante = require('../controller/producto/variante');
 const StockConsolidado = require('../controller/producto/stock_consolidado');
 const Atributo = require('../controller/producto/atributos');
 const Atributo_valor = require('../controller/producto/atributo_valor');
+const Stock = require('../controller/producto/stock');
+const MovimientoStock = require('../controller/producto/movimiento_stock');
 
 
 
@@ -373,12 +375,12 @@ producto.post("/getAtributos", async (req, res) => {
         });
     }
 });
-producto.post("/getAtributos_valor", async (req, res) => {
+producto.post("/getAtributosFiltro", async (req, res) => {
     try {
         const data = req.body;
         const connection = await getConnectionLocal(data.idEmpresa);
-        const atributo = new Atributo_valor();
-        const response = await atributo.getAll(connection);
+        const atributo = new Atributo();
+        const response = await atributo.getAtributos(connection,data);
         
         return res.status(200).json({
             estado: true,
@@ -409,6 +411,7 @@ try {
         connection
 
     );
+    const response = await stock.insert();
  
     return res.status(200).json({
         estado: true,
@@ -425,6 +428,80 @@ try {
     connection.end();
 }
 });
+producto.post("/stock", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+    try {
+        const stock = new Stock(
+            data.did ?? 0,
+            data.didProducto ?? 0,
+            data.didVariante ?? 0,
+            data.cantidad,
+            data.quien,
+            data.superado ?? 0,
+            data.elim ?? 0,
+            connection
+
+        );
+        const response = await stock.insert();
+     
+        return res.status(200).json({
+            estado: true,
+            productos: response
+        });
+    } catch (error) {
+        console.error("Error en /stock:", error);
+        return res.status(500).json({
+            estado: false,
+            mensaje: "Error al obtener los atributos del producto.",
+            error: error.message
+        });
+    } finally{
+        connection.end();
+    }
+    
+})
+
+
+
+
+producto.post("/movimientoStock", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+    try {
+     
+
+        const stock = new MovimientoStock(
+            data.did ?? 0,
+            data.data,
+            data.quien,
+            data.superado ?? 0,
+            data.elim ?? 0,
+            connection
+        );
+
+        const response = await stock.insert();
+
+      
+        return res.status(200).json({
+            estado: true,
+            stock: response
+        });
+    } catch (error) {
+        console.error("❌ Error en /movimientoStock:", error);
+        return res.status(500).json({
+            estado: false,
+            mensaje: "Error al insertar movimiento de stock.",
+            error: error.message
+        });
+    } finally {
+        connection.end(); 
+      
+    }
+});
+
+            
+
 producto.get("/", async (req, res) => {
     res.status(200).json({
         estado: true,

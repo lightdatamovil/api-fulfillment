@@ -157,6 +157,62 @@ async getAll(connection) {
   }
 }
 
+async getAtributos(connection, filtros) {
+  try {
+    const conditions = ['elim = 0', 'superado = 0'];
+    const values = [];
+
+    // Filtros opcionales
+    if (filtros.habilitado !== undefined) {
+      conditions.push('habilitado = ?');
+      values.push(filtros.habilitado);
+    }
+
+    if (filtros.codigo) {
+      conditions.push('codigo LIKE ?');
+      values.push(`%${filtros.codigo}%`);
+    }
+
+    if (filtros.nombre) {
+      conditions.push('nombre LIKE ?');
+      values.push(`%${filtros.nombre}%`);
+    }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    
+    // Paginación
+    const pagina = filtros.pagina || 1;
+    const cantidadPorPagina = filtros.cantidad || 10;
+    const offset = (pagina - 1) * cantidadPorPagina;
+
+    // Consulta total
+    const totalQuery = `SELECT COUNT(*) as total FROM atributos ${whereClause}`;
+    const totalResult = await executeQuery(connection, totalQuery, values);
+    const total = totalResult[0].total;
+    const totalPaginas = Math.ceil(total / cantidadPorPagina);
+
+    // Consulta paginada
+    const dataQuery = `
+      SELECT * FROM atributos
+      ${whereClause}
+      LIMIT ? OFFSET ?
+    `;
+    const dataValues = [...values, cantidadPorPagina, offset];
+    const results = await executeQuery(connection, dataQuery, dataValues);
+
+    return {
+      total,
+      totalPaginas,
+      pagina,
+      cantidad: cantidadPorPagina,
+      atributos: results,
+    };
+  } catch (error) {
+    throw error;
+  }
+}
+
+
 
 
 }
