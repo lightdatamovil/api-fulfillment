@@ -318,6 +318,7 @@ producto.post("/atributos", async (req, res) => {
             data.nombre,
             data.descripcion,
             data.orden, 
+            data.habilitado ?? 1,
             data.codigo,
             data.quien,
             data.superado ?? 0,
@@ -343,7 +344,7 @@ producto.post("/atributos", async (req, res) => {
 
         return res.status(200).json({
             estado: true,
-            productos: response
+            atributo: response
         });
     } catch (error) {
         console.error("Error en /atributos:", error);

@@ -7,6 +7,7 @@ class Atributo {
     nombre = "",
     descripcion = "",
     orden = 0,
+    habilitado = 0,
 
     codigo = "",
     
@@ -20,6 +21,7 @@ class Atributo {
     this.nombre = nombre || "";
     this.descripcion = descripcion || "";    
     this.orden = orden || 0;
+    this.habilitado = habilitado || 1;
 
     this.codigo = codigo || "";
     this.quien = quien || 0;
