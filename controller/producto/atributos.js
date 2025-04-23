@@ -157,13 +157,13 @@ async getAll(connection) {
   }
 }
 
-async getAtributos(connection, filtros) {
+async  getAtributos(connection, filtros) {
   try {
     const conditions = ['elim = 0', 'superado = 0'];
     const values = [];
 
-    // Filtros opcionales
-    if (filtros.habilitado !== undefined) {
+    // Filtro habilitado (0: no habilitado, 1: habilitado, 2: todos)
+    if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
       conditions.push('habilitado = ?');
       values.push(filtros.habilitado);
     }
@@ -179,7 +179,7 @@ async getAtributos(connection, filtros) {
     }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    
+
     // Paginación
     const pagina = filtros.pagina || 1;
     const cantidadPorPagina = filtros.cantidad || 10;
@@ -211,6 +211,7 @@ async getAtributos(connection, filtros) {
     throw error;
   }
 }
+
 
 
 
