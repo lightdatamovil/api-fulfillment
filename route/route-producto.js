@@ -355,12 +355,12 @@ producto.post("/atributos", async (req, res) => {
     }
 });
 
-producto.post("/getAtributos", async (req, res) => {
+producto.post("/getAtributoValor", async (req, res) => {
     try {
         const data = req.body;
         const connection = await getConnectionLocal(data.idEmpresa);
         const atributo = new Atributo();
-        const response = await atributo.getAll(connection);
+        const response = await atributo.getAll(connection,data.did);
         
         return res.status(200).json({
             estado: true,

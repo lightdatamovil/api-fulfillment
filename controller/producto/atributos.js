@@ -109,7 +109,7 @@ class Atributo {
     }
 }
 
-async getAll(connection) {
+/*async getAll(connection) {
   try {
     const selectQuery = `
       SELECT 
@@ -156,7 +156,56 @@ async getAll(connection) {
     throw error;
   }
 }
+*/
 
+
+async getAll(connection,did) {
+  try {
+    const selectQuery = `
+      SELECT 
+        a.did AS atributo_id,
+        a.nombre,
+        a.codigo AS atributo_codigo,
+        a.descripcion,
+        av.did AS valor_id,
+        av.codigo AS valor_codigo,
+        av.valor AS valor_nombre
+      FROM atributos a
+      LEFT JOIN atributos_valores av ON av.didAtributo = a.did AND av.elim = 0
+      WHERE a.elim = 0 AND a.superado = 0 and a.did = ?
+      ORDER BY a.did, av.did
+    `;
+
+    const results = await executeQuery(connection, selectQuery, [did]);
+
+    // Agrupar por atributo
+    const atributosMap = new Map();
+
+    for (const row of results) {
+      if (!atributosMap.has(row.atributo_id)) {
+        atributosMap.set(row.atributo_id, {
+          nombre: row.nombre,
+          codigo: row.atributo_codigo,
+          did: row.atributo_id,
+          descripcion: row.descripcion,
+          valores: []
+        });
+      }
+
+      if (row.valor_id) {
+        atributosMap.get(row.atributo_id).valores.push({
+          did: row.valor_id,
+          codigo: row.valor_codigo,
+          nombre: row.valor_nombre
+        });
+      }
+    }
+
+    return Array.from(atributosMap.values());
+  } catch (error) {
+    throw error;
+  }
+}
 async getAtributos(connection, filtros) {
   try {
     const conditions = ['elim = 0', 'superado = 0'];

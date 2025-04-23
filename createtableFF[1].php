@@ -294,6 +294,7 @@ $Aschemasql["atributos_valores"] = "CREATE TABLE IF NOT EXISTS `atributos_valore
 
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `did` int(11) NOT NULL,
+  `codigo` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
   `didProducto` int(11) NOT NULL,
   `didAtributo` int(11) NOT NULL,
   `valor` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
