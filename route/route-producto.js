@@ -323,8 +323,7 @@ producto.post("/atributos", async (req, res) => {
             data.quien,
             data.superado ?? 0,
             data.elim ?? 0,
-      
-            connection);
+         connection)    ;
         const response = await atributo.insert( );
 
         for (const valor of data.valores) {

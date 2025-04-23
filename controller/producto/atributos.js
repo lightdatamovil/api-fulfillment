@@ -172,6 +172,7 @@ async getAll(connection,did) {
         av.did AS valor_id,
         av.codigo AS valor_codigo,
         av.valor AS valor_nombre
+        a.habilitado
       FROM atributos a
       LEFT JOIN atributos_valores av ON av.didAtributo = a.did AND av.elim = 0
       WHERE a.elim = 0 AND a.superado = 0 and a.did = ?
@@ -190,6 +191,7 @@ async getAll(connection,did) {
           codigo: row.atributo_codigo,
           did: row.atributo_id,
           descripcion: row.descripcion,
+          habilitado: row.habilitado,
           valores: []
         });
       }
