@@ -162,12 +162,11 @@ async getAtributos(connection, filtros) {
     const conditions = ['elim = 0', 'superado = 0'];
     const values = [];
 
-    // Filtros opcionales
-    if (filtros.habilitado !== undefined) {
+    // Filtro habilitado (0: no habilitado, 1: habilitado, 2: todos)
+    if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
       conditions.push('habilitado = ?');
       values.push(filtros.habilitado);
     }
-   
 
     if (filtros.codigo) {
       conditions.push('codigo LIKE ?');
@@ -180,10 +179,10 @@ async getAtributos(connection, filtros) {
     }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    
-    // Paginación
-    const pagina = filtros.pagina || 1;
-    const cantidadPorPagina = filtros.cantidad || 10;
+
+    // Paginación (aseguramos que sean números)
+    const pagina = Number(filtros.pagina) || 1;
+    const cantidadPorPagina = Number(filtros.cantidad) || 10;
     const offset = (pagina - 1) * cantidadPorPagina;
 
     // Consulta total
@@ -212,7 +211,6 @@ async getAtributos(connection, filtros) {
     throw error;
   }
 }
-
 
 
 
