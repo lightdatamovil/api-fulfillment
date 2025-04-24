@@ -8,7 +8,7 @@ const { saveSellerRedis } = require('../controller/seller/seller');
 seller.post ('/', async (req, res) => {
     const data = req.body;
     try {
-        const save =  await saveSellerRedis(data.seller, data.data);
+        const save =  await saveSellerRedis(data.seller, data);
         return res.status(200).json({
             estado: true,
             message: save
