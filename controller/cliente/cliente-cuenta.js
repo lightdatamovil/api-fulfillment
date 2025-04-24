@@ -87,6 +87,7 @@ class Cliente_cuenta {
       const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
       const values = filteredColumns.map((column) => this[column]);
+      
       const insertQuery = `INSERT INTO clientes_cuentas (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
       const insertResult = await executeQuery(connection, insertQuery, values);
