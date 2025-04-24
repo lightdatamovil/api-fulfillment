@@ -31,7 +31,7 @@ async function saveSellerRedis(seller, data) {
             // Guardar la data del seller en un hash
             await redisClient.hSet(keySellersData, seller, jsonData);
 
-            console.log(`Seller ${seller} agregado a Redis`);
+          return `Seller ${seller} guardado en Redis`;
 
         } else if (operador === 'remove') {
             // Eliminar el seller del set
@@ -40,7 +40,7 @@ async function saveSellerRedis(seller, data) {
             // Eliminar la data del seller en el hash
             await redisClient.hDel(keySellersData, seller);
 
-            console.log(`Seller ${seller} eliminado de Redis`);
+        return `Seller ${seller} eliminado de Redis`;
 
         } else {
             throw new Error('El operador debe ser "add" o "remove"');

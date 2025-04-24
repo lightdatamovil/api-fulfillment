@@ -11,7 +11,7 @@ seller.post ('/', async (req, res) => {
         const save =  await saveSellerRedis(data.seller, data.data);
         return res.status(200).json({
             estado: true,
-            message: "Seller guardado en Redis"
+            message: save
         });
     } catch (error) {
         console.error('Error durante la operación:', error);
