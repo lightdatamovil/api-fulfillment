@@ -246,7 +246,7 @@ $Aschemasql["ordenes"] = "CREATE TABLE IF NOT EXISTS `ordenes`  (
   `descargado` int NOT NULL DEFAULT '0',
   `fecha_armado` datetime DEFAULT NULL,
   `quien_armado` int NOT NULL,
-  `autofecha` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+`autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
   `superado` int NOT NULL DEFAULT '0',
   `elim` int NOT NULL DEFAULT '0',
    PRIMARY KEY (`id`) USING BTREE
@@ -265,7 +265,7 @@ $Aschemasql["ordenes_items"] = "CREATE TABLE IF NOT EXISTS `ordenes_items`  (
   `variacion` varchar(64) NOT NULL,
   `seller_sku` varchar(64) NOT NULL,
   `descargado` int NOT NULL DEFAULT '0',
-  `autofecha` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+`autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
   `superado` int NOT NULL DEFAULT '0',
   `elim` int NOT NULL DEFAULT '0',
    PRIMARY KEY (`id`) USING BTREE
@@ -273,6 +273,7 @@ $Aschemasql["ordenes_items"] = "CREATE TABLE IF NOT EXISTS `ordenes_items`  (
 ";
 
 $Aschemasql["atributos"] = "CREATE TABLE IF NOT EXISTS `atributos`  (
+
 
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nombre` varchar(50) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
@@ -283,10 +284,9 @@ $Aschemasql["atributos"] = "CREATE TABLE IF NOT EXISTS `atributos`  (
   `quien` int(11) NULL DEFAULT NULL,
   `superado` int(11) NULL DEFAULT NULL,
   `elim` int(11) NULL DEFAULT NULL,
-  `autofecha` datetime NULL DEFAULT NULL,
+`autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
   `codigo` varchar(6) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-
  
 ); ";
 
@@ -299,7 +299,7 @@ $Aschemasql["atributos_valores"] = "CREATE TABLE IF NOT EXISTS `atributos_valore
   `didAtributo` int(11) NOT NULL,
   `valor` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
   `habilitado` int(11) NOT NULL DEFAULT 0,
-  `autofecha` datetime NULL DEFAULT current_timestamp(),
+`autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
   `quien` int(11) NULL DEFAULT NULL,
   `superado` int(11) NULL DEFAULT 0,
   `elim` int(11) NULL DEFAULT 0,
@@ -315,7 +315,7 @@ $Aschemasql["sistema_empresa"] = "CREATE TABLE IF NOT EXISTS `sistema_empresa`  
   `tipo` int(11) NOT NULL DEFAULT 1,
   `superado` int(11) NOT NULL DEFAULT 0,
   `elim` int(11) NOT NULL DEFAULT 0,
-  `autofecha` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE CURRENT_TIMESTAMP,
+`autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`) USING BTREE
 );";
 
