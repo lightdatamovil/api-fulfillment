@@ -246,7 +246,7 @@ async getAtributos(connection, filtros) {
 
     // Consulta paginada
     const dataQuery = `
-      SELECT * FROM atributos
+      SELECT did, nombre, codigo, descripcion, habilitado,autofecha,orden FROM atributos
       ${whereClause}
       LIMIT ? OFFSET ?
     `;
