@@ -328,9 +328,11 @@ producto.post("/atributos", async (req, res) => {
 
         for (const valor of data.valores) {
 
+            
+
         const atributoValor = new Atributo_valor(
             valor.did ?? 0,
-            data.did ?? response.insertId,
+            data.did == 0 ? response.insertId : data.did,
             valor.valor,
             data.orden,
             data.habilitado ?? 1,
