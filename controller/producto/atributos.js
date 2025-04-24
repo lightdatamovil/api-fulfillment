@@ -200,7 +200,7 @@ async getAll(connection,did) {
         atributosMap.get(row.atributo_id).valores.push({
           did: row.valor_id,
           codigo: row.valor_codigo,
-          nombre: row.valor_nombre
+          valor: row.valor_nombre
         });
       }
     }
