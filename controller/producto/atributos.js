@@ -174,8 +174,8 @@ async getAll(connection,did) {
         av.valor AS valor_nombre,
         a.habilitado
       FROM atributos a
-      LEFT JOIN atributos_valores av ON av.didAtributo = a.did AND av.elim = 0
-      WHERE a.elim = 0 AND a.superado = 0 and a.did = ?
+      LEFT JOIN atributos_valores av ON av.didAtributo = a.did AND av.elim = 0 and av.superado = 0
+      WHERE a.elim = 0 AND a.superado = 0 and a.did = ? 
       ORDER BY a.did, av.did
     `;
 
