@@ -80,6 +80,15 @@ class Cliente_cuenta {
 
   async createNewRecord(connection) {
     try {
+
+      const querycheck = 'SELECT did FROM clientes WHERE did = ? and elim = 0 and superado = 0';
+      const result = await executeQuery(connection, querycheck, [this.diCliente]);
+      console.log(result);
+      
+      if (!Array.isArray(result) || result.length === 0) {
+        return "El cliente no existe";
+      }
+      
       const columnsQuery = 'DESCRIBE clientes_cuentas';
       const results = await executeQuery(connection, columnsQuery, []);
 
@@ -87,7 +96,7 @@ class Cliente_cuenta {
       const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
       const values = filteredColumns.map((column) => this[column]);
-      
+
       const insertQuery = `INSERT INTO clientes_cuentas (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
       const insertResult = await executeQuery(connection, insertQuery, values);

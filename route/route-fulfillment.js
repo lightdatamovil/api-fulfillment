@@ -420,7 +420,27 @@ console.log("Respuesta de insert:", resulta2);
 })
 
 
-
+router.post("/getOrdenes" , async (req, res) => {
+    const data = req.body;
+const connection = await getConnectionLocal(data.idEmpresa);
+try {
+    const orden = new Ordenes();
+    const response = await orden.getOrdenPorId(connection,data.did);
+    return res.status(200).json({
+        estado: true,
+        ordenes: response
+    });
+} catch (error) {
+    console.error('Error durante la operación:', error);
+    return res.status(500).json({
+        estado: false,
+        error: -1,
+        message: error.message || error
+    });
+} finally {
+    connection.end();
+}
+})
 
 
 

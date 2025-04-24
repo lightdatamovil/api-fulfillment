@@ -43,6 +43,7 @@ app.use('/producto', require('./route/route-producto'));
 app.use('/cliente', require('./route/route-cliente'));
 app.use('/fmas', require('./route/route-fmas'));
 app.use('/empresa', require('./route/route-empresa'));
+app.use('/serviceSellerToken', require('./route/route-seller'));
 
 app.get('/', (req, res) => {
   res.status(200).json({

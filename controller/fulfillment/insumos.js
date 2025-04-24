@@ -126,5 +126,41 @@ async eliminar (connection,did) {
         throw error;
     }
 
-}}
+}
+
+async getAll(connection, page = 1, limit = 20) {
+    try {
+      const offset = (page - 1) * limit;
+  
+      // Consulta principal con paginado
+      const selectQuery = `
+        SELECT * FROM fulfillment_insumos 
+        WHERE elim = 0 AND superado = 0 
+        LIMIT ? OFFSET ?
+      `;
+      const results = await executeQuery(connection, selectQuery, [limit, offset]);
+  
+      // Conteo total para paginación
+      const countQuery = `
+        SELECT COUNT(*) AS total FROM fulfillment_insumos 
+        WHERE elim = 0 AND superado = 0
+      `;
+      const countResult = await executeQuery(connection, countQuery);
+      const total = countResult[0].total;
+  
+      const totalPages = Math.ceil(total / limit);
+  
+      return {
+        page,
+        limit,
+        total,
+        totalPages,
+        items: results
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+}
 module.exports = Insumo;

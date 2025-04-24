@@ -321,11 +321,13 @@ cliente.post('/clienteCuenta', async (req, res) => {
     );
 
     const clienteResult = await clienteCuenta.insert();
+
+    
     const clienteId = clienteResult.insertId;
 
     return res.status(200).json({
       estado: true,
-      message: "Cliente cuenta guardado correctamente",
+      message: clienteResult,
       didUsuario: clienteId
     });
 
