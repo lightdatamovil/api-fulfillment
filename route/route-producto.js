@@ -313,6 +313,7 @@ producto.post("/atributos", async (req, res) => {
     try {
         const data = req.body;
         const connection = await getConnectionLocal(data.idEmpresa);
+        console.log("data",data);
 
         const atributo = new Atributo(    data.did ?? 0,
             data.nombre,
