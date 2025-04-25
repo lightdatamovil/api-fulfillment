@@ -59,7 +59,15 @@ didAtributo = 0,
 
       if (results.length > 0) {
         const updateQuery = 'UPDATE atributos_valores SET superado = 1 WHERE did = ?';
+
         await executeQuery(connection, updateQuery, [this.did]);
+
+        const querydel = 'select * from atributos_valores where didAtributo  = ?, and superado = 0 and elim = 0';
+        const results = await executeQuery(connection, querydel, [this.didAtributo]);
+
+        if (results.length > 0) {
+          this.delete(connection,results[0].did);
+        }
         return this.createNewRecord(connection);
       } else {
         return this.createNewRecord(connection);
@@ -85,6 +93,9 @@ didAtributo = 0,
       if (this.did == 0 || this.did == null) {
         const updateQuery = 'UPDATE atributos_valores SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
+
+
+
       }
       
       return { insertId: insertResult.insertId };

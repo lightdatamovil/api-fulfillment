@@ -331,7 +331,7 @@ producto.post("/atributos", async (req, res) => {
 
         for (const valor of data.valores) {
 
-            
+        
 
         const atributoValor = new Atributo_valor(
             valor.did ?? 0,
