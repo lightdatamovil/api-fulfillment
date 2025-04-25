@@ -63,6 +63,8 @@ didAtributo = 0,
         await executeQuery(connection, updateQuery, [this.did]);
 
         const querydel = 'select * from atributos_valores where didAtributo  = ? and superado = 0 and elim = 0';
+        console.log(this.didAtributo,"this.didAtributo");
+        
         const results = await executeQuery(connection, querydel, [this.didAtributo]);
 
         if (results.length > 0) {
