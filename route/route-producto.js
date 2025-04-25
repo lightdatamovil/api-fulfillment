@@ -318,7 +318,7 @@ producto.post("/atributos", async (req, res) => {
             data.nombre,
             data.descripcion,
             data.orden, 
-            data.habilitado ?? 1,
+            data.habilitado ,
             data.codigo,
             data.quien,
             data.superado ?? 0,
