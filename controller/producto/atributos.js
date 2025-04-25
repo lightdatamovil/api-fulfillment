@@ -31,12 +31,15 @@ class Atributo {
     this.connection = connection;
   }
 
+
   toJSON() {
     return JSON.stringify(this);
   }
 
   async insert() {
     try {
+      console.log(this.habilitado);
+  
       if (this.did === null || this.did === "") {
         return this.createNewRecord(this.connection);
       } else {
