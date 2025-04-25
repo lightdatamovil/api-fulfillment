@@ -319,7 +319,18 @@ $Aschemasql["sistema_empresa"] = "CREATE TABLE IF NOT EXISTS `sistema_empresa`  
   PRIMARY KEY (`id`) USING BTREE
 );";
 
+$Aschemasql["ordenes_historial"] = "CREATE TABLE IF NOT EXISTS `ordenes_historial`  (
 
+ `id` int(11) NOT NULL AUTO_INCREMENT,
+  `didOrden` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `estado` int(11) NULL DEFAULT NULL,
+  `fecha` datetime NULL DEFAULT NULL,
+  `autofecha` timestamp NULL DEFAULT NULL,
+  `superado` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `elim` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `quien` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+);";
 
 
 foreach($Aempresas as $empresa){
