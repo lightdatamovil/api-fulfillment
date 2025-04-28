@@ -15,7 +15,16 @@ class Ordenes {
         armado = 0,
         descargado = 0,
         fecha_armado = null,
+        fecha_venta = null,
         quien_armado = "",
+        ml_shipment_id = null,  
+        ml_id = "",
+        mi_packing_id = null,
+        buyer_id = null,
+        buyer_nickname = null,
+        buyer_name  = null,
+        buyer_last_name = null,
+        total_amount = null,
      
         connection = null,
     ) {
@@ -30,7 +39,16 @@ class Ordenes {
         this.armado = armado;
         this.descargado = descargado;
         this.fecha_armado = fecha_armado;
+        this.fecha_venta = fecha_venta;
         this.quien_armado = quien_armado;
+        this.ml_shipment_id = ml_shipment_id;
+        this.ml_id = ml_id;
+        this.mi_packing_id = mi_packing_id;
+        this.buyer_id = buyer_id;
+        this.buyer_nickname = buyer_nickname;
+        this.buyer_name = buyer_name;
+        this.buyer_last_name = buyer_last_name;
+        this.total_amount = total_amount;
      
         this.connection = connection;
       }

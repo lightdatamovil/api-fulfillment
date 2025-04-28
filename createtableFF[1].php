@@ -232,43 +232,56 @@ $Aschemasql["producto_variaciones"] = "CREATE TABLE IF NOT EXISTS `producto_vari
 
 $Aschemasql["ordenes"] = "CREATE TABLE IF NOT EXISTS `ordenes`  (
   
-  `id` int NOT NULL AUTO_INCREMENT,
-  `did` int NOT NULL,
-  `didEnvio` int NOT NULL,
-  `didCliente` int NOT NULL,
-  `didCuenta` int NOT NULL,
-  `status` varchar(32) NOT NULL,
-  `flex` int NOT NULL,
-  `number` varchar(64) NOT NULL,
+ 
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `did` int(11) NOT NULL,
+  `didEnvio` int(11) NOT NULL,
+  `didCliente` int(11) NOT NULL,
+  `didCuenta` int(11) NOT NULL,
+  `status` varchar(32) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `flex` int(11) NOT NULL,
+  `number` varchar(64) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
   `fecha_venta` datetime NOT NULL,
-  `observaciones` text NOT NULL,
-  `armado` int NOT NULL COMMENT '0 =no ` 1=si',
-  `descargado` int NOT NULL DEFAULT '0',
-  `fecha_armado` datetime DEFAULT NULL,
-  `quien_armado` int NOT NULL,
-`autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
-  `superado` int NOT NULL DEFAULT '0',
-  `elim` int NOT NULL DEFAULT '0',
-   PRIMARY KEY (`id`) USING BTREE
-);
+  `observaciones` text CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `armado` int(11) NOT NULL COMMENT '0 =no ` 1=si',
+  `descargado` int(11) NOT NULL DEFAULT 0,
+  `quien_armado` int(11) NOT NULL,
+  `autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
+  `superado` int(11) NOT NULL DEFAULT 0,
+  `elim` int(11) NOT NULL DEFAULT 0,
+  `ml_shipment_id` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `ml_id` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `ml_pack_id` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `buyer_id` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `buyer_nickname` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `buyer_name` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `buyer_last_name` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `total_amount` float NULL DEFAULT NULL,
+  `fecha_armado` datetime NULL DEFAULT NULL,
+  PRIMARY KEY (`id`, `ml_shipment_id`, `ml_id`, `ml_pack_id`, `superado`, `fecha_venta`, `autofecha`, `did`, `didEnvio`, `didCliente`, `didCuenta`, `flex`, `number`, `buyer_id`) USING BTREE
+)
 ";
 
 $Aschemasql["ordenes_items"] = "CREATE TABLE IF NOT EXISTS `ordenes_items`  (
- `id` int NOT NULL AUTO_INCREMENT,
-  `didOrden` int NOT NULL,
-  `codigo` varchar(128) NOT NULL,
-  `imagen` varchar(256) NOT NULL,
-  `descripcion` varchar(512) NOT NULL,
-  `ml_id` varchar(128) NOT NULL,
-  `dimensions` varchar(64) NOT NULL,
-  `cantidad` int NOT NULL,
-  `variacion` varchar(64) NOT NULL,
-  `seller_sku` varchar(64) NOT NULL,
-  `descargado` int NOT NULL DEFAULT '0',
-`autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
-  `superado` int NOT NULL DEFAULT '0',
-  `elim` int NOT NULL DEFAULT '0',
-   PRIMARY KEY (`id`) USING BTREE
+
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `didOrden` int(11) NOT NULL,
+  `codigo` varchar(128) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `imagen` varchar(256) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `descripcion` varchar(512) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `ml_id` varchar(128) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `dimensions` varchar(64) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `cantidad` int(11) NOT NULL,
+  `variacion` varchar(64) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `seller_sku` varchar(64) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `descargado` int(11) NOT NULL DEFAULT 0,
+  `autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
+  `superado` int(11) NOT NULL DEFAULT 0,
+  `elim` int(11) NOT NULL DEFAULT 0,
+  `idVariacion` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `user_product_id` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+  `variation_attributes` text CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  PRIMARY KEY (`id`, `seller_sku`, `idVariacion`, `elim`, `superado`) USING BTREE
 );
 ";
 

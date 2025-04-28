@@ -12,8 +12,10 @@ class Ordenes_items {
       ml_id = "",
       dimensions = "",
       cantidad = 0,
-      variacion = "",
+      variation_attributes = "",
       seller_sku = "",
+      user_product_id = "",
+      idVariacion = "", 
       descargado = 0,
       superado = 0,
       elim = 0,
@@ -28,8 +30,10 @@ class Ordenes_items {
         this.ml_id = ml_id;
         this.dimensions = dimensions;
         this.cantidad = cantidad;
-        this.variacion = variacion;
+        this.variation_attributes = variation_attributes;
         this.seller_sku = seller_sku;
+        this.user_product_id = user_product_id;
+        this.idVariacion = idVariacion;
         this.descargado = descargado;
         this.superado = superado || 0;
         this.elim = elim || 0;
