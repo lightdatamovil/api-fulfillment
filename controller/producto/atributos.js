@@ -104,6 +104,8 @@ class Atributo {
     try {
         const deleteQuery = 'UPDATE atributos SET elim = 1 WHERE did = ?';
         await executeQuery(connection, deleteQuery, [did]);
+        const deleteQuery2 = 'UPDATE atributos_valores SET elim = 1 WHERE didAtributo = ? and superado = 0';
+        await executeQuery(connection, deleteQuery2, [did]);
         return {
             estado: true,
             message: "atributo eliminado correctamente."

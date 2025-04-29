@@ -47,13 +47,10 @@ class Ordenes_items {
   // Método para insertar en la base de datos
   async insert() {
     try {
-        if (this.did === null || this.did === 0) {
-            // Si `didEnvio` es null, crear un nuevo registro
-            return this.createNewRecord(this.connection);
-        } else {
+
             // Si `didEnvio` no es null, verificar si ya existe y manejarlo
             return this.checkAndUpdateDidEnvio(this.connection);
-        }
+    
     } catch (error) {
         console.error("Error en el método insert:", error.message);
 
@@ -70,13 +67,17 @@ class Ordenes_items {
 
 async checkAndUpdateDidEnvio(connection) {
     try {
-        const checkDidEnvioQuery = 'SELECT id FROM ordenes_items WHERE didOrden = ?';
-        const results = await executeQuery(connection, checkDidEnvioQuery, [this.did]);
+        const checkDidEnvioQuery = 'SELECT id FROM ordenes_items WHERE didOrden = ? and ml_id = ?';
+
+        const results = await executeQuery(connection, checkDidEnvioQuery, [this.didOrden ,this.ml_id],true);
+console.log(results, "resultdssdasadasdsads");
 
         if (results.length > 0) {
+            console.log("entramos items");
+            
             // Si `didEnvio` ya existe, actualizarlo
-            const updateQuery = 'UPDATE ordenes_items SET superado = 1 WHERE didOrden = ?';
-            await executeQuery(connection, updateQuery, [this.did]);
+            const updateQuery = 'UPDATE ordenes_items SET superado = 1 WHERE didOrden = ? and ml_id = ?'; ;
+            await executeQuery(connection, updateQuery, [this.didOrden, this.ml_id]);
 
             // Crear un nuevo registro con el mismo `didEnvio`
             return this.createNewRecord(connection);

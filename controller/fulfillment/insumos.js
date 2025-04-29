@@ -69,7 +69,7 @@ async checkAndUpdateDidEnvio(connection) {
 
         if (results.length > 0) {
            
-            console.log("GOLA");
+           // console.log("GOLA");
             
             const updateQuery = 'UPDATE  fulfillment_insumos SET superado = 1 WHERE did = ?';
             await executeQuery(connection, updateQuery, [this.did]);

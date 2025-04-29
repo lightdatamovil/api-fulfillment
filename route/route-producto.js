@@ -361,6 +361,32 @@ producto.post("/atributos", async (req, res) => {
     }
 });
 
+producto.post("/deleteAtributos", async (req, res) => {
+    try {
+        const data = req.body;
+        const connection = await getConnectionLocal(data.idEmpresa);
+        console.log("data",data);
+
+        const atributo = new Atributo()
+        const response=  await atributo.delete(connection, data.did);
+      
+
+    
+        return res.status(200).json({
+            estado: true,
+            atributo: response
+        });
+    } catch (error) {
+        console.error("Error en /eliminar:", error);
+        return res.status(500).json({
+            estado: false,
+            mensaje: "Error al eliminar los atributos del producto.",
+            error: error.message
+        });
+    }
+});
+
+
 producto.post("/getAtributoValor", async (req, res) => {
     try {
         const data = req.body;
