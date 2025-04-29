@@ -254,8 +254,8 @@ async getAtributos(connection, filtros) {
     const dataQuery = `
       SELECT id,did, nombre, codigo, descripcion, habilitado,autofecha,orden FROM atributos
       ${whereClause}
-      LIMIT ? OFFSET ?
       ORDER BY id DESC
+      LIMIT ? OFFSET ?
     `;
     const dataValues = [...values, cantidadPorPagina, offset];
 
