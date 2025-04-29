@@ -258,6 +258,9 @@ async getAtributos(connection, filtros) {
       ORDER BY id DESC
     `;
     const dataValues = [...values, cantidadPorPagina, offset];
+
+    console.log(dataQuery, dataValues,"dataaa");
+    
     const results = await executeQuery(connection, dataQuery, dataValues);
 
     return {
