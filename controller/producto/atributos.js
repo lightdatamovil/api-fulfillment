@@ -170,6 +170,7 @@ async getAll(connection,did) {
   try {
     const selectQuery = `
       SELECT 
+        a.id,
         a.did AS atributo_id,
         a.nombre,
         a.codigo AS atributo_codigo,
@@ -181,7 +182,7 @@ async getAll(connection,did) {
       FROM atributos a
       LEFT JOIN atributos_valores av ON av.didAtributo = a.did AND av.elim = 0 and av.superado = 0
       WHERE a.elim = 0 AND a.superado = 0 and a.did = ? 
-      ORDER BY a.did, av.did
+      ORDER BY a.id DESC
     `;
 
     const results = await executeQuery(connection, selectQuery, [did]);
@@ -251,9 +252,10 @@ async getAtributos(connection, filtros) {
 
     // Consulta paginada
     const dataQuery = `
-      SELECT did, nombre, codigo, descripcion, habilitado,autofecha,orden FROM atributos
+      SELECT id,did, nombre, codigo, descripcion, habilitado,autofecha,orden FROM atributos
       ${whereClause}
       LIMIT ? OFFSET ?
+      ORDER BY id DESC
     `;
     const dataValues = [...values, cantidadPorPagina, offset];
     const results = await executeQuery(connection, dataQuery, dataValues);
