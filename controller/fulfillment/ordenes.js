@@ -168,6 +168,10 @@ async eliminar (connection,did) {
     try {
         const deleteQuery = 'UPDATE ordenes set elim = 1 WHERE did = ?';
         await executeQuery(connection, deleteQuery, [did]);
+        const deletetequery2 = 'UPDATE ordenes_items set elim = 1 WHERE didOrden = ? and superado = 0';
+        await executeQuery(connection, deletetequery2, [did]);
+        const deletequery3 = 'UPDATE ordenes_historial set elim = 1 WHERE didOrden = ? and superado = 0';
+        await executeQuery(connection, deletequery3, [did]);
     } catch (error) {
         throw error;
     }
@@ -260,6 +264,93 @@ async getOrdenPorId(connection, did, pagina = 1, cantidad = 10) {
       throw error;  // Lanzar error para manejo superior
   }
 }
+async  getTodasLasOrdenes(connection, pagina = 1, cantidad = 10, filtros = {}) {
+  try {
+    pagina = parseInt(pagina);
+    cantidad = parseInt(cantidad);
+    if (isNaN(pagina) || pagina < 1) pagina = 1;
+    if (isNaN(cantidad) || cantidad < 1) cantidad = 10;
+
+    const offset = (pagina - 1) * cantidad;
+
+    // Condiciones básicas
+    let condiciones = [`elim = 0`, `superado = 0`];
+    let valores = [];
+
+    // Filtros aplicables
+    if (filtros.ml_shipment_id) {
+      condiciones.push(`ml_shipment_id = ?`);
+      valores.push(filtros.ml_shipment_id);
+    }
+
+    if (filtros.ml_pack_id) {
+      condiciones.push(`ml_pack_id = ?`);
+      valores.push(filtros.ml_pack_id);
+    }
+
+    if (filtros.status) {
+      condiciones.push(`status = ?`);
+      valores.push(filtros.status);
+    }
+
+    if (filtros.flex) {
+      condiciones.push(`flex = ?`);
+      valores.push(filtros.flex);
+    }
+
+    if (filtros.number) {
+      condiciones.push(`number = ?`);
+      valores.push(filtros.number);
+    }
+
+    if (filtros.didCuenta) {
+      condiciones.push(`didCuenta = ?`);
+      valores.push(filtros.didCuenta);
+    }
+
+    if (filtros.fechaInicio && filtros.fechaFin) {
+      condiciones.push(`fecha_venta BETWEEN ? AND ?`);
+      valores.push(filtros.fechaInicio, filtros.fechaFin);
+    }
+
+    const whereClause = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+
+    const query = `
+      SELECT id, did, didEnvio, didCliente, didCuenta, status, flex, 
+             number, fecha_venta, observaciones, armado, descargado, 
+             fecha_armado, quien_armado, autofecha, ml_shipment_id, 
+             ml_id, ml_pack_id, buyer_id, buyer_nickname, 
+             buyer_name, buyer_last_name, total_amount
+      FROM ordenes
+      ${whereClause}
+      ORDER BY id DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const results = await executeQuery(connection, query, [...valores, cantidad, offset]);
+
+    const countQuery = `
+      SELECT COUNT(*) AS total 
+      FROM ordenes
+      ${whereClause}
+    `;
+    const countResult = await executeQuery(connection, countQuery, valores);
+    const total = countResult[0]?.total || 0;
+    const totalPages = Math.ceil(total / cantidad);
+
+    return {
+      ordenes: results,
+      total,
+      totalPages,
+      pagina,
+      cantidad
+    };
+  } catch (error) {
+    console.error("Error en getTodasLasOrdenes:", error.message);
+    throw error;
+  }
+}
+
 
 
   // Dentro de la clase Ordenes

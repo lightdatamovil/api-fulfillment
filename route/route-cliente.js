@@ -272,7 +272,7 @@ cliente.post ("/getClientes", async (req, res) => {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
     const cliente= new Cliente();
-    try {
+    try { 
         const response = await cliente.getClientes(connection, data.did);
         return res.status(200).json({    
             estado: true,

@@ -420,7 +420,7 @@ console.log("Respuesta de insert:", resulta2);
 })
 
 
-router.post("/getOrdenes" , async (req, res) => {
+router.post("/getOrdenesid" , async (req, res) => {
     const data = req.body;
 const connection = await getConnectionLocal(data.idEmpresa);
 try {
@@ -441,6 +441,48 @@ try {
     connection.end();
 }
 })
+
+router.post("/getOrdenes", async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+  
+    try {
+      // Asignamos valores predeterminados a los filtros si no están en el body
+      const filtros = {
+        ml_shipment_id: data.ml_shipment_id || null,
+        ml_pack_id: data.ml_pack_id || null,
+        status: data.status || null,
+        flex: data.flex || null,
+        number: data.number || null,
+        didCuenta: data.didCuenta || null,
+        fechaInicio: data.fechaInicio || null,
+        fechaFin: data.fechaFin || null
+      };
+  
+      // Asignamos valores para página y cantidad si no se envían en el body
+      const pagina = data.pagina || 1;
+      const cantidad = data.cantidad || 10;
+  
+      // Llamamos a la función para obtener las órdenes
+      const orden = new Ordenes();
+      const response = await orden.getTodasLasOrdenes(connection, pagina, cantidad, filtros);
+  
+      return res.status(200).json({
+        estado: true,
+        ordenes: response
+      });
+    } catch (error) {
+      console.error("Error durante la operación:", error);
+      return res.status(500).json({
+        estado: false,
+        error: -1,
+        message: error.message || error
+      });
+    } finally {
+      connection.end();
+    }
+  });
+  
 
 
 
