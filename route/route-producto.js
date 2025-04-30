@@ -385,7 +385,7 @@ producto.post("/getAtributoById", async (req, res) => {
     });
   }
 });
-producto.post("/getAtributos", async (req, res) => {
+producto.post("/getAtributo", async (req, res) => {
   try {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
