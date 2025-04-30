@@ -54,6 +54,15 @@ class Usuario {
   }
   async insert() {
     try {
+
+      const querycheck = 'SELECT usuario FROM usuarios WHERE usuario = ? and superado = 0 and elim = 0';
+      const resultscheck = await executeQuery(this.connection, querycheck, [this.usuario]);
+      if (resultscheck.length > 0) {
+        return {
+          estado: false,
+          message: "El usuario ya existe.",
+        };
+      }
       if (this.did === null || this.did === "") {
         return this.createNewRecord(this.connection);
       } else {

@@ -34,6 +34,16 @@ didAtributo = 0,
 
   async insert() {
     try {
+
+      querycheck = 'SELECT codigo FROM atributos_valores WHERE codigo = ? and superado = 0 and elim = 0';
+      const resultscheck = await executeQuery(connection, querycheck, [this.codigo]);
+      if (resultscheck.length > 0) {
+        return {
+          estado: false,
+          message: "El codigo del atributo valor ya existe.",
+        };
+      }
+
       if (this.did === null || this.did === "" || this.did === 0) {
         return this.createNewRecord(this.connection);
       } else {
@@ -53,7 +63,11 @@ didAtributo = 0,
 
 
   async checkAndUpdateDidProducto(connection) {
+
+
     try {
+
+
       const checkDidProductoQuery = 'SELECT id FROM atributos_valores WHERE did = ?';
       const results = await executeQuery(connection, checkDidProductoQuery, [this.did]);
 
@@ -81,6 +95,8 @@ didAtributo = 0,
 
   async createNewRecord(connection) {
     try {
+
+      
       const columnsQuery = 'DESCRIBE atributos_valores';
       const results = await executeQuery(connection, columnsQuery, []);
 

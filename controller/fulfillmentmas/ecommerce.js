@@ -23,6 +23,14 @@ class Ecommerce {
   }
 
   async insert() {
+    const querycheck = 'SELECT nombre FROM ecommerces WHERE nombre = ? and superado = 0 and elim = 0';
+    const resultscheck = await executeQuery(this.connection, querycheck, [this.nombre]);
+    if (resultscheck.length > 0) {
+      return {
+        estado: false,
+        message: "El ecommerce ya existe.",
+      };
+    }
     try {
       if (this.did === null || this.did === "") {
         return this.createNewRecord(this.connection);

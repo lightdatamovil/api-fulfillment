@@ -28,6 +28,14 @@ class Deposito {
   }
 
   async insert() {
+    const querycheck = 'SELECT codigo FROM depositos WHERE codigo = ? and superado = 0 and elim = 0';
+    const resultscheck = await executeQuery(this.connection, querycheck, [this.codigo]);
+    if (resultscheck.length > 0) {
+      return {
+        estado: false,
+        message: "El codigo del deposito ya existe.",
+      };
+    }
     try {
       if (this.did === null || this.did === "") {
         return this.createNewRecord(this.connection);

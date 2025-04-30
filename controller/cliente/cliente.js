@@ -26,6 +26,14 @@ class Cliente {
   }
 
   async insert() {
+    const querycheck = 'SELECT nombre_fantasia FROM clientes WHERE nombre_fantasia = ? and superado = 0 and elim = 0';
+    const resultscheck = await executeQuery(this.connection, querycheck, [this.nombre_fantasia]);
+    if (resultscheck.length > 0) {
+      return {
+        estado: false,
+        message: "El cliente ya existe.",
+      };
+    }
     try {
       if (this.did === null || this.did === "") {
         return this.createNewRecord(this.connection);
