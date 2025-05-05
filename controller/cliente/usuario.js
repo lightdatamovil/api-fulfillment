@@ -189,6 +189,8 @@ class Usuario {
         countParams.push(`%${filtros.usuario}%`);
       }
       if (filtros.habilitado !== "") {
+        console.log(filtros.habilitado, "dsadsadas");
+
         baseQuery += " AND habilitado = ?";
         params.push(filtros.habilitado);
         countParams.push(filtros.habilitado);
