@@ -36,7 +36,7 @@ class Atributo_valor {
     try {
       const querycheck =
         "SELECT codigo FROM atributos_valores WHERE codigo = ? and superado = 0 and elim = 0";
-      const resultscheck = await executeQuery(connection, querycheck, [
+      const resultscheck = await executeQuery(this.connection, querycheck, [
         this.codigo,
       ]);
       if (resultscheck.length > 0) {
