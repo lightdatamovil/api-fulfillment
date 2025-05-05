@@ -1,4 +1,4 @@
-const { executeQuery } = require('../../dbconfig');
+const { executeQuery } = require("../../dbconfig");
 
 class Cliente_cuenta {
   constructor(
@@ -33,7 +33,7 @@ class Cliente_cuenta {
       6: "VTEX",
       7: "Falabella",
       8: "Jumpseller",
-      9: "Aper"
+      9: "Aper",
     };
     return tipos[tipo] || "Desconocido";
   }
@@ -63,11 +63,12 @@ class Cliente_cuenta {
 
   async checkAndUpdateDidProducto(connection) {
     try {
-      const checkQuery = 'SELECT id FROM clientes_cuentas WHERE did = ?';
+      const checkQuery = "SELECT id FROM clientes_cuentas WHERE did = ?";
       const results = await executeQuery(connection, checkQuery, [this.did]);
 
       if (results.length > 0) {
-        const updateQuery = 'UPDATE clientes_cuentas SET superado = 1 WHERE did = ?';
+        const updateQuery =
+          "UPDATE clientes_cuentas SET superado = 1 WHERE did = ?";
         await executeQuery(connection, updateQuery, [this.did]);
         return this.createNewRecord(connection);
       } else {
@@ -80,30 +81,39 @@ class Cliente_cuenta {
 
   async createNewRecord(connection) {
     try {
-
-      const querycheck = 'SELECT did FROM clientes WHERE did = ? and elim = 0 and superado = 0';
-      const result = await executeQuery(connection, querycheck, [this.diCliente]);
+      const querycheck =
+        "SELECT did FROM clientes WHERE did = ? and elim = 0 and superado = 0";
+      const result = await executeQuery(connection, querycheck, [
+        this.diCliente,
+      ]);
       console.log(result);
-      
+
       if (!Array.isArray(result) || result.length === 0) {
         return "El cliente no existe";
       }
-      
-      const columnsQuery = 'DESCRIBE clientes_cuentas';
+
+      const columnsQuery = "DESCRIBE clientes_cuentas";
       const results = await executeQuery(connection, columnsQuery, []);
 
       const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+      const filteredColumns = tableColumns.filter(
+        (column) => this[column] !== undefined
+      );
 
       const values = filteredColumns.map((column) => this[column]);
 
-      const insertQuery = `INSERT INTO clientes_cuentas (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+      const insertQuery = `INSERT INTO clientes_cuentas (${filteredColumns.join(
+        ", "
+      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
 
       const insertResult = await executeQuery(connection, insertQuery, values);
 
       if (this.did == 0 || this.did == null) {
-        const updateQuery = 'UPDATE clientes_cuentas SET did = ? WHERE id = ?';
-        await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
+        const updateQuery = "UPDATE clientes_cuentas SET did = ? WHERE id = ?";
+        await executeQuery(connection, updateQuery, [
+          insertResult.insertId,
+          insertResult.insertId,
+        ]);
       }
 
       return { insertId: insertResult.insertId };
@@ -114,41 +124,101 @@ class Cliente_cuenta {
 
   async delete(connection, did) {
     try {
-      const deleteQuery = 'UPDATE clientes_cuentas SET elim = 1 WHERE did = ?';
+      const deleteQuery = "UPDATE clientes_cuentas SET elim = 1 WHERE did = ?";
       await executeQuery(connection, deleteQuery, [did]);
       return {
         estado: true,
-        message: "Cliente cuenta eliminado correctamente."
+        message: "Cliente cuenta eliminado correctamente.",
       };
     } catch (error) {
       throw error;
     }
   }
 
-  async getClientes(connection, did = null) {
+  async getClientes(connection, filtros = {}) {
     try {
-      let query = 'SELECT * FROM clientes_cuentas WHERE elim = 0';
-      const params = [];
+      const conditions = ["elim = 0 and superado = 0"];
+      const values = [];
 
-      if (did) {
-        query += ' AND didCliente = ?';
-        params.push(did);
+      // Filtros dinámicos
+      if (filtros.didCliente) {
+        conditions.push("didCliente = ?");
+        values.push(filtros.didCliente);
       }
 
-      const results = await executeQuery(connection, query, params);
+      if (filtros.ml_id_vendedor) {
+        conditions.push("ml_id_vendedor = ?");
+        values.push(filtros.ml_id_vendedor);
+      }
 
-      // Parseamos los datos si es necesario
-      const enriched = results.map(row => {
-        return {
-          ...row,
-          tipo_nombre: Cliente_cuenta.getTipoNombre(row.tipo),
-          data: row.data ? JSON.parse(row.data) : {}
-        };
-      });
+      if (filtros.ml_user) {
+        conditions.push("ml_user = ?");
+        values.push(filtros.ml_user);
+      }
 
-      return enriched;
+      const whereClause = conditions.length
+        ? `WHERE ${conditions.join(" AND ")}`
+        : "";
+
+      // Paginación
+      const pagina = Number(filtros.pagina) || 1;
+      const cantidadPorPagina = Number(filtros.cantidad) || 10;
+      const offset = (pagina - 1) * cantidadPorPagina;
+
+      // Total de registros
+      const totalQuery = `SELECT COUNT(*) as total FROM clientes_cuentas ${whereClause}`;
+      const totalResult = await executeQuery(connection, totalQuery, values);
+      const totalRegistros = totalResult[0].total;
+      const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
+
+      // Consulta de datos
+      const dataQuery = `
+      SELECT * FROM clientes_cuentas
+      ${whereClause}
+      ORDER BY id DESC
+      LIMIT ? OFFSET ?
+    `;
+      const dataValues = [...values, cantidadPorPagina, offset];
+      const results = await executeQuery(connection, dataQuery, dataValues);
+
+      // Enriquecer los resultados
+      const enriched = results.map((row) => ({
+        ...row,
+        tipo_nombre: Cliente_cuenta.getTipoNombre(row.tipo),
+        data: row.data ? JSON.parse(row.data) : {},
+      }));
+
+      return {
+        totalRegistros,
+        totalPaginas,
+        pagina,
+        cantidad: cantidadPorPagina,
+        clientes: enriched,
+      };
     } catch (error) {
       console.error("Error en getClientes:", error.message);
+      throw error;
+    }
+  }
+
+  async getClientesById(connection, did) {
+    try {
+      const query = `SELECT * FROM clientes_cuentas WHERE did = ?`;
+      const result = await executeQuery(connection, query, [did]);
+
+      if (result.length === 0) {
+        return "El clienteCuenta no existe"; // O lanzar un error si lo prefieres
+      }
+
+      const enrichedResult = {
+        ...result[0],
+
+        data: result[0].data ? JSON.parse(result[0].data) : {},
+      };
+
+      return enrichedResult;
+    } catch (error) {
+      console.error("Error en getClientesById:", error.message);
       throw error;
     }
   }

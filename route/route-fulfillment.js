@@ -1,387 +1,365 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
+const {
+  redisClient,
+  getConnection,
+  getCompanyById,
+  getConnectionLocal,
+} = require("../dbconfig");
 
+const { logRed } = require("../fuctions/logsCustom");
+const Cuenta = require("../controller/fulfillment/cuentas");
+const Insumo = require("../controller/fulfillment/insumos");
+const MovimientosStockLineas = require("../controller/fulfillment/movimientos_stock_lineas");
+const Movimientos_stock = require("../controller/fulfillment/movimientos_stock");
 
-const { redisClient,getConnection, getCompanyById, getConnectionLocal } = require('../dbconfig');
-
-const { logRed } = require('../fuctions/logsCustom');
-const Cuenta = require('../controller/fulfillment/cuentas');
-const Insumo = require('../controller/fulfillment/insumos');
-const MovimientosStockLineas = require('../controller/fulfillment/movimientos_stock_lineas');
-const Movimientos_stock = require('../controller/fulfillment/movimientos_stock');
-
-const ProductoCombo = require('../controller/producto/productoCombo');
-const ProductoDeposito = require('../controller/producto/productoDeposito');
-const ProductoEcommerce = require('../controller/producto/productoEcommerce');
-const ProductO1 = require('../controller/producto/producto');
-const Ordenes = require('../controller/fulfillment/ordenes');
-const Ordenes_items = require('../controller/fulfillment/ordenes_items');
-
-
-
+const ProductoCombo = require("../controller/producto/productoCombo");
+const ProductoDeposito = require("../controller/producto/productoDeposito");
+const ProductoEcommerce = require("../controller/producto/productoEcommerce");
+const ProductO1 = require("../controller/producto/producto");
+const Ordenes = require("../controller/fulfillment/ordenes");
+const Ordenes_items = require("../controller/fulfillment/ordenes_items");
 
 router.post("/cuentas", async (req, res) => {
-    const data = req.body;
-    const connection = await getConnection(data.idEmpresa);
+  const data = req.body;
+  const connection = await getConnection(data.idEmpresa);
 
-    
-    
-    
-    
-    try {
-        if (data.operador == "eliminar"){
-           
-            const cuenta = new Cuenta(); // Instanciar la clase
-            await cuenta.eliminar(connection, data.did);
-        }
-        
-        else{
-        const cuenta = new Cuenta(data.did ?? 0 ,data.didProducto, data.didTienda, data.codigo, data.quien, data.superado ?? 0, data.elim ?? 0, connection, data.idEmpresa);
-    const resultado = await cuenta.insert();
-        }
-    
+  try {
+    if (data.operador == "eliminar") {
+      const cuenta = new Cuenta(); // Instanciar la clase
+      await cuenta.eliminar(connection, data.did);
+    } else {
+      const cuenta = new Cuenta(
+        data.did ?? 0,
+        data.didProducto,
+        data.didTienda,
+        data.codigo,
+        data.quien,
+        data.superado ?? 0,
+        data.elim ?? 0,
+        connection,
+        data.idEmpresa
+      );
+      const resultado = await cuenta.insert();
+    }
 
-
-return res.status(200).json({
-    estado: true,
-    didCuenta: data.did
+    return res.status(200).json({
+      estado: true,
+      didCuenta: data.did,
     });
+  } catch (error) {
+    console.error("Error durante la inserción:", error);
 
-
-    }
-catch (error) {
-        console.error("Error durante la inserción:", error);
-
-
-        return res.status(500).json({
-            estado: false,
-            error: -1,
-            message: error
-            
-        });
-    }
-    finally {
-        connection.end();
-    }
-
-    
-})
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error,
+    });
+  } finally {
+    connection.end();
+  }
+});
 router.post("/insumos", async (req, res) => {
-    const data = req.body;
-    const connection = await getConnection(data.idEmpresa);
+  const data = req.body;
+  const connection = await getConnection(data.idEmpresa);
 
-    
-    
-    
-    
-    try {
-        if (data.operador == "eliminar"){
-           
-            const cuenta = new Insumo(); // Instanciar la clase
-            await cuenta.eliminar(connection, data.did);
-        }
-        
-        else{
-        const cuenta = new Insumo(data.did ?? 0 ,data.didCliente,data.sku,data.descripcion ,data.quien,data.superado ?? 0,data.elim ?? 0, connection, data.idEmpresa);
-    const resultado = await cuenta.insert();
-        }
-    
+  try {
+    if (data.operador == "eliminar") {
+      const cuenta = new Insumo(); // Instanciar la clase
+      await cuenta.eliminar(connection, data.did);
+    } else {
+      const cuenta = new Insumo(
+        data.did ?? 0,
+        data.didCliente,
+        data.sku,
+        data.descripcion,
+        data.quien,
+        data.superado ?? 0,
+        data.elim ?? 0,
+        connection,
+        data.idEmpresa
+      );
+      const resultado = await cuenta.insert();
+    }
 
-
-return res.status(200).json({
-    estado: true,
-    didCuenta: data.did
+    return res.status(200).json({
+      estado: true,
+      didCuenta: data.did,
     });
+  } catch (error) {
+    console.error("Error durante la inserción:", error);
 
-
-    }
-catch (error) {
-        console.error("Error durante la inserción:", error);
-
-
-        return res.status(500).json({
-            estado: false,
-            error: -1,
-            message: error
-            
-        });
-    }
-    finally {
-        connection.end();
-    }
-
-    
-})
-
-
-router.post('/movimientos-stock-lineas', async (req, res) => {
-    const data = req.body;
-    const connection = await getConnection(data.idEmpresa);
-
-    try {
-        if (data.operador === 'eliminar') {
-            const movimiento = new MovimientosStockLineas();
-            await movimiento.eliminar(connection, data.did);
-        } else {
-            const movimiento = new MovimientosStockLineas(
-                data.did ?? 0,
-                data.didMovimiento,
-                data.didProducto,
-                data.didDeposito,
-                data.tipo,
-                data.cantidad,
-                data.quien,
-                data.superado ?? 0,
-                data.elim ?? 0,
-                connection
-            );
-            await movimiento.insert();
-        }
-
-        return res.status(200).json({
-            estado: true,
-            didCuenta: data.did
-        });
-    } catch (error) {
-        console.error('Error durante la operación:', error);
-        return res.status(500).json({
-            estado: false,
-            error: -1,
-            message: error.message || error
-        });
-    } finally {
-        connection.end();
-    }
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error,
+    });
+  } finally {
+    connection.end();
+  }
 });
 
-router.post('/movimientos-stock', async (req, res) => {
-    const data = req.body;
-    const connection = await getConnection(data.idEmpresa);
+router.post("/movimientos-stock-lineas", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnection(data.idEmpresa);
 
-    try {
-        if (data.operador === 'eliminar') {
-            const movimiento = new ProductO1();
-            await movimiento.eliminar(connection, data.did);
-        } else { 
-            let fecha = new Date();
-            fecha.setHours(fecha.getHours() - 3);
-            const movimiento = new Movimientos_stock(
-                data.did ?? 0,
-                data.didCliente,
-                fecha,
-                data.didConcepto,
-                data.didArmado,
-                data.observaciones,
-                data.lineas,
-                data.total,
-                data.quien,
-                data.superado ?? 0,
-                data.elim ?? 0,
-                connection,
-       
-            );
-            console.log(movimiento,"movimiento");
-            
-            await movimiento.insert();
-        }
-
-        return res.status(200).json({
-            estado: true,
-            didCuenta: data.did
-        });
-    } catch (error) {
-        console.error('Error durante la operación:', error);
-        return res.status(500).json({
-            estado: false,
-            error: -1,
-            message: error.message || error
-        });
-    } finally {
-        connection.end();
+  try {
+    if (data.operador === "eliminar") {
+      const movimiento = new MovimientosStockLineas();
+      await movimiento.eliminar(connection, data.did);
+    } else {
+      const movimiento = new MovimientosStockLineas(
+        data.did ?? 0,
+        data.didMovimiento,
+        data.didProducto,
+        data.didDeposito,
+        data.tipo,
+        data.cantidad,
+        data.quien,
+        data.superado ?? 0,
+        data.elim ?? 0,
+        connection
+      );
+      await movimiento.insert();
     }
+
+    return res.status(200).json({
+      estado: true,
+      didCuenta: data.did,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
 });
 
-router.post('/producto', async (req, res) => {
-    const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+router.post("/movimientos-stock", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnection(data.idEmpresa);
 
-    try {
-      
-        if (data.operador === 'eliminar') {
-            const producto = new ProductO1();
-       const response=  await producto.delete(connection, data.did);
-       console.log("Respuesta de delete:", response);
-       return res.status(200).json({
+  try {
+    if (data.operador === "eliminar") {
+      const movimiento = new ProductO1();
+      await movimiento.eliminar(connection, data.did);
+    } else {
+      let fecha = new Date();
+      fecha.setHours(fecha.getHours() - 3);
+      const movimiento = new Movimientos_stock(
+        data.did ?? 0,
+        data.didCliente,
+        fecha,
+        data.didConcepto,
+        data.didArmado,
+        data.observaciones,
+        data.lineas,
+        data.total,
+        data.quien,
+        data.superado ?? 0,
+        data.elim ?? 0,
+        connection
+      );
+      console.log(movimiento, "movimiento");
+
+      await movimiento.insert();
+    }
+
+    return res.status(200).json({
+      estado: true,
+      didCuenta: data.did,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+
+router.post("/producto", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+
+  try {
+    if (data.operador === "eliminar") {
+      const producto = new ProductO1();
+      const response = await producto.delete(connection, data.did);
+      console.log("Respuesta de delete:", response);
+      return res.status(200).json({
         estado: response.estado !== undefined ? response.estado : false,
-        message: response.message || response
-    });
-        }
-        if (data.operador === 'forzarEliminar') {
-        const producto = new ProductO1();
-        const response=  await producto.forzarDelete(connection, data.did);
-        console.log("Respuesta de delete:", response);
-        return res.status(200).json({
-            estado: response.estado !== undefined ? response.estado : false,
-            message: response.message || response
-        });
-        }
-        else{
+        message: response.message || response,
+      });
+    }
+    if (data.operador === "forzarEliminar") {
+      const producto = new ProductO1();
+      const response = await producto.forzarDelete(connection, data.did);
+      console.log("Respuesta de delete:", response);
+      return res.status(200).json({
+        estado: response.estado !== undefined ? response.estado : false,
+        message: response.message || response,
+      });
+    } else {
+      // Crear nuevo producto
+      const producto = new ProductO1(
+        data.did ?? 0,
+        data.cliente,
+        data.sku,
+        data.titulo,
+        data.descripcion,
+        data.imagen,
+        data.habilitado,
+        data.esCombo,
+        data.quien,
+        data.superado ?? 0,
+        data.elim ?? 0,
+        connection
+      );
 
-        // Crear nuevo producto
-        const producto = new ProductO1(
-            data.did ?? 0,
-            data.cliente,
-            data.sku,
-            data.titulo,
-            data.descripcion,
-            data.imagen,
-            data.habilitado,
-            data.esCombo,
-            data.quien,
-            data.superado ?? 0,
-            data.elim ?? 0,
-            connection
+      const productoResult = await producto.insert();
+
+      const productId = productoResult.insertId;
+
+      // Procesar combos
+      if (data.combo && Array.isArray(data.combo)) {
+        // Convertir `combo` en un único objeto JSON
+        const comboArray = JSON.stringify(
+          data.combo.map((item) => ({
+            did: item.did,
+            cantidad: parseInt(item.cantidad, 10), // Convertir cantidad a número
+          }))
         );
 
-        const productoResult = await producto.insert();
+        console.log("Combo antes de insertar:", comboArray); // Verifica el formato correcto
 
-        const productId= productoResult.insertId;
+        const productoCombo = new ProductoCombo(
+          data.did ?? 0,
+          productId,
+          0, // cantidad general (se maneja dentro de combo)
+          data.quien,
+          0,
+          0,
+          comboArray, // Ahora es un solo JSON string, no un array
+          connection
+        );
 
-        // Procesar combos
-      if (data.combo && Array.isArray(data.combo)) {
-    // Convertir `combo` en un único objeto JSON
-    const comboArray = JSON.stringify(data.combo.map(item => ({
-        did: item.did,
-        cantidad: parseInt(item.cantidad, 10) // Convertir cantidad a número
-    })));
+        await productoCombo.insert();
+      }
 
-    console.log("Combo antes de insertar:", comboArray); // Verifica el formato correcto
+      // Procesar depósitos
+      if (data.depositos && Array.isArray(data.depositos)) {
+        for (const deposito of data.depositos) {
+          const productoDeposito = new ProductoDeposito(
+            data.depositos.did ?? 0,
+            productoResult.insertId,
+            deposito.did,
 
-    const productoCombo = new ProductoCombo(
-        data.did ?? 0,
-        productId,
-        0, // cantidad general (se maneja dentro de combo)
-        data.quien,
-        0,
-        0,
-        comboArray, // Ahora es un solo JSON string, no un array
-        connection
-    );
+            deposito.habilitado, // habilitado
+            data.quien,
+            0,
+            0,
+            connection
+          );
+          console.log(productoDeposito, "productoDeposito");
 
-    await productoCombo.insert();
-}
-
-        // Procesar depósitos
-        if (data.depositos && Array.isArray(data.depositos)) {
-            for (const deposito of data.depositos) {
-                const productoDeposito = new ProductoDeposito(
-                    data.depositos.did ?? 0,    
-                    productoResult.insertId,
-                    deposito.did,
-
-                    deposito.habilitado, // habilitado
-                    data.quien,
-                    0,
-                    0,
-                    connection
-                );
-                console.log(productoDeposito,"productoDeposito");
-                
-                await productoDeposito.insert();
-            }
+          await productoDeposito.insert();
         }
+      }
 
-        // Procesar ecommerce
-        if (data.ecommerce && Array.isArray(data.ecommerce)) {
-            for (const ecommerceItem of data.ecommerce) {
-                const productoEcommerce = new ProductoEcommerce(
-                    data.did ?? 0,
-                    productoResult.insertId,
-                    ecommerceItem.tienda,
-    
-                    ecommerceItem.link,
-                    ecommerceItem.habilitado,
-                    ecommerceItem.sync,
-                    data.quien,
-                    0,
-                    0,
-                    connection
-                );
-                await productoEcommerce.insert();
-            }
+      // Procesar ecommerce
+      if (data.ecommerce && Array.isArray(data.ecommerce)) {
+        for (const ecommerceItem of data.ecommerce) {
+          const productoEcommerce = new ProductoEcommerce(
+            data.did ?? 0,
+            productoResult.insertId,
+            ecommerceItem.tienda,
+
+            ecommerceItem.link,
+            ecommerceItem.habilitado,
+            ecommerceItem.sync,
+            data.quien,
+            0,
+            0,
+            connection
+          );
+          await productoEcommerce.insert();
         }
+      }
 
-        return res.status(200).json({
-            estado: true,
-            didCuenta: productoResult.insertId
-        });
+      return res.status(200).json({
+        estado: true,
+        didCuenta: productoResult.insertId,
+      });
     }
-    } catch (error) {
-        console.error('Error durante la operación:', error);
-        return res.status(500).json({
-            estado: false,
-            error: -1,
-            message: error.message || error
-        });
-    } finally {
-        connection.end();
-    }
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
 });
 router.post("/getProducts", async (req, res) => {
-    const Producto= new ProductO1();
-    const data = req.body;
-    const connection = await getConnection(data.idEmpresa);
-   const  response = await Producto.traerProducto(connection);
-    return res.status(200).json({
-        estado: true,
-        productos: response
-    });
-})
+  const Producto = new ProductO1();
+  const data = req.body;
+  const connection = await getConnection(data.idEmpresa);
+  const response = await Producto.traerProducto(connection);
+  return res.status(200).json({
+    estado: true,
+    productos: response,
+  });
+});
 
 router.post("/orden", async (req, res) => {
-    const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
 
-    try {
+  try {
+    if (data.operador == "eliminar") {
+      const orden = new Ordenes(); // Instanciar la clase
+      await orden.eliminar(connection, data.did);
+      return res.status(200).json({
+        estado: true,
+        message: "Orden Eliminada",
+      });
+    } else {
+      const orden = new Ordenes(
+        data.did ?? 0,
+        data.didEnvio,
+        data.didCliente,
+        data.didCuenta,
+        data.status,
+        data.flex,
+        data.number,
+        data.observaciones,
+        data.armado,
+        data.descargado,
+        data.fecha_armado,
+        data.quien_armado,
 
-        if (data.operador == "eliminar"){ 
-            const orden = new Ordenes(); // Instanciar la clase
-            await orden.eliminar(connection, data.did);
-            return res.status(200).json({
-                estado: true,
-                message: "Orden Eliminada"
-            });
-            
-        }
-        else{
-        const orden =new Ordenes(
-            data.did ?? 0,
-            data.didEnvio,
-            data.didCliente,
-            data.didCuenta,
-            data.status,
-            data.flex,
-            data.number,
-            data.observaciones,
-            data.armado,
-            data.descargado,
-            data.fecha_armado,
-            data.quien_armado,
-          
-            connection  
-        );
-        const response = await orden.insert();
+        connection
+      );
+      const response = await orden.insert();
 
-        console.log("Respuesta de insert:", response);
-        console.log(response.insertId,"response.insertId");
-        
+      console.log("Respuesta de insert:", response);
+      console.log(response.insertId, "response.insertId");
 
-
-for (const item of data.ordenes_items) {
+      for (const item of data.ordenes_items) {
         const ordenes_items = new Ordenes_items(
-            data.did ?? 0,
-            response.insertId ?? data.didItem,
+          data.did ?? 0,
+          response.insertId ?? data.didItem,
           item.codigo,
           item.imagen,
           item.descripcion,
@@ -395,104 +373,126 @@ for (const item of data.ordenes_items) {
           item.elim || 0,
           connection
         );
-  
-        
 
-let resulta2= await ordenes_items.insert();
-console.log("Respuesta de insert:", resulta2);
-}}
-            
-        
-        return res.status(200).json({
-            estado: true,
-        
-        });
-    } catch (error) {
-        console.error('Error durante la operación:', error);
-        return res.status(500).json({
-            estado: false,
-            error: -1,
-            message: error.message || error
-        });
-    } finally {
-        connection.end();
+        let resulta2 = await ordenes_items.insert();
+        console.log("Respuesta de insert:", resulta2);
+      }
     }
-})
 
-
-router.post("/getOrdenesid" , async (req, res) => {
-    const data = req.body;
-const connection = await getConnectionLocal(data.idEmpresa);
-try {
-    const orden = new Ordenes();
-    const response = await orden.getOrdenPorId(connection,data.did);
     return res.status(200).json({
-        estado: true,
-        ordenes: response
+      estado: true,
     });
-} catch (error) {
-    console.error('Error durante la operación:', error);
+  } catch (error) {
+    console.error("Error durante la operación:", error);
     return res.status(500).json({
-        estado: false,
-        error: -1,
-        message: error.message || error
+      estado: false,
+      error: -1,
+      message: error.message || error,
     });
-} finally {
+  } finally {
     connection.end();
-}
-})
-
-router.post("/getOrdenes", async (req, res) => {
-    const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
-  
-    try {
-      // Asignamos valores predeterminados a los filtros si no están en el body
-      const filtros = {
-        ml_shipment_id: data.ml_shipment_id || null,
-        ml_pack_id: data.ml_pack_id || null,
-        status: data.status || null,
-        flex: data.flex || null,
-        number: data.number || null,
-        didCuenta: data.didCuenta || null,
-        fechaInicio: data.fechaInicio || null,
-        fechaFin: data.fechaFin || null
-      };
-  
-      // Asignamos valores para página y cantidad si no se envían en el body
-      const pagina = data.pagina || 1;
-      const cantidad = data.cantidad || 10;
-  
-      // Llamamos a la función para obtener las órdenes
-      const orden = new Ordenes();
-      const response = await orden.getTodasLasOrdenes(connection, pagina, cantidad, filtros);
-  
-      return res.status(200).json({
-        estado: true,
-        ordenes: response
-      });
-    } catch (error) {
-      console.error("Error durante la operación:", error);
-      return res.status(500).json({
-        estado: false,
-        error: -1,
-        message: error.message || error
-      });
-    } finally {
-      connection.end();
-    }
-  });
-  
-
-
-
-router.get("/", async (req, res) => {
-    res.status(200).json({
-        estado: true,
-        mesanje: "Hola chris"
-    });
-
+  }
 });
 
+router.post("/getOrdenesid", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+  try {
+    const orden = new Ordenes();
+    const response = await orden.getOrdenPorId(connection, data.did);
+    return res.status(200).json({
+      estado: true,
+      ordenes: response,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+
+router.post("/getOrdenes", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+
+  try {
+    // Asignamos valores predeterminados a los filtros si no están en el body
+    const filtros = {
+      ml_shipment_id: data.ml_shipment_id || null,
+      ml_pack_id: data.ml_pack_id || null,
+      status: data.status || null,
+      flex: data.flex || null,
+      number: data.number || null,
+      didCuenta: data.didCuenta || null,
+      fechaInicio: data.fechaInicio || null,
+      fechaFin: data.fechaFin || null,
+    };
+
+    // Asignamos valores para página y cantidad si no se envían en el body
+    const pagina = data.pagina || 1;
+    const cantidad = data.cantidad || 10;
+
+    // Llamamos a la función para obtener las órdenes
+    const orden = new Ordenes();
+    const response = await orden.getTodasLasOrdenes(
+      connection,
+      pagina,
+      cantidad,
+      filtros
+    );
+
+    return res.status(200).json({
+      estado: true,
+      totalRegistros: response.total,
+      totalPaginas: Math.ceil(response.total / cantidad),
+      pagina: response.pagina,
+      cantidad: response.cantidad,
+
+      data: response.ordenes,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+router.post("/deleteOrden", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+  try {
+    const orden = new Ordenes();
+    const response = await orden.delete(connection, data.did);
+    return res.status(200).json({
+      estado: response.estado !== undefined ? response.estado : false,
+      message: response.message || response,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+
+router.get("/", async (req, res) => {
+  res.status(200).json({
+    estado: true,
+    mesanje: "Hola chris",
+  });
+});
 
 module.exports = router;

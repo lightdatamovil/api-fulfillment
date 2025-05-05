@@ -1,12 +1,14 @@
-const crypto = require('crypto');
-const crypt = require('unix-crypt-td-js');
-const { getConnection, executeQuery } = require('../../dbconfig');
-const { log } = require('console');
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'tu_clave_secreta';
+const crypto = require("crypto");
+const crypt = require("unix-crypt-td-js");
+const { getConnection, executeQuery } = require("../../dbconfig");
+const { log } = require("console");
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = "tu_clave_secreta";
 function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString('hex'); // Generar un salt aleatorio
-  const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha256').toString('hex');
+  const salt = crypto.randomBytes(16).toString("hex"); // Generar un salt aleatorio
+  const hashedPassword = crypto
+    .pbkdf2Sync(password, salt, 1000, 64, "sha256")
+    .toString("hex");
   return `$5$${salt}$${hashedPassword}`;
 }
 
@@ -16,7 +18,7 @@ class Usuario {
     nombre = "",
     apellido = "",
     mail = "",
-    usuario="",
+    usuario = "",
     pass = "",
     imagen = "",
     habilitado = 0,
@@ -47,16 +49,20 @@ class Usuario {
     return JSON.stringify(this);
   }
 
-   async hashPassword(password) {
-    const salt = crypto.randomBytes(16).toString('hex'); // Generar un salt aleatorio
-    const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha256').toString('hex');
+  async hashPassword(password) {
+    const salt = crypto.randomBytes(16).toString("hex"); // Generar un salt aleatorio
+    const hashedPassword = crypto
+      .pbkdf2Sync(password, salt, 1000, 64, "sha256")
+      .toString("hex");
     return `$5$${salt}$${hashedPassword}`;
   }
   async insert() {
     try {
-
-      const querycheck = 'SELECT usuario FROM usuarios WHERE usuario = ? and superado = 0 and elim = 0';
-      const resultscheck = await executeQuery(this.connection, querycheck, [this.usuario]);
+      const querycheck =
+        "SELECT usuario FROM usuarios WHERE usuario = ? and superado = 0 and elim = 0";
+      const resultscheck = await executeQuery(this.connection, querycheck, [
+        this.usuario,
+      ]);
       if (resultscheck.length > 0) {
         return {
           estado: false,
@@ -82,11 +88,13 @@ class Usuario {
 
   async checkAndUpdateDidProducto(connection) {
     try {
-      const checkDidProductoQuery = 'SELECT id FROM usuarios WHERE did = ?';
-      const results = await executeQuery(connection, checkDidProductoQuery, [this.did]);
+      const checkDidProductoQuery = "SELECT id FROM usuarios WHERE did = ?";
+      const results = await executeQuery(connection, checkDidProductoQuery, [
+        this.did,
+      ]);
 
       if (results.length > 0) {
-        const updateQuery = 'UPDATE usuarios SET superado = 1 WHERE did = ?';
+        const updateQuery = "UPDATE usuarios SET superado = 1 WHERE did = ?";
         await executeQuery(connection, updateQuery, [this.did]);
         return this.createNewRecord(connection);
       } else {
@@ -99,27 +107,34 @@ class Usuario {
 
   async createNewRecord(connection) {
     try {
-      const columnsQuery = 'DESCRIBE usuarios';
+      const columnsQuery = "DESCRIBE usuarios";
       const results = await executeQuery(connection, columnsQuery, []);
-  
+
       const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
-  
+      const filteredColumns = tableColumns.filter(
+        (column) => this[column] !== undefined
+      );
+
       // 🧂 Hasheamos la contraseña si está presente y no está ya en formato $5$
-      if (this.pass && !this.pass.startsWith('$5$')) {
+      if (this.pass && !this.pass.startsWith("$5$")) {
         this.pass = hashPassword(this.pass); // Usamos hashPassword aquí
       }
-  
+
       const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
-  
+      const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(
+        ", "
+      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+
       const insertResult = await executeQuery(connection, insertQuery, values);
-  
+
       if (this.did == 0 || this.did == null) {
-        const updateQuery = 'UPDATE usuarios SET did = ? WHERE id = ?';
-        await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
+        const updateQuery = "UPDATE usuarios SET did = ? WHERE id = ?";
+        await executeQuery(connection, updateQuery, [
+          insertResult.insertId,
+          insertResult.insertId,
+        ]);
       }
-  
+
       return { insertId: insertResult.insertId };
     } catch (error) {
       throw error;
@@ -128,11 +143,11 @@ class Usuario {
 
   async delete(connection, did) {
     try {
-      const deleteQuery = 'UPDATE usuarios SET elim = 1 WHERE did = ?';
+      const deleteQuery = "UPDATE usuarios SET elim = 1 WHERE did = ?";
       await executeQuery(connection, deleteQuery, [did]);
       return {
         estado: true,
-        message: "Producto eliminado correctamente."
+        message: "Producto eliminado correctamente.",
       };
     } catch (error) {
       throw error;
@@ -141,35 +156,35 @@ class Usuario {
 
   static async getUsuarios(connection, filtros = {}) {
     try {
-      let baseQuery = 'FROM usuarios WHERE superado = 0 AND elim = 0';
+      let baseQuery = "FROM usuarios WHERE superado = 0 AND elim = 0";
       const params = [];
       const countParams = [];
 
       if (filtros.perfil !== undefined && filtros.perfil !== "") {
-        baseQuery += ' AND perfiles = ?';
+        baseQuery += " AND perfiles = ?";
         params.push(filtros.perfil);
         countParams.push(filtros.perfil);
       }
 
       if (filtros.nombre) {
-        baseQuery += ' AND nombre LIKE ?';
+        baseQuery += " AND nombre LIKE ?";
         params.push(`%${filtros.nombre}%`);
         countParams.push(`%${filtros.nombre}%`);
       }
 
       if (filtros.apellido) {
-        baseQuery += ' AND apellido LIKE ?';
+        baseQuery += " AND apellido LIKE ?";
         params.push(`%${filtros.apellido}%`);
         countParams.push(`%${filtros.apellido}%`);
       }
 
       if (filtros.email) {
-        baseQuery += ' AND mail LIKE ?';
+        baseQuery += " AND mail LIKE ?";
         params.push(`%${filtros.email}%`);
         countParams.push(`%${filtros.email}%`);
       }
-      if(filtros.username){
-        baseQuery += ' AND usuario LIKE ?';
+      if (filtros.username) {
+        baseQuery += " AND usuario LIKE ?";
         params.push(`%${filtros.username}%`);
         countParams.push(`%${filtros.username}%`);
       }
@@ -186,21 +201,26 @@ class Usuario {
 
       // Consulta para contar total de usuarios con filtros
       const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`;
-      const countResult = await executeQuery(connection, countQuery, countParams);
-      const totalUsuarios = countResult[0]?.total || 0;
-      const totalPaginas = Math.ceil(totalUsuarios / porPagina);
+      const countResult = await executeQuery(
+        connection,
+        countQuery,
+        countParams
+      );
+      const totalRegistros = countResult[0]?.total || 0;
+      const totalPaginas = Math.ceil(totalRegistros / porPagina);
 
       // Remover contraseña
-      const usuariosSinPass = results.map(usuario => {
+      const usuariosSinPass = results.map((usuario) => {
         delete usuario.pass;
         return usuario;
       });
 
       return {
         usuarios: usuariosSinPass,
-        paginaActual: pagina,
-        totalUsuarios,
-        totalPaginas
+        pagina: pagina,
+        totalRegistros,
+        totalPaginas,
+        cantidad: porPagina,
       };
     } catch (error) {
       console.error("Error en getUsuarios:", error.message);
@@ -210,12 +230,13 @@ class Usuario {
 
   static async getUsuariosById(connection, id) {
     try {
-      const query = 'SELECT perfiles,nombre,apellido,mail,usuario,habilitado FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0';
+      const query =
+        "SELECT perfiles,nombre,apellido,mail,usuario,habilitado FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0";
       const params = [id];
       const results = await executeQuery(connection, query, params);
 
       // Remover contraseña
-      const usuariosSinPass = results.map(usuario => {
+      const usuariosSinPass = results.map((usuario) => {
         delete usuario.pass;
         return usuario;
       });
@@ -227,53 +248,58 @@ class Usuario {
     }
   }
 
-
-
-  
   async login(connection, usuario, password, codigo = null) {
     try {
-      const empresaQuery = 'SELECT * FROM sistema_empresa WHERE codigo = ? and superado = 0 AND elim = 0';
-      const empresaResult = await executeQuery(connection, empresaQuery, [codigo]);
-  
+      const empresaQuery =
+        "SELECT * FROM sistema_empresa WHERE codigo = ? and superado = 0 AND elim = 0";
+      const empresaResult = await executeQuery(connection, empresaQuery, [
+        codigo,
+      ]);
+
       if (empresaResult.length === 0) {
-        return { estado: false, mensaje: 'Código de empresa inválido' };
+        return { estado: false, mensaje: "Código de empresa inválido" };
       }
-  
+
       let query = `
         SELECT u.* 
         FROM usuarios u
         WHERE u.usuario = ? AND u.elim = 0 AND u.superado = 0 AND u.habilitado = 1
       `;
       const params = [usuario];
-  
+
       if (codigo) {
-        query += ' AND EXISTS (SELECT 1 FROM sistema_empresa se WHERE se.codigo = ?)';
+        query +=
+          " AND EXISTS (SELECT 1 FROM sistema_empresa se WHERE se.codigo = ?)";
         params.push(codigo);
       }
-  
+
       const results = await executeQuery(connection, query, params);
-  
+
       if (results.length === 0) {
-        return { estado: false, mensaje: 'Usuario no encontrado o código inválido' };
+        return {
+          estado: false,
+          mensaje: "Usuario no encontrado o código inválido",
+        };
       }
-  
+
       const user = results[0];
-  
-      if (!user.pass || !user.pass.startsWith('$5$')) {
-        return { estado: false, mensaje: 'Formato de contraseña inválido' };
+
+      if (!user.pass || !user.pass.startsWith("$5$")) {
+        return { estado: false, mensaje: "Formato de contraseña inválido" };
       }
-  
+
       // Extraemos el salt guardado del hash almacenado
-      const salt = user.pass.split('$')[2];
-  
+      const salt = user.pass.split("$")[2];
+
       // Generamos el hash de la contraseña ingresada con el mismo salt
-      const hashCalculado = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha256').toString('hex');
-  
+      const hashCalculado = crypto
+        .pbkdf2Sync(password, salt, 1000, 64, "sha256")
+        .toString("hex");
+
       // Comparamos el hash calculado con el hash almacenado
-      if (hashCalculado === user.pass.split('$')[3]) {
+      if (hashCalculado === user.pass.split("$")[3]) {
         delete user.pass; // Eliminamos la contraseña del resultado para no exponerla
 
-  
         // Generamos el JWT
         const token = jwt.sign(
           {
@@ -285,17 +311,17 @@ class Usuario {
             username: user.usuario,
             empresa: codigo,
             didEmpresa: empresaResult[0].did,
-            tipo: empresaResult[0].tipo
+            tipo: empresaResult[0].tipo,
           },
           JWT_SECRET,
           {
-            expiresIn: '4h' // duración del token
+            expiresIn: "4h", // duración del token
           }
         );
-  
+
         return {
           estado: true,
-          mensaje: 'Login correcto',
+          mensaje: "Login correcto",
           did: user.did,
           perfil: user.perfil,
           nombre: user.nombre,
@@ -305,20 +331,16 @@ class Usuario {
           empresa: codigo,
           didEmpresa: empresaResult[0].did,
           tipo: empresaResult[0].tipo,
-          token: token
+          token: token,
         };
       } else {
-        return { estado: false, mensaje: 'Contraseña incorrecta' };
+        return { estado: false, mensaje: "Contraseña incorrecta" };
       }
     } catch (error) {
       console.error("Error en login:", error.message);
       throw error;
     }
   }
-
-
-  
-  
 }
 
 module.exports = Usuario;

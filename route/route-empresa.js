@@ -1,20 +1,20 @@
-const express = require('express');
+const express = require("express");
 const empresa = express.Router();
-const { getConnectionLocal } = require('../dbconfig');
-const Empresa = require('../controller/empresa/empresa');
-const { guardarEmpresasMap } = require('../fuctions/empresaMap');
+const { getConnectionLocal } = require("../dbconfig");
+const Empresa = require("../controller/empresa/empresa");
+const { guardarEmpresasMap } = require("../fuctions/empresaMap");
 
-empresa.post('/empresa', async (req, res) => {
+empresa.post("/empresa", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    if (data.operador === 'eliminar') {
+    if (data.operador === "eliminar") {
       const empresa = new Empresa();
       const response = await empresa.delete(connection, data.did);
       return res.status(200).json({
         estado: response.estado !== undefined ? response.estado : false,
-        message: response.message || response
+        message: response.message || response,
       });
     } else {
       // Crear nueva empresa
@@ -38,15 +38,36 @@ empresa.post('/empresa', async (req, res) => {
       return res.status(200).json({
         estado: true,
         message: "Empresa creada correctamente",
-        didEmpresa: empresaId
+        didEmpresa: empresaId,
       });
     }
   } catch (error) {
-    console.error('Error durante la operación:', error);
+    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
-      message: error.message || error
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+empresa.post("deleteEmpresa", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+  try {
+    const empresa = new Empresa();
+    const response = await empresa.delete(connection, data.did);
+    return res.status(200).json({
+      estado: response.estado !== undefined ? response.estado : false,
+      message: response.message || response,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
     });
   } finally {
     connection.end();
@@ -56,7 +77,7 @@ empresa.post('/empresa', async (req, res) => {
 empresa.get("/", async (req, res) => {
   res.status(200).json({
     estado: true,
-    mesanje: "Hola chris"
+    mesanje: "Hola chris",
   });
 });
 
