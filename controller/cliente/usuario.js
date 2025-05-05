@@ -31,7 +31,7 @@ class Usuario {
   ) {
     this.did = did;
     this.nombre = nombre;
-    this.apellid = apellido;
+    this.apellido = apellido;
     this.mail = mail;
     this.usuario = usuario;
     this.imagen = imagen;

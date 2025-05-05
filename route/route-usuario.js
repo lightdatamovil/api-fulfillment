@@ -11,62 +11,52 @@ const Usuario = require("../controller/cliente/usuario");
 const Cliente = require("../controller/cliente/cliente");
 const Cliente_cuenta = require("../controller/cliente/cliente-cuenta");
 
-usuario.post("/usuario", async (req, res) => {
+usuario.post("/Postusuario", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    if (data.operador === "eliminar") {
-      const usuario = new Usuario();
-      const response = await usuario.delete(connection, data.did);
-      console.log("Respuesta de delete:", response);
-      return res.status(200).json({
-        estado: response.estado !== undefined ? response.estado : false,
-        message: response.message || response,
-      });
-    } else {
-      const usuarioRegex = /^[a-zA-Z0-9_]+$/; // Solo permite letras, números y guion bajo
-      if (!usuarioRegex.test(data.usuario)) {
-        return res.status(400).json({
-          estado: false,
-          message:
-            "El campo 'usuario' no puede contener caracteres especiales ni espacios.",
-        });
-      }
-
-      // Crear nuevo producto
-      const usuario = new Usuario(
-        data.did ?? 0,
-        data.nombre,
-        data.apellido,
-        data.mail,
-        data.usuario,
-        data.contraseña,
-        data.imagen,
-        data.habilitado,
-        data.perfil,
-        data.accesos,
-        data.quien,
-        data.superado ?? 0,
-        data.elim ?? 0,
-        connection
-      );
-
-      const usuarioResult = await usuario.insert();
-      if (usuarioResult.estado === false) {
-        return res.status(400).json({
-          estado: false,
-          message: usuarioResult.message || usuarioResult,
-        });
-      }
-      const usuarioId = usuarioResult.insertId;
-
-      return res.status(200).json({
-        estado: true,
-        message: "Usuario creado correctamente",
-        didUsuario: usuarioId,
+    const usuarioRegex = /^[a-zA-Z0-9_]+$/; // Solo permite letras, números y guion bajo
+    if (!usuarioRegex.test(data.usuario)) {
+      return res.status(400).json({
+        estado: false,
+        message:
+          "El campo 'usuario' no puede contener caracteres especiales ni espacios.",
       });
     }
+
+    // Crear nuevo producto
+    const usuario = new Usuario(
+      data.did ?? 0,
+      data.nombre,
+      data.apellido,
+      data.mail,
+      data.usuario,
+      data.contraseña,
+      data.imagen,
+      data.habilitado,
+      data.perfil,
+      data.accesos,
+      data.quien,
+      data.superado ?? 0,
+      data.elim ?? 0,
+      connection
+    );
+
+    const usuarioResult = await usuario.insert();
+    if (usuarioResult.estado === false) {
+      return res.status(400).json({
+        estado: false,
+        message: usuarioResult.message || usuarioResult,
+      });
+    }
+    const usuarioId = usuarioResult.insertId;
+
+    return res.status(200).json({
+      estado: true,
+      message: "Usuario creado correctamente",
+      didUsuario: usuarioId,
+    });
   } catch (error) {
     console.error("Error durante la operación:", error);
     return res.status(500).json({
