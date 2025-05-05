@@ -91,6 +91,8 @@ class Atributo_valor {
       const resultscheck = await executeQuery(this.connection, querycheck, [
         this.codigo,
       ]);
+      console.log("resultscheck", resultscheck);
+
       if (resultscheck.length > 0) {
         return {
           estado: false,
