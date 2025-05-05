@@ -1,5 +1,81 @@
 import { disabled } from "express/lib/application";
 
 {
-  did;
+  did,
+    didEnvio,
+    didCliente,
+    didCuenta,
+    status,
+    flex,
+    number,
+    fecha_venta,
+    (observaciones = ""),
+    (armado = 0),
+    (descargado = 0),
+    fecha_armado,
+    quien_armado,
+    ml_shipment_id,
+    ml_id,
+    mi_packing_id,
+    buyer_id,
+    buyer_nickname,
+    buyer_name,
+    buyer_last_name,
+    total_amount,
+    order_items[
+      item[
+        title,
+        id,
+        dimensions,
+        quantity,
+        variation_attributes,
+        seller_sku,
+        user_product_id,
+        variation_id
+      ]
+    ];
+}
+
+{
+  "id": 2000011401704360,
+  "date_closed": "2025-04-25T17:00:00.000Z",
+  "status": "paid",
+  "pack_id": "MLA123456",
+  "shipping": {
+    "id": 123456789
+  },
+  "buyer": {
+    "id": "987654321",
+    "nickname": "comprador_123",
+    "first_name": "Juan",
+    "last_name": "Pérez"
+  },
+  "seller": {
+    "id": "452306476"
+  },
+  "total_amount": 1234.56,
+  "order_items": [
+    {
+      "item": {
+        "id": "MLA123",
+        "title": "Producto de prueba",
+        "dimensions": "10x10x10",
+        "seller_sku": "SKU1234",
+        "user_product_id": "98765",
+        "variation_id": "321",
+        "variation_attributes": [
+          {
+            "id": "color",
+            "value_name": "Rojo"
+          },
+          {
+            "id": "talle",
+            "value_name": "L"
+          }
+        ]
+      },
+      "quantity": 2
+    }
+  ],
+
 }

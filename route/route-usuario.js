@@ -163,7 +163,7 @@ usuario.post("/getUsuarioById", async (req, res) => {
 
     return res.status(200).json({
       estado: true,
-      data: response,
+      data: response[0],
     });
   } catch (error) {
     console.error("Error durante la operación:", error);

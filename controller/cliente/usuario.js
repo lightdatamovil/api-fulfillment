@@ -238,7 +238,7 @@ class Usuario {
   static async getUsuariosById(connection, id) {
     try {
       const query =
-        "SELECT perfiles,nombre,apellido,mail,usuario,habilitado FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0";
+        "SELECT perfiles as perfil,nombre,apellido,mail,usuario,habilitado,did FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0";
       const params = [id];
       const results = await executeQuery(connection, query, params);
 

@@ -12,6 +12,7 @@ const { logRed } = require("../fuctions/logsCustom");
 
 const Atributo = require("../controller/producto/atributos");
 const Atributo_valor = require("../controller/producto/atributo_valor");
+const { log } = require("node:console");
 
 atributo.post("/postAtributo", async (req, res) => {
   try {
@@ -100,10 +101,11 @@ atributo.post("/getAtributoById", async (req, res) => {
     const connection = await getConnectionLocal(data.idEmpresa);
     const atributo = new Atributo();
     const response = await atributo.getAll(connection, data.did);
+    console.log(response, "rerererer");
 
     return res.status(200).json({
       estado: true,
-      atributos: response,
+      data: response[0],
     });
   } catch (error) {
     console.error("Error en /getAtributos:", error);

@@ -264,7 +264,12 @@ class Atributo {
 
       // Consulta total
       const totalQuery = `SELECT COUNT(*) as total FROM atributos ${whereClause}`;
-      const totalResult = await executeQuery(connection, totalQuery, values);
+      const totalResult = await executeQuery(
+        connection,
+        totalQuery,
+        values,
+        true
+      );
       const totalRegistros = totalResult[0].total;
       const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
 
