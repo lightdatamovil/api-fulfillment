@@ -188,7 +188,7 @@ class Usuario {
         params.push(`%${filtros.usuario}%`);
         countParams.push(`%${filtros.usuario}%`);
       }
-      if (filtros.habilitado) {
+      if (filtros.habilitado !== "") {
         baseQuery += " AND habilitado = ?";
         params.push(filtros.habilitado);
         countParams.push(filtros.habilitado);
