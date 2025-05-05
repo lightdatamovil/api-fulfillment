@@ -51,7 +51,7 @@ atributo.post("/postAtributo", async (req, res) => {
       const respuesta = await atributoValor.insert();
     }
     if (response.estado === false) {
-      return res.status(400).json({
+      return res.status(200).json({
         estado: false,
         message: response.message || response,
       });
