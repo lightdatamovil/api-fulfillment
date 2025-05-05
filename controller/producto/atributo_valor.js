@@ -144,7 +144,7 @@ class Atributo_valor {
   async getAll(connection) {
     try {
       const selectQuery =
-        "SELECT * FROM atributos_valores WHERE elim = 0 and superado = 0";
+        "SELECT * FROM atributos_valores WHERE elim = 0 and superado = 0 order by did asc";
       const results = await executeQuery(connection, selectQuery, []);
       return results;
     } catch (error) {

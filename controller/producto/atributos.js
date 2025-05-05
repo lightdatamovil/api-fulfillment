@@ -197,7 +197,7 @@ class Atributo {
       FROM atributos a
       LEFT JOIN atributos_valores av ON av.didAtributo = a.did AND av.elim = 0 and av.superado = 0
       WHERE a.elim = 0 AND a.superado = 0 and a.did = ? 
-      ORDER BY a.id DESC
+      ORDER BY a.did DESC
     `;
 
       const results = await executeQuery(connection, selectQuery, [did]);
@@ -271,7 +271,7 @@ class Atributo {
       const dataQuery = `
       SELECT id,did, nombre, codigo, descripcion, habilitado,autofecha,orden FROM atributos
       ${whereClause}
-      ORDER BY id DESC
+      ORDER BY did DESC
       LIMIT ? OFFSET ?
     `;
       const dataValues = [...values, cantidadPorPagina, offset];
