@@ -128,7 +128,7 @@ usuario.post("/getUsuarios", async (req, res) => {
       email: data.email,
       pagina: data.pagina,
       usuario: data.usuario,
-      estado: data.estado,
+      habilitado: data.habilitado,
     };
 
     const response = await Usuario.getUsuarios(connection, filtros);
