@@ -120,7 +120,7 @@ atributo.post("/getAtributos", async (req, res) => {
     return res.status(200).json({
       estado: true,
       totalRegistros: response["totalRegistros"],
-      totalpaginas: response["totalPaginas"],
+      totalPaginas: response["totalPaginas"],
       pagina: response["pagina"],
       cantidad: response["cantidad"],
       data: response["atributos"],
