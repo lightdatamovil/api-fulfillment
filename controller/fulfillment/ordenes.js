@@ -24,6 +24,7 @@ class Ordenes {
     buyer_name = null,
     buyer_last_name = null,
     total_amount = null,
+    seller_sku = null,
 
     connection = null
   ) {
@@ -40,7 +41,7 @@ class Ordenes {
     this.fecha_armado = fecha_armado;
     this.fecha_venta = fecha_venta;
     this.quien_armado = quien_armado;
-    this.ml_shipment_id = ml_shipment_id;
+    this.ml_shipment_id = ml_shipment_id || "";
     this.ml_id = ml_id;
     this.mi_packing_id = mi_packing_id;
     this.buyer_id = buyer_id;
@@ -48,6 +49,7 @@ class Ordenes {
     this.buyer_name = buyer_name;
     this.buyer_last_name = buyer_last_name;
     this.total_amount = total_amount;
+    this.seller_sku = seller_sku;
 
     this.connection = connection;
   }
@@ -83,11 +85,11 @@ class Ordenes {
         this.number,
       ]);
 
-      console.log(results, "results");
+      this.did = results[0]?.did || 0;
 
       if (results.length > 0) {
         console.log("entramossss");
-        await this.updateRecord(connection);
+        return await this.updateRecord(connection);
       } else {
         // Si `didEnvio` no existe, crear un nuevo registro directamente
         return this.createNewRecord(connection);
@@ -117,21 +119,24 @@ class Ordenes {
       const insertResult = await executeQuery(connection, insertQuery, values);
       const insertId = insertResult.insertId;
       if (this.did == 0 || this.did == null) {
+        const didquery = "select did from ordenes where number = ? ";
+        const didresult = await executeQuery(connection, didquery, [
+          this.number,
+        ]);
+        this.did = didresult[0].did;
         const updateQuery = "UPDATE ordenes SET did = ? WHERE id = ?";
         await executeQuery(connection, updateQuery, [insertId, insertId]);
       }
 
       // await this.insertHistorial(connection, insertId);
 
-      return { insertId: insertId };
+      return { insertId: insertId || this.did };
     } catch (error) {
       throw error;
     }
   }
 
   async updateRecord(connection) {
-    console.log("entro en el updateRecord", this.number);
-
     try {
       const columnsQuery = "DESCRIBE ordenes";
       const results = await executeQuery(connection, columnsQuery, []);
@@ -154,9 +159,7 @@ class Ordenes {
       const updateResult = await executeQuery(connection, updateQuery, values);
       console.log(updateResult, "updateResult");
 
-      //await this.insertHistorial(connection, updateResult.insertId);
-
-      return { insertId: updateResult.insertId };
+      return { insertId: this.did }; // <-- ESTA ES LA LÍNEA CLAVE
     } catch (error) {
       console.error("Error en el método updateRecord:", error.message);
       throw error;

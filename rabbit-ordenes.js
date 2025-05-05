@@ -297,6 +297,7 @@ async function InsertOrder(connection, data, dataredis) {
         buyer_name: data.buyer?.first_name ?? "",
         buyer_last_name: data.buyer?.last_name ?? "",
         total_amount: data.total_amount ?? 0,
+        seller_sku: data.order_items[0].item.seller_sku ?? 0,
       };
 
       const orden = new Ordenes(
@@ -321,6 +322,7 @@ async function InsertOrder(connection, data, dataredis) {
         ordenData.buyer_name,
         ordenData.buyer_last_name,
         ordenData.total_amount,
+        ordenData.seller_sku,
         connection
       );
 
