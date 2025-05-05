@@ -210,7 +210,7 @@ class Usuario {
       const offset = (pagina - 1) * porPagina;
 
       // Consulta principal con LIMIT
-      const query = `SELECT did,perfiles as perfil,nombre,apellido,mail,usuario,habilitado ${baseQuery} ORDER BY did ASC LIMIT ? OFFSET ?`;
+      const query = `SELECT did,perfiles as perfil,nombre,apellido,mail,usuario,habilitado ${baseQuery} ORDER BY did DESC LIMIT ? OFFSET ?`;
       params.push(porPagina, offset);
       const results = await executeQuery(connection, query, params);
 
