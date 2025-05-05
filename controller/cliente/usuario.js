@@ -188,6 +188,11 @@ class Usuario {
         params.push(`%${filtros.usuario}%`);
         countParams.push(`%${filtros.usuario}%`);
       }
+      if (filtros.habilitado) {
+        baseQuery += " AND habilitado = ?";
+        params.push(filtros.habilitado);
+        countParams.push(filtros.habilitado);
+      }
 
       // Paginación
       const pagina = parseInt(filtros.pagina) || 1;
