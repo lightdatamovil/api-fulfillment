@@ -183,7 +183,7 @@ class Usuario {
         params.push(`%${filtros.email}%`);
         countParams.push(`%${filtros.email}%`);
       }
-      if (filtros.username) {
+      if (filtros.usuario) {
         baseQuery += " AND usuario LIKE ?";
         params.push(`%${filtros.username}%`);
         countParams.push(`%${filtros.username}%`);

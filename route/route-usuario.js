@@ -127,7 +127,7 @@ usuario.post("/getUsuarios", async (req, res) => {
       apellido: data.apellido,
       email: data.email,
       pagina: data.pagina,
-      username: data.username,
+      usuario: data.usuario,
       estado: data.estado,
     };
 
