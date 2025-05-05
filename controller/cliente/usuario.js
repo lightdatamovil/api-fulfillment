@@ -24,6 +24,10 @@ class Usuario {
     habilitado = 0,
     perfiles = 0,
     accesos = "",
+    modulo_inicial = 0,
+    app_habilitada = 0,
+    codigo_cliente = "",
+
     quien = 0,
     superado = 0,
     elim = 0,
@@ -40,6 +44,10 @@ class Usuario {
     this.perfiles = perfiles;
     this.accesos = accesos;
     this.quien = quien || 0;
+    this.modulo_inicial = modulo_inicial || 0;
+    this.app_habilitada = app_habilitada || 0;
+    this.codigo_cliente = codigo_cliente || "";
+
     this.superado = superado || 0;
     this.elim = elim || 0;
     this.connection = connection;
@@ -202,7 +210,7 @@ class Usuario {
       const offset = (pagina - 1) * porPagina;
 
       // Consulta principal con LIMIT
-      const query = `SELECT did,perfiles as perfil,nombre,apellido,mail,usuario,habilitado ${baseQuery} LIMIT ? OFFSET ?`;
+      const query = `SELECT did,perfiles as perfil,nombre,apellido,mail,usuario,habilitado ${baseQuery} ORDER BY did ASC LIMIT ? OFFSET ?`;
       params.push(porPagina, offset);
       const results = await executeQuery(connection, query, params);
 

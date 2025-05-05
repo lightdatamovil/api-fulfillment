@@ -10,7 +10,7 @@ const {
 
 const Cliente = require("../controller/cliente/cliente");
 
-cliente.post("/cliente", async (req, res) => {
+cliente.post("/postCliente", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
@@ -124,6 +124,37 @@ cliente.post("/deleteCliente", async (req, res) => {
     return res.status(200).json({
       estado: response.estado !== undefined ? response.estado : false,
       message: response.message || response,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+
+cliente.get("/getClientes/:empresa", async (req, res) => {
+  const empresa = req.params.empresa; // <-- esto es lo correcto
+
+  if (!empresa) {
+    return res.status(400).json({
+      estado: false,
+      error: "Falta el parámetro 'empresa'",
+    });
+  }
+
+  const connection = await getConnectionLocal(empresa);
+  const cliente = new Cliente();
+
+  try {
+    const response = await cliente.getClienteF(connection);
+    return res.status(200).json({
+      estado: true,
+      data: response,
     });
   } catch (error) {
     console.error("Error durante la operación:", error);

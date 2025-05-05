@@ -178,6 +178,18 @@ class Cliente {
     }
   }
 
+  async getClienteF(connection) {
+    try {
+      const query =
+        "SELECT * FROM clientes WHERE elim = 0 and superado = 0 ORDER BY id DESC LIMIT 1";
+      const results = await executeQuery(connection, query, []);
+      return results;
+    } catch (error) {
+      console.error("Error en GETCLIENTES:", error.message);
+      throw error;
+    }
+  }
+
   async getClientesById(connection, did) {
     try {
       let query =
