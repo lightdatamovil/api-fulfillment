@@ -195,7 +195,7 @@ class Usuario {
       const offset = (pagina - 1) * porPagina;
 
       // Consulta principal con LIMIT
-      const query = `SELECT perfiles,nombre,apellido,mail,usuario,habilitado ${baseQuery} LIMIT ? OFFSET ?`;
+      const query = `SELECT did,perfiles as perfil,nombre,apellido,mail,usuario,habilitado ${baseQuery} LIMIT ? OFFSET ?`;
       params.push(porPagina, offset);
       const results = await executeQuery(connection, query, params);
 
