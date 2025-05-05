@@ -36,7 +36,7 @@ class Atributo {
 
   async insert() {
     try {
-      querycheck =
+      const querycheck =
         "SELECT codigo FROM atributos WHERE codigo = ? and superado = 0 and elim = 0";
       const resultscheck = await executeQuery(connection, querycheck, [
         this.codigo,

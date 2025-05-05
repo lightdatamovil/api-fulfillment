@@ -49,6 +49,7 @@ app.use("/serviceSellerToken", require("./route/route-seller"));
 app.use("/usuario", require("./route/route-usuario"));
 app.use("/clienteCuenta", require("./route/route-clienteCuenta"));
 app.use("/atributo", require("./route/route-atributo"));
+app.use("/stock", require("./route/route-stock"));
 
 app.get("/", (req, res) => {
   res.status(200).json({
