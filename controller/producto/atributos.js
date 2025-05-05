@@ -118,7 +118,8 @@ class Atributo {
 
   async delete(connection, did) {
     try {
-      const deleteQuery = "UPDATE atributos SET elim = 1 WHERE did = ?";
+      const deleteQuery =
+        "UPDATE atributos SET elim = 1 WHERE did = ? AND superado = 0";
       await executeQuery(connection, deleteQuery, [did]);
       const deleteQuery2 =
         "UPDATE atributos_valores SET elim = 1 WHERE didAtributo = ? and superado = 0";
