@@ -36,18 +36,6 @@ class Atributo {
 
   async insert() {
     try {
-      const querycheck =
-        "SELECT codigo FROM atributos WHERE codigo = ? and superado = 0 and elim = 0";
-      const resultscheck = await executeQuery(this.connection, querycheck, [
-        this.codigo,
-      ]);
-      if (resultscheck.length > 0) {
-        return {
-          estado: false,
-          message: "El codigo del atributo valor ya existe.",
-        };
-      }
-
       if (this.did === null || this.did === "") {
         return this.createNewRecord(this.connection);
       } else {
@@ -73,6 +61,8 @@ class Atributo {
       ]);
 
       if (results.length > 0) {
+        console.log("entramossss");
+
         const updateQuery = "UPDATE atributos SET superado = 1 WHERE did = ?";
         await executeQuery(connection, updateQuery, [this.did]);
         return this.createNewRecord(connection);
@@ -86,6 +76,17 @@ class Atributo {
 
   async createNewRecord(connection) {
     try {
+      const querycheck =
+        "SELECT codigo FROM atributos WHERE codigo = ? and superado = 0 and elim = 0";
+      const resultscheck = await executeQuery(this.connection, querycheck, [
+        this.codigo,
+      ]);
+      if (resultscheck.length > 0) {
+        return {
+          estado: false,
+          message: "El codigo del atributo valor ya existe.",
+        };
+      }
       const columnsQuery = "DESCRIBE atributos";
       const results = await executeQuery(connection, columnsQuery, []);
 

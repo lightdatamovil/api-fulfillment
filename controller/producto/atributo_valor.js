@@ -34,18 +34,6 @@ class Atributo_valor {
 
   async insert() {
     try {
-      const querycheck =
-        "SELECT codigo FROM atributos_valores WHERE codigo = ? and superado = 0 and elim = 0";
-      const resultscheck = await executeQuery(this.connection, querycheck, [
-        this.codigo,
-      ]);
-      if (resultscheck.length > 0) {
-        return {
-          estado: false,
-          message: "El codigo del atributo valor ya existe.",
-        };
-      }
-
       if (this.did === null || this.did === "" || this.did === 0) {
         return this.createNewRecord(this.connection);
       } else {
@@ -98,6 +86,17 @@ class Atributo_valor {
 
   async createNewRecord(connection) {
     try {
+      const querycheck =
+        "SELECT codigo FROM atributos_valores WHERE codigo = ? and superado = 0 and elim = 0";
+      const resultscheck = await executeQuery(this.connection, querycheck, [
+        this.codigo,
+      ]);
+      if (resultscheck.length > 0) {
+        return {
+          estado: false,
+          message: "El codigo del atributo valor ya existe.",
+        };
+      }
       const columnsQuery = "DESCRIBE atributos_valores";
       const results = await executeQuery(connection, columnsQuery, []);
 
