@@ -22,7 +22,7 @@ class Usuario {
     pass = "",
     imagen = "",
     habilitado = 0,
-    perfil = 0,
+    perfiles = 0,
     accesos = "",
     quien = 0,
     superado = 0,
@@ -37,7 +37,7 @@ class Usuario {
     this.imagen = imagen;
     this.pass = pass;
     this.habilitado = habilitado;
-    this.perfil = perfil;
+    this.perfiles = perfiles;
     this.accesos = accesos;
     this.quien = quien || 0;
     this.superado = superado || 0;
