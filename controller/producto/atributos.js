@@ -238,7 +238,7 @@ class Atributo {
       const values = [];
 
       // Filtro habilitado (0: no habilitado, 1: habilitado, 2: todos)
-      if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
+      if (filtros.habilitado != "") {
         conditions.push("habilitado = ?");
         values.push(filtros.habilitado);
       }
