@@ -64,37 +64,42 @@ orden.post("/postOrden", async (req, res) => {
       data.buyer_last_name ?? "",
       data.total_amount ?? "",
       data.seller_sku ?? "",
-
       connection
     );
 
     const response = await ordenes.insert();
     console.log(response, "response");
     const didParaUsar = response.insertId || data.did;
-    const variation_attribute = JSON.stringify(
-      data.items.variation_attributes ?? {}
-    );
-    // Insertar ítem
-    const ordenes_items = new Ordenes_items(
-      data.items.did ?? 0,
-      didParaUsar,
-      data.items.codigo ?? 0,
-      data.items.descripcion ?? "",
-      data.items.ml_id ?? "",
-      data.items.dimensions ?? "",
-      data.items.cantidad ?? 0,
-      variation_attribute,
-      data.items.seller_sku ?? 0,
-      data.use_product_id ?? 0,
-      data.items.id_variation ?? 0,
-      data.items.descargado ?? 0,
-      0,
-      0,
-      0,
-      connection
-    );
 
-    await ordenes_items.insert();
+    // Insertar ítems
+    if (Array.isArray(data.items) && data.items.length > 0) {
+      for (const item of data.items) {
+        const variation_attribute = JSON.stringify(
+          item.variation_attributes ?? {}
+        );
+
+        const ordenes_items = new Ordenes_items(
+          item.did ?? 0,
+          didParaUsar,
+          item.codigo ?? 0,
+          item.descripcion ?? "",
+          item.ml_id ?? "",
+          item.dimensions ?? "",
+          item.cantidad ?? 0,
+          variation_attribute,
+          item.seller_sku ?? 0,
+          data.use_product_id ?? 0,
+          item.id_variation ?? 0,
+          item.descargado ?? 0,
+          0,
+          0,
+          0,
+          connection
+        );
+
+        await ordenes_items.insert();
+      }
+    }
 
     // Insertar historial
     const ordenes_historial = new OrdenesHistorial(
