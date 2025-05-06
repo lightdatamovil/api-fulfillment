@@ -210,7 +210,7 @@ class Usuario {
       const offset = (pagina - 1) * porPagina;
 
       // Consulta principal con LIMIT
-      const query = `SELECT did,perfiles as perfil,nombre,apellido,mail,usuario,habilitado ${baseQuery} ORDER BY did DESC LIMIT ? OFFSET ?`;
+      const query = `SELECT did,perfiles as perfil,nombre,apellido,mail,usuario,habilitado,modulo_inicial, app_habilitada, codigo_cliente ${baseQuery} ORDER BY did DESC LIMIT ? OFFSET ?`;
       params.push(porPagina, offset);
       const results = await executeQuery(connection, query, params);
 
@@ -246,7 +246,7 @@ class Usuario {
   static async getUsuariosById(connection, id) {
     try {
       const query =
-        "SELECT perfiles as perfil,nombre,apellido,mail,usuario,habilitado,did FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0";
+        "SELECT perfiles as perfil,nombre,apellido,mail,usuario,habilitado,did, modulo_inicial, app_habilitada, codigo_cliente FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0";
       const params = [id];
       const results = await executeQuery(connection, query, params);
 
