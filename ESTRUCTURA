@@ -1,24 +1,101 @@
-didEmpresa
-didCliente
-didCuenta
-status
-flex
-number
-fecha_venta
-observaciones
-ml_id
-buyer_name
-buyer_last_name
-total_amount
-seller_id
-items [
-  {codigo
-   descripcion
-   ml_id
-   dimensions
-   cantidad
-   variacion
-   seller_sku
-   idVaracion
-   variation_atributes}
-]
+[
+  {
+    tipo: "Talle",
+    did: 2,
+    codigo: "tal",
+    obs: "Tabla de talles",
+    valores: [
+      {
+        codigo: "s",
+        nombre: "S",
+        did: 1,
+      },
+      {
+        codigo: "m",
+        nombre: "M",
+        did: 2,
+      },
+      {
+        codigo: "l",
+        nombre: "L",
+        did: 3,
+      },
+      {
+        codigo: "xl",
+        nombre: "XL",
+        did: 4,
+      },
+      {
+        codigo: "xxl",
+        nombre: "XXL",
+        did: 5,
+      },
+    ],
+  },
+  {
+    tipo: "Talle",
+    did: 2,
+    codigo: "tal",
+    obs: "Tabla de talles",
+    valores: [
+      {
+        codigo: "s",
+        nombre: "S",
+        did: 1,
+      },
+      {
+        codigo: "m",
+        nombre: "M",
+        did: 2,
+      },
+      {
+        codigo: "l",
+        nombre: "L",
+        did: 3,
+      },
+      {
+        codigo: "xl",
+        nombre: "XL",
+        did: 4,
+      },
+      {
+        codigo: "xxl",
+        nombre: "XXL",
+        did: 5,
+      },
+    ],
+  },
+  {
+    tipo: "Talle",
+    did: 2,
+    codigo: "tal",
+    obs: "Tabla de talles",
+    valores: [
+      {
+        codigo: "s",
+        nombre: "S",
+        did: 1,
+      },
+      {
+        codigo: "m",
+        nombre: "M",
+        did: 2,
+      },
+      {
+        codigo: "l",
+        nombre: "L",
+        did: 3,
+      },
+      {
+        codigo: "xl",
+        nombre: "XL",
+        did: 4,
+      },
+      {
+        codigo: "xxl",
+        nombre: "XXL",
+        did: 5,
+      },
+    ],
+  },
+];

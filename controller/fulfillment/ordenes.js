@@ -80,7 +80,7 @@ class Ordenes {
   async checkAndUpdateDidEnvio(connection) {
     try {
       const checkDidEnvioQuery =
-        "SELECT number,did FROM ordenes WHERE number = ? and didCliente = ? and didCuenta =? and flex = ? and superado = 0 and elim = 0";
+        "SELECT number,did FROM ordenes WHERE number = ?  and superado = 0 and elim = 0";
       const results = await executeQuery(connection, checkDidEnvioQuery, [
         this.number,
         this.didCliente,
