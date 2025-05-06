@@ -298,7 +298,6 @@ class Usuario {
       }
 
       const user = results[0];
-      console.log(user, "user");
 
       if (!user.pass || !user.pass.startsWith("$5$")) {
         return { estado: false, mensaje: "Formato de contraseña inválido" };
