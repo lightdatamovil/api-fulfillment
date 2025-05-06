@@ -77,6 +77,8 @@ usuario.post("/login", async (req, res) => {
 
   const empresaInfo = global.empresasCodigos[data.e];
 
+  console.log("empresaInfo", empresaInfo.did);
+
   if (!empresaInfo || !empresaInfo.did) {
     return res.status(400).json({
       estado: false,
@@ -92,7 +94,7 @@ usuario.post("/login", async (req, res) => {
 
     return res.status(200).json({
       estado: true,
-      usuario: response,
+      data: response,
     });
   } catch (error) {
     console.error("Error durante la operación:", error);
