@@ -57,13 +57,20 @@ class Usuario {
     return JSON.stringify(this);
   }
 
-  async hashPassword(password) {
-    const salt = crypto.randomBytes(16).toString("hex"); // Generar un salt aleatorio
-    const hashedPassword = crypto
-      .pbkdf2Sync(password, salt, 1000, 64, "sha256")
-      .toString("hex");
-    return `$5$${salt}$${hashedPassword}`;
+  hashPassword(password) {
+    // Generar un salt aleatorio
+    const salt = crypto.randomBytes(16).toString("hex");
+
+    // Crear el hash de la contraseña usando SHA-256
+    const hash = crypto
+      .createHash("sha256")
+      .update(password + salt)
+      .digest("hex");
+
+    // Formato de salida: $5$salt$hashedPassword
+    return `$5$${salt}$${hash}`;
   }
+
   async insert() {
     try {
       if (this.did === null || this.did === "") {
@@ -109,12 +116,14 @@ class Usuario {
       const resultscheck = await executeQuery(this.connection, querycheck, [
         this.usuario,
       ]);
+
       if (resultscheck.length > 0) {
         return {
           estado: false,
           message: "El usuario ya existe.",
         };
       }
+
       const columnsQuery = "DESCRIBE usuarios";
       const results = await executeQuery(connection, columnsQuery, []);
 
@@ -123,10 +132,12 @@ class Usuario {
         (column) => this[column] !== undefined
       );
 
-      // 🧂 Hasheamos la contraseña si está presente y no está ya en formato $5$
-      if (this.pass && !this.pass.startsWith("$5$")) {
-        this.pass = hashPassword(this.pass); // Usamos hashPassword aquí
-      }
+      // 🧂 Hasheamos la contraseña si está presente y no está ya en formato hash
+
+      // Hashear la contraseña con el salt
+      const hash = crypto.createHash("sha256").update(this.pass).digest("hex");
+      // Guardamos el salt y el hash
+      this.pass = `${hash}`;
 
       const values = filteredColumns.map((column) => this[column]);
       const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(
