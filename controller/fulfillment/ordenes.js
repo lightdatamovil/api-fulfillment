@@ -80,9 +80,12 @@ class Ordenes {
   async checkAndUpdateDidEnvio(connection) {
     try {
       const checkDidEnvioQuery =
-        "SELECT number,did FROM ordenes WHERE number = ?";
+        "SELECT number,did FROM ordenes WHERE number = ? and didCliente = ? and didCuenta =? and flex = ? and superado = 0 and elim = 0";
       const results = await executeQuery(connection, checkDidEnvioQuery, [
         this.number,
+        this.didCliente,
+        this.didCuenta,
+        this.flex,
       ]);
 
       this.did = results[0]?.did || 0;
