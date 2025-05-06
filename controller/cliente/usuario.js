@@ -311,9 +311,6 @@ class Usuario {
       const user = results[0];
 
       // Verificamos que la contraseña hasheada esté en el formato correcto
-      if (!user.pass || !user.pass.startsWith("$5$")) {
-        return { estado: false, mensaje: "Formato de contraseña inválido" };
-      }
 
       // Comparar la contraseña ingresada con la contraseña hasheada almacenada
       const hashCalculado = user.pass; // La contraseña ya está hasheada y almacenada
