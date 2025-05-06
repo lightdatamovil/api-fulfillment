@@ -7,15 +7,9 @@ const fs = require("fs");
 
 const { getConnectionLocal } = require("../dbconfig");
 
-const { logRed } = require("../fuctions/logsCustom");
-
-const StockConsolidado = require("../controller/producto/stock_consolidado");
-
-const Stock = require("../controller/producto/stock");
-const MovimientoStock = require("../controller/producto/movimiento_stock");
-const Ordenes = require("../controller/fulfillment/ordenes");
-const Ordenes_items = require("../controller/fulfillment/ordenes_items");
-const OrdenesHistorial = require("../controller/fulfillment/ordenes_historial");
+const Ordenes = require("../controller/orden/ordenes");
+const Ordenes_items = require("../controller/orden/ordenes_items");
+const OrdenesHistorial = require("../controller/orden/ordenes_historial");
 
 orden.post("/postOrden", async (req, res) => {
   const data = req.body;

@@ -217,7 +217,7 @@ class Usuario {
 
       // Paginación
       const pagina = parseInt(filtros.pagina) || 1;
-      const porPagina = 20;
+      const porPagina = filtros.cantidad || 10;
       const offset = (pagina - 1) * porPagina;
 
       // Consulta principal con LIMIT

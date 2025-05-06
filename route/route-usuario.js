@@ -7,9 +7,7 @@ const {
   getCompanyById,
   getConnectionLocal,
 } = require("../dbconfig");
-const Usuario = require("../controller/cliente/usuario");
-const Cliente = require("../controller/cliente/cliente");
-const Cliente_cuenta = require("../controller/cliente/cliente-cuenta");
+const Usuario = require("../controller/usuario/usuario");
 
 usuario.post("/Postusuario", async (req, res) => {
   const data = req.body;
@@ -124,6 +122,7 @@ usuario.post("/getUsuarios", async (req, res) => {
       pagina: data.pagina,
       usuario: data.usuario,
       habilitado: data.habilitado,
+      cantidad: data.cantidad,
     };
 
     const response = await Usuario.getUsuarios(connection, filtros);
