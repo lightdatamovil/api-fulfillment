@@ -378,7 +378,7 @@ orden.post("/getOrdenesById", async (req, res) => {
     return res.status(200).json({
       estado: true,
       message: "Órdenes obtenidas correctamente",
-      data: response,
+      data: response["orden"],
     });
   } catch (error) {
     console.error("Error durante la operación:", error);
