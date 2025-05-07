@@ -347,15 +347,15 @@ orden.post("/getOrdenes", async (req, res) => {
       data.cantidad,
       data
     );
+
     return res.status(200).json({
       estado: true,
       message: "Órdenes obtenidas correctamente",
-      totalRegistros: response["totalRegistros"],
-      totalPaginas: response["totalPaginas"],
-      pagina: response["pagina"],
-
-      cantidad: response["cantidad"],
-      data: response["ordenes"],
+      totalRegistros: response.total, // Cambiado a 'total'
+      totalPaginas: response.totalPaginas, // Cambiado a 'totalPages'
+      pagina: response.pagina,
+      cantidad: response.cantidad,
+      data: response.data,
     });
   } catch (error) {
     console.error("Error durante la operación:", error);

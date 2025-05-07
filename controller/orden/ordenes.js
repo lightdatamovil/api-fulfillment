@@ -1,5 +1,13 @@
 const { getConnection, getFromRedis, executeQuery } = require("../../dbconfig");
 const { logYellow, logBlue } = require("../../fuctions/logsCustom");
+const { format } = require("date-fns");
+let clientesCache = {};
+
+// Mapeo de valores de flex a descripciones
+const flexMap = {
+  1: "ML",
+  2: "Tienda Nube",
+};
 
 class Ordenes {
   constructor(
@@ -276,6 +284,108 @@ class Ordenes {
     }
   }
   async getTodasLasOrdenes(
+    connection,
+    pagina = 1,
+    cantidad = 10,
+    filtros = {}
+  ) {
+    try {
+      pagina = parseInt(pagina);
+      cantidad = parseInt(cantidad);
+      if (isNaN(pagina) || pagina < 1) pagina = 1;
+      if (isNaN(cantidad) || cantidad < 1) cantidad = 10;
+
+      const offset = (pagina - 1) * cantidad;
+
+      // Condiciones básicas
+      let condiciones = ["o.elim = 0", "o.superado = 0"];
+      let valores = [];
+
+      // Filtros aplicables
+      if (filtros.number) {
+        condiciones.push("number = ?");
+        valores.push(filtros.number);
+      }
+
+      if (filtros.status) {
+        condiciones.push("status = ?");
+        valores.push(filtros.status);
+      }
+
+      const whereClause = condiciones.length
+        ? `WHERE ${condiciones.join(" AND ")}`
+        : "";
+
+      const query = `
+            SELECT 
+                o.did, 
+                o.didCliente, 
+                DATE_FORMAT(o.fecha_venta, '%d/%m/%Y %H:%i') AS fecha_venta, 
+                o.flex, 
+                o.number, 
+                o.status, 
+                o.total_amount,
+                o.didOt AS ot,
+                IF(o.fecha_armado IS NULL, '', DATE_FORMAT(o.fecha_armado, '%d/%m/%Y %H:%i')) AS fecha_armado,
+                CONCAT(o.buyer_name, ' ', o.buyer_last_name) AS comprador
+            FROM ordenes o
+            ${whereClause}
+            ORDER BY o.did DESC
+            LIMIT ? OFFSET ?
+        `;
+
+      const results = await executeQuery(
+        connection,
+        query,
+        [...valores, cantidad, offset],
+        true
+      );
+      console.log(results, "results");
+
+      // Actualizar caché de clientes
+      for (const orden of results) {
+        const clienteId = orden.didCliente;
+        if (!clientesCache[clienteId]) {
+          // Consulta a la base de datos para obtener el cliente si no está en caché
+          const clienteQuery = `SELECT nombre_fantasia FROM clientes WHERE did = ?`;
+          const clienteResult = await executeQuery(connection, clienteQuery, [
+            clienteId,
+          ]);
+          if (clienteResult.length > 0) {
+            clientesCache[clienteId] = clienteResult[0].nombre_fantasia;
+          }
+        }
+        // Asignar el nombre del cliente desde la caché
+        orden.cliente = clientesCache[clienteId];
+        // Mapear el valor de flex a su descripción
+        orden.flex = flexMap[orden.flex] || "Desconocido";
+      }
+
+      const countQuery = `
+            SELECT COUNT(*) AS total 
+            FROM ordenes o
+            ${whereClause}
+        `;
+      const countResult = await executeQuery(connection, countQuery, valores);
+      const total = countResult[0]?.total || 0;
+      const totalPages = Math.ceil(total / cantidad);
+
+      return {
+        estado: true,
+        message: "Órdenes obtenidas correctamente",
+        totalRegistros: total,
+        totalPaginas: totalPages,
+        pagina,
+        cantidad,
+        data: results,
+      };
+    } catch (error) {
+      console.error("Error en getTodasLasOrdenes:", error.message);
+      throw error;
+    }
+  }
+
+  async getTodasLasOrdenesV(
     connection,
     pagina = 1,
     cantidad = 10,
