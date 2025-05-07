@@ -330,7 +330,7 @@ class Usuario {
             mail: user.mail,
             username: user.usuario,
             empresa: codigo,
-            didEmpresa: empresaResult[0].did,
+            idEmpresa: empresaResult[0].did,
             tipo: empresaResult[0].tipo,
           },
           JWT_SECRET,

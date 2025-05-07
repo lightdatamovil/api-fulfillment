@@ -10,10 +10,10 @@ const {
 
 const { logRed } = require("../fuctions/logsCustom");
 
-const StockConsolidado = require("../controller/producto/stock_consolidado");
+const StockConsolidado = require("../controller/stock/stock_consolidado");
 
-const Stock = require("../controller/producto/stock");
-const MovimientoStock = require("../controller/producto/movimiento_stock");
+const Stock = require("../controller/stock/stock");
+const MovimientoStock = require("../controller/stock/movimiento_stock");
 
 stock.post("/stockConsolidado", async (req, res) => {
   const data = req.body;

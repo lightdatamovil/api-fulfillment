@@ -1,32 +1,16 @@
 {
-	"did": 8,
-	"cliente": "1",
-	"idEmpresa": 270,
-	"titulo": "Teclado logitech 125",
-	"sku": "5536",
-	"descripcion": "Teclado para pc marca logitech color negro",
-	"habilitado": 1,
-	"esCombo": 0,
-	"imagen": "",
-	"ecommerce": [
-		{
-			"flex": "1",
-			"link": "www.tecladonegro.com",
-			"sku": "445566",
-			"habilitado": 1,
-			"sync": 0
-		}
-	],
-	"combo": [
-		{
-			"did": 1,
-			"cantidad": 20
-		}
-	],
-	"depositos": [
-		{
-			"did": 1,
-			"habilitado": 1
-		}
-	]
+  "channel": "asignacion-91a0d430-29f8-11f0-8c09-e39bf3576e9f",
+  "feature": "asignacion",
+  "companyId": 290,
+  "userId": 67,
+  "profile": 3,
+  "appVersion": "1.0.67",
+  "brand": "Xiaomi",
+  "model": "21081111RG",
+  "androidVersion": "13",
+  "deviceId": "TP1A.220624.014",
+  "dataQr": { "local": 1, "did": "20243", "cliente": "75", "empresa": 290 },
+  "driverId": 67,
+  "deviceFrom": "Movil"
 }
+{"channel":"asignacion-91a0d430-29f8-11f0-8c09-e39bf3576e9f","feature":"asignacion","companyId":290,"userId":67,"profile":3,"appVersion":"1.0.67","brand":"Xiaomi","model":"21081111RG","androidVersion":"13","deviceId":"TP1A.220624.014","dataQr":{"local":1,"did":"20133","cliente":"325","empresa":290},"driverId":67,"deviceFrom":"Movil"}

@@ -1,29 +1,43 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 function generateToken(dateString) {
-    return crypto.createHash('sha256').update(dateString).digest('hex');
+  return crypto.createHash("sha256").update(dateString).digest("hex");
 }
+// middleware/auth.js
+const jwt = require("jsonwebtoken");
 
-function validateTokenMiddleware(req, res, next) {
-    const receivedToken = req.body.token; // Obtiene el token del cuerpo de la solicitud
+const SECRET_KEY = "tu_clave_secreta";
 
-    if (!receivedToken) {
-        return res.status(401).send({ message: 'Token no proporcionado.' });
+function verificarToken(req, res, next) {
+  const token = req.headers["authorization"];
+
+  if (!token) {
+    return res.status(401).json({ mensaje: "Token no proporcionado" });
+  }
+
+  const tokenLimpio = token.replace("Bearer ", "");
+
+  jwt.verify(tokenLimpio, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ mensaje: "Token inválido" });
     }
 
-    const currentDate = new Date();
-    const dateString = currentDate.toISOString().slice(0, 10).replace(/-/g, ''); // yyyy-mm-dd -> yyyymmdd
-    const formattedDate = dateString.slice(6, 8) + dateString.slice(4, 6) + dateString.slice(0, 4); // ddmmYYYY
-    const expectedToken = generateToken(formattedDate);
+    const { idEmpresa, did } = decoded;
+    const bodyIdEmpresa = req.body.idEmpresa;
+    const bodyQuien = req.body.quien;
+    console.log("verificarToken", decoded, bodyIdEmpresa, bodyQuien);
+    console.log(idEmpresa, "dsads");
+    console.log(did, "dsadsadsadsa");
 
-    console.log("Token esperado:", expectedToken);
-    console.log("Token recibido:", receivedToken);
-
-    if (receivedToken === expectedToken) {
-        next(); // Si el token es válido, continúa
-    } else {
-        return res.status(401).send({ message: 'Token inválido.' });
+    if (idEmpresa !== bodyIdEmpresa || did !== bodyQuien) {
+      return res.status(403).json({
+        mensaje: "Permisos insuficientes: los datos no coinciden con el token",
+      });
     }
+
+    req.usuario = decoded;
+    next();
+  });
 }
 
-module.exports = validateTokenMiddleware;
+module.exports = verificarToken;

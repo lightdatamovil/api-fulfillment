@@ -14,12 +14,7 @@ const ProductoCombo = require("../controller/producto/productoCombo");
 const ProductoDeposito = require("../controller/producto/productoDeposito");
 const ProductoEcommerce = require("../controller/producto/productoEcommerce");
 const ProductO1 = require("../controller/producto/producto");
-const Variante = require("../controller/producto/variante");
-const StockConsolidado = require("../controller/producto/stock_consolidado");
-const Atributo = require("../controller/producto/atributos");
-const Atributo_valor = require("../controller/producto/atributo_valor");
-const Stock = require("../controller/producto/stock");
-const MovimientoStock = require("../controller/producto/movimiento_stock");
+const StockConsolidado = require("../controller/stock/stock_consolidado");
 
 producto.post("/producto", async (req, res) => {
   const data = req.body;

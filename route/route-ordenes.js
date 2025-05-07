@@ -10,6 +10,7 @@ const { getConnectionLocal } = require("../dbconfig");
 const Ordenes = require("../controller/orden/ordenes");
 const Ordenes_items = require("../controller/orden/ordenes_items");
 const OrdenesHistorial = require("../controller/orden/ordenes_historial");
+const verificarToken = require("../middleware/token");
 
 orden.post("/postOrden", async (req, res) => {
   const data = req.body;
@@ -334,6 +335,62 @@ orden.post("/PostsubidaMasiva", async (req, res) => {
   }
 });
 
+orden.post("/getOrdenes", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+  const ordenes = new Ordenes();
+
+  try {
+    const response = await ordenes.getTodasLasOrdenes(
+      connection,
+      data.pagina,
+      data.cantidad,
+      data
+    );
+    return res.status(200).json({
+      estado: true,
+      message: "Órdenes obtenidas correctamente",
+      totalRegistros: response["totalRegistros"],
+      totalPaginas: response["totalPaginas"],
+      pagina: response["pagina"],
+
+      cantidad: response["cantidad"],
+      data: response["ordenes"],
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+
+orden.post("/getOrdenesById", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+  const ordenes = new Ordenes();
+  try {
+    const response = await ordenes.getOrdenPorId(connection, data.did);
+    return res.status(200).json({
+      estado: true,
+      message: "Órdenes obtenidas correctamente",
+      data: response,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
 orden.get("/", async (req, res) => {
   res.status(200).json({
     estado: true,
