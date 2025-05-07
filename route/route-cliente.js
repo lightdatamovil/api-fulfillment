@@ -1,3 +1,7 @@
+const Cliente = require("../controller/cliente/cliente");
+
+const ClienteContacto = require("../controller/cliente/cliente_contacto");
+const ClienteDireccion = require("../controller/cliente/cliente_direccion");
 const express = require("express");
 const cliente = express.Router();
 
@@ -8,44 +12,79 @@ const {
   getConnectionLocal,
 } = require("../dbconfig");
 
-const Cliente = require("../controller/cliente/cliente");
-
 cliente.post("/postCliente", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    if (data.operador === "eliminar") {
-      const cliente = new Cliente();
-      const response = await cliente.delete(connection, data.did);
-      console.log("Respuesta de delete:", response);
-      return res.status(200).json({
-        estado: response.estado !== undefined ? response.estado : false,
-        message: response.message || response,
-      });
-    } else {
-      // Crear nuevo producto
-      const cliente = new Cliente(
-        data.did ?? 0,
-        data.nombre_fantasia,
-        data.habilitado,
+    const cliente = new Cliente(
+      data.did ?? 0,
+      data.nombre_fantasia,
+      data.habilitado,
+      data.quien,
+      data.superado ?? 0,
+      data.elim ?? 0,
+      connection
+    );
 
-        data.quien,
-        data.superado ?? 0,
-        data.elim ?? 0,
-        connection
-      );
-
-      const clienteResult = await cliente.insert();
-
-      const clienteId = clienteResult.insertId;
-
-      return res.status(200).json({
-        estado: true,
-        message: "Cliente creado correctamente",
-        didUsuario: clienteId,
-      });
+    const clienteResult = await cliente.insert();
+    let clienteId = clienteResult.insertId;
+    if (clienteResult.estado === false) {
+      return res.status(400).json(clienteResult);
     }
+
+    if (data.did > 0) {
+      clienteId = data.did;
+    }
+    console.log(clienteResult, "Cliente Result");
+
+    // Insertar direcciones
+    if (Array.isArray(data.direccion)) {
+      console.log("Direcciones:", data.direccion);
+
+      for (const dir of data.direccion) {
+        if (dir.did > 0) {
+          clienteId = dir.did;
+        }
+        const direccion = new ClienteDireccion(
+          dir.did ?? 0,
+          clienteId, // didCliente
+          dir.data ?? "",
+          data.quien ?? 0,
+          0,
+          0,
+          connection
+        );
+        await direccion.insert();
+      }
+    }
+
+    // Insertar contactos
+    if (Array.isArray(data.contacto)) {
+      console.log("Contactos:", data.contacto);
+      for (const cont of data.contacto) {
+        const contacto = new ClienteContacto(
+          cont.did ?? 0,
+          clienteId, // diCliente
+          cont.tipo ?? 0,
+          cont.valor ?? "",
+          data.quien ?? 0,
+          0,
+          0,
+          connection
+        );
+        console.log("Contacto:", contacto);
+
+        const contactoResult = await contacto.insert();
+        console.log("Contacto Result:", contactoResult);
+      }
+    }
+
+    return res.status(200).json({
+      estado: true,
+      message: "Cliente creado correctamente",
+      didUsuario: clienteId,
+    });
   } catch (error) {
     console.error("Error durante la operación:", error);
     return res.status(500).json({

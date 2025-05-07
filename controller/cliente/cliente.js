@@ -26,17 +26,6 @@ class Cliente {
   }
 
   async insert() {
-    const querycheck =
-      "SELECT nombre_fantasia FROM clientes WHERE nombre_fantasia = ? and superado = 0 and elim = 0";
-    const resultscheck = await executeQuery(this.connection, querycheck, [
-      this.nombre_fantasia,
-    ]);
-    if (resultscheck.length > 0) {
-      return {
-        estado: false,
-        message: "El cliente ya existe.",
-      };
-    }
     try {
       if (this.did === null || this.did === "") {
         return this.createNewRecord(this.connection);
@@ -76,6 +65,17 @@ class Cliente {
 
   async createNewRecord(connection) {
     try {
+      const querycheck =
+        "SELECT nombre_fantasia FROM clientes WHERE nombre_fantasia = ? and superado = 0 and elim = 0";
+      const resultscheck = await executeQuery(this.connection, querycheck, [
+        this.nombre_fantasia,
+      ]);
+      if (resultscheck.length > 0) {
+        return {
+          estado: false,
+          message: "El cliente ya existe.",
+        };
+      }
       const columnsQuery = "DESCRIBE clientes";
       const results = await executeQuery(connection, columnsQuery, []);
 
@@ -119,18 +119,16 @@ class Cliente {
   }
   async getClientes(connection, filtros) {
     try {
-      const conditions = ["elim = 0 and superado = 0"];
+      const conditions = ["c.superado = 0"];
       const values = [];
 
-      // Filtro habilitado (0: no habilitado, 1: habilitado, 2: todos)
       if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
-        conditions.push("habilitado = ?");
+        conditions.push("clientes.habilitado = ?");
         values.push(filtros.habilitado);
       }
 
-      // Filtro nombre_fantasia
       if (filtros.nombre_fantasia) {
-        conditions.push("nombre_fantasia LIKE ?");
+        conditions.push("clientes.nombre_fantasia LIKE ?");
         values.push(`%${filtros.nombre_fantasia}%`);
       }
 
@@ -138,39 +136,84 @@ class Cliente {
         ? `WHERE ${conditions.join(" AND ")}`
         : "";
 
-      // Paginación
       const pagina = Number(filtros.pagina) || 1;
       const cantidadPorPagina = Number(filtros.cantidad) || 10;
       const offset = (pagina - 1) * cantidadPorPagina;
 
-      // Consulta total
-      const totalQuery = `SELECT COUNT(*) as total FROM clientes ${whereClause}`;
+      const totalQuery = `SELECT COUNT(*) as total FROM clientes ${whereClause.replace(
+        /c\./g,
+        ""
+      )}`;
+
       const totalResult = await executeQuery(connection, totalQuery, values);
       const totalRegistros = totalResult[0].total;
       const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
 
-      // Consulta paginada
+      // Trae los datos de clientes + sus direcciones + contactos (si los hay)
       const dataQuery = `
-      SELECT * FROM clientes
+      SELECT 
+        c.*, 
+        d.did as direccion_did, d.data as direccion_data, 
+        co.did as contacto_did, co.tipo as contacto_tipo, co.valor as contacto_valor
+      FROM clientes c
+      LEFT JOIN clientes_direcciones d ON d.didCliente = c.did AND d.elim = 0
+      LEFT JOIN clientes_contactos co ON co.didCliente = c.did AND co.elim = 0
       ${whereClause}
-      ORDER BY id DESC
+      ORDER BY c.did DESC
       LIMIT ? OFFSET ?
     `;
+
       const dataValues = [...values, cantidadPorPagina, offset];
       const results = await executeQuery(connection, dataQuery, dataValues);
 
-      // Quitar contraseña
-      const usuariosSinPass = results.map((usuario) => {
-        delete usuario.pass;
-        return usuario;
-      });
+      // Agrupar resultados por cliente
+      const clientesMap = {};
+      for (const row of results) {
+        if (!clientesMap[row.did]) {
+          clientesMap[row.did] = {
+            did: row.did,
+            nombre_fantasia: row.nombre_fantasia,
+            habilitado: row.habilitado,
+            quien: row.quien,
+            contactos: [],
+            direcciones: [],
+          };
+        }
+
+        // Agregar dirección si no está duplicada
+        if (
+          row.direccion_did &&
+          !clientesMap[row.did].direcciones.some(
+            (d) => d.did === row.direccion_did
+          )
+        ) {
+          clientesMap[row.did].direcciones.push({
+            did: row.direccion_did,
+            data: row.direccion_data,
+          });
+        }
+
+        // Agregar contacto si no está duplicado
+        if (
+          row.contacto_did &&
+          !clientesMap[row.did].contactos.some(
+            (c) => c.did === row.contacto_did
+          )
+        ) {
+          clientesMap[row.did].contactos.push({
+            did: row.contacto_did,
+            tipo: row.contacto_tipo,
+            valor: row.contacto_valor,
+          });
+        }
+      }
 
       return {
         totalRegistros,
         totalPaginas,
         pagina,
         cantidad: cantidadPorPagina,
-        clientes: usuariosSinPass,
+        clientes: Object.values(clientesMap),
       };
     } catch (error) {
       console.error("Error en GETCLIENTES:", error.message);
@@ -192,25 +235,60 @@ class Cliente {
 
   async getClientesById(connection, did) {
     try {
-      let query =
-        "SELECT * FROM clientes WHERE elim = 0 and superado = 0 AND did = ?";
+      const query = `
+      SELECT 
+        c.*, 
+        d.did as direccion_did, d.data as direccion_data,
+        co.did as contacto_did, co.tipo as contacto_tipo, co.valor as contacto_valor
+      FROM clientes c
+      LEFT JOIN clientes_direcciones d ON d.didCliente = c.did AND d.elim = 0
+      LEFT JOIN clientes_contactos co ON co.didCliente = c.did AND co.elim = 0
+      WHERE c.elim = 0 AND c.superado = 0 AND c.did = ?
+    `;
 
-      const results = await executeQuery(connection, query, did);
+      const results = await executeQuery(connection, query, [did]);
       if (results.length === 0) {
         return {
           estado: false,
           message: "No se encontró el cliente.",
         };
       }
-      // Quitar la contraseña de cada usuario
-      const usuariosSinPass = results.map((usuario) => {
-        delete usuario.pass;
-        return usuario;
-      });
 
-      return usuariosSinPass;
+      const cliente = {
+        did: results[0].did,
+        nombre_fantasia: results[0].nombre_fantasia,
+        habilitado: results[0].habilitado,
+        quien: results[0].quien,
+        contactos: [],
+        direcciones: [],
+      };
+
+      for (const row of results) {
+        if (
+          row.direccion_did &&
+          !cliente.direcciones.some((d) => d.did === row.direccion_did)
+        ) {
+          cliente.direcciones.push({
+            did: row.direccion_did,
+            data: row.direccion_data,
+          });
+        }
+
+        if (
+          row.contacto_did &&
+          !cliente.contactos.some((c) => c.did === row.contacto_did)
+        ) {
+          cliente.contactos.push({
+            did: row.contacto_did,
+            tipo: row.contacto_tipo,
+            valor: row.contacto_valor,
+          });
+        }
+      }
+
+      return cliente;
     } catch (error) {
-      console.error("Error en GETCLIENTES:", error.message);
+      console.error("Error en GETCLIENTES BY ID:", error.message);
       throw error;
     }
   }

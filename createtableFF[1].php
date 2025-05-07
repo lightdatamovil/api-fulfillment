@@ -1,18 +1,17 @@
 <?php
 
 try {
-	$redis = new Redis();
-	$redis->connect('10.60.0.115', 6379); //192.99.190.137 Puerto: 50301
+  $redis = new Redis();
+  $redis->connect('10.60.0.115', 6379); //192.99.190.137 Puerto: 50301
 
-	// Autenticación con la contraseña de Redis
-	if (!$redis->auth('sdJmdxXC8luknTrqmHceJS48NTyzExQg')) {
-		die('Error: No se pudo autenticar en Redis.');
-	}
-	$get = $redis->get("empresasData"); 
-	$Aempresas = json_decode($get, true);
-	$redis->close();
-} catch(Exception $e){
-
+  // Autenticación con la contraseña de Redis
+  if (!$redis->auth('sdJmdxXC8luknTrqmHceJS48NTyzExQg')) {
+    die('Error: No se pudo autenticar en Redis.');
+  }
+  $get = $redis->get("empresasData");
+  $Aempresas = json_decode($get, true);
+  $redis->close();
+} catch (Exception $e) {
 }
 
 /*
@@ -21,7 +20,7 @@ try {
 		Contraseña: Ve5P4nAdt6UiT8
 */
 
-$AempresasFF = [270,275];
+$AempresasFF = [270, 275];
 
 $db_host = '149.56.182.49';
 $db_puerto = '44347';
@@ -31,10 +30,10 @@ $db_password = 'Ve5P4nAdt6UiT8';
 $mysqli = new mysqli($db_host, $db_usuario, $db_password, '', $db_puerto);
 
 if ($mysqli->connect_error) {
-    die("Error de conexión: " . $mysqli->connect_error);
+  die("Error de conexión: " . $mysqli->connect_error);
 } else {
-    echo "Conexión exitosa al servidor MariaDB.";
-}	
+  echo "Conexión exitosa al servidor MariaDB.";
+}
 
 $Aschemasql = [];
 $Aschemasql["usuarios"] = "CREATE TABLE IF NOT EXISTS usuarios (
@@ -345,54 +344,101 @@ $Aschemasql["ordenes_historial"] = "CREATE TABLE IF NOT EXISTS `ordenes_historia
   PRIMARY KEY (`id`) USING BTREE
 );";
 
+$Aschemasql["OT"] = "CREATE TABLE IF NOT EXISTS `OT`  (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    did INT NOT NULL,
+    autofecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    armado INT DEFAULT -1, 
+    armado_fecha DATETIME NULL,
+    asignado INT DEFAULT 0,
+    didOrdenes TEXT, 
+    didOrdenesPendientes TEXT, 
+    cantOrdenes INT DEFAULT 0,
+    cantOrdenesPendientes INT DEFAULT 0,
+    superado INT DEFAULT 0,
+    elim INT DEFAULT 0,
+    quien INT DEFAULT 0,
+    KEY idx_did (did),
+    KEY idx_armado (armado),
+    KEY idx_asignado (asignado),
+    KEY idx_superado (superado),
+    KEY idx_elim (elim),
+    KEY idx_quien (quien)
+);
 
-foreach($Aempresas as $empresa){
-	
-	$idempresa = $empresa["id"];
-	
-	if(in_array($idempresa, $AempresasFF)){
-	
-		$db_nombre = 'empresa_'.$idempresa;
-		$db_username = 'ue'.$idempresa;
-		
-		$mysqli->select_db($db_nombre);
-		
-		$Atables = ['clientes', 'clientes_cuentas', 'usuarios', 'productos_depositos', 'productos', 'productos_ecommerce','productos_combos', 'stock' ,"stock_consolidado", 'ecommerces', 'ordenes', 'ordenes_items',"depositos","atributos","atributos_valores","sistema_empresa", "producto_variaciones"];
-				
-		foreach($Atables as $schema){
-			
-			if(isset($Aschemasql[$schema])){
-				$result = $mysqli->query("SHOW TABLES LIKE '$schema'");
-				if ($result->num_rows > 0) {
-					echo "La tabla '$schema' ya existe.<br>";
-				} else {
-					echo "La tabla '$schema' no existe. Creándola...<br>";
-					if ($mysqli->query($Aschemasql[$schema])) {
-						echo "Tabla '$schema' creada exitosamente.<br>";
-					} else {
-						echo "Error al crear la tabla '$schema': " . $mysqli->error;
-					}
-				}				
-			}
-		
-		}
+ ";
+$Aschemasql["OT_items"] = "CREATE TABLE IF NOT EXISTS `OT_items`  (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    did INT NOT NULL,
+    autofecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    didOt INT NOT NULL,
+    didOrden INT NOT NULL,
+    didOrdenItem INT NOT NULL,
+    armado INT DEFAULT 0,
+    armado_fecha DATETIME NULL,
+    asignado INT DEFAULT 0,
+    didProducto INT NOT NULL,
+    sku VARCHAR(64) DEFAULT NULL,
+    barcode VARCHAR(64) DEFAULT NULL,
+    superado INT DEFAULT 0,
+    elim INT DEFAULT 0,
+    quien INT DEFAULT 0,
+    KEY idx_did (did),
+    KEY idx_didOt (didOt),
+    KEY idx_didOrden (didOrden),
+    KEY idx_didOrdenItem (didOrdenItem),
+    KEY idx_armado (armado),
+    KEY idx_asignado (asignado),
+    KEY idx_didProducto (didProducto),
+    KEY idx_superado (superado),
+    KEY idx_elim (elim),
+    KEY idx_quien (quien)
+);
 
-		$result = $mysqli->query("SELECT COUNT(*) as count FROM mysql.user WHERE user = '$db_username'");
-		$row = $result->fetch_assoc();
-		if ($row['count'] > 0) {
-			echo "El usuario '$db_username' ya existe.<br>";
-		} else {
-			echo "El usuario '$db_username' no existe. Creándolo... '78451296_{$idempresa}' <br>";
-			$mysqli->query("CREATE USER '$db_username'@'%' IDENTIFIED BY '78451296_{$idempresa}';");
-			$mysqli->query("GRANT ALL PRIVILEGES ON $db_nombre.* TO '$db_username'@'%';");
-			$mysqli->query("FLUSH PRIVILEGES;");
-			echo "Usuario '$db_username' creado exitosamente.<br>";
-		}
-	
-	}
-	
+ ";
+
+foreach ($Aempresas as $empresa) {
+
+  $idempresa = $empresa["id"];
+
+  if (in_array($idempresa, $AempresasFF)) {
+
+    $db_nombre = 'empresa_' . $idempresa;
+    $db_username = 'ue' . $idempresa;
+
+    $mysqli->select_db($db_nombre);
+
+    $Atables = ["OT", 'clientes', 'clientes_cuentas', 'usuarios', 'productos_depositos', 'productos', 'productos_ecommerce', 'productos_combos', 'stock', "stock_consolidado", 'ecommerces', 'ordenes', 'ordenes_items', "depositos", "atributos", "atributos_valores", "sistema_empresa", "producto_variaciones"];
+
+    foreach ($Atables as $schema) {
+
+      if (isset($Aschemasql[$schema])) {
+        $result = $mysqli->query("SHOW TABLES LIKE '$schema'");
+        if ($result->num_rows > 0) {
+          echo "La tabla '$schema' ya existe.<br>";
+        } else {
+          echo "La tabla '$schema' no existe. Creándola...<br>";
+          if ($mysqli->query($Aschemasql[$schema])) {
+            echo "Tabla '$schema' creada exitosamente.<br>";
+          } else {
+            echo "Error al crear la tabla '$schema': " . $mysqli->error;
+          }
+        }
+      }
+    }
+
+    $result = $mysqli->query("SELECT COUNT(*) as count FROM mysql.user WHERE user = '$db_username'");
+    $row = $result->fetch_assoc();
+    if ($row['count'] > 0) {
+      echo "El usuario '$db_username' ya existe.<br>";
+    } else {
+      echo "El usuario '$db_username' no existe. Creándolo... '78451296_{$idempresa}' <br>";
+      $mysqli->query("CREATE USER '$db_username'@'%' IDENTIFIED BY '78451296_{$idempresa}';");
+      $mysqli->query("GRANT ALL PRIVILEGES ON $db_nombre.* TO '$db_username'@'%';");
+      $mysqli->query("FLUSH PRIVILEGES;");
+      echo "Usuario '$db_username' creado exitosamente.<br>";
+    }
+  }
 }
 
 $mysqli->close();
-
-?>

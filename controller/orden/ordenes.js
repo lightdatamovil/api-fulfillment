@@ -359,6 +359,9 @@ class Ordenes {
         orden.cliente = clientesCache[clienteId];
         // Mapear el valor de flex a su descripción
         orden.flex = flexMap[orden.flex] || "Desconocido";
+        if (orden.ot == 0) {
+          orden.ot = "";
+        }
       }
 
       const countQuery = `
