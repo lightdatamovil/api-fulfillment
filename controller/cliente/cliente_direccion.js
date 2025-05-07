@@ -51,12 +51,20 @@ class Cliente_direccion {
           "UPDATE clientes_direcciones SET superado = 1 WHERE did = ?";
         await executeQuery(connection, updateQuery, [this.did]);
         const querydel =
-          "select * from clientes_direcciones where did  = ? and superado = 0 and elim = 0";
+          "select * from clientes_direcciones where didCliente = ? and superado = 0 and elim = 0";
 
-        const results = await executeQuery(connection, querydel, [this.did]);
+        const results = await executeQuery(
+          connection,
+          querydel,
+          [this.didCliente],
+          true
+        );
+        console.log("RESULTS:", results);
 
         if (results.length > 0) {
-          this.delete(connection, results[0].did);
+          for (const row of results) {
+            await this.delete(connection, row.did);
+          }
         }
 
         return this.createNewRecord(connection);
@@ -110,6 +118,25 @@ class Cliente_direccion {
         estado: true,
         message: "Cliente cuenta eliminado correctamente.",
       };
+    } catch (error) {
+      throw error;
+    }
+  }
+  async deleteMissing(connection, didCliente, incomingDids = []) {
+    try {
+      const placeholders = incomingDids.length
+        ? incomingDids.map(() => "?").join(", ")
+        : "NULL";
+      const deleteQuery = `
+      UPDATE clientes_direcciones 
+      SET elim = 1 
+      WHERE didCliente = ? 
+      AND elim = 0
+      ${incomingDids.length > 0 ? `AND did NOT IN (${placeholders})` : ""}
+    `;
+
+      const params = [didCliente, ...incomingDids];
+      await executeQuery(connection, deleteQuery, params, true);
     } catch (error) {
       throw error;
     }

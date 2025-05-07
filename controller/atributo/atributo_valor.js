@@ -73,7 +73,9 @@ class Atributo_valor {
         ]);
 
         if (results.length > 0) {
-          this.delete(connection, results[0].did);
+          for (const row of results) {
+            await this.delete(connection, row.did);
+          }
         }
         return this.createNewRecord(connection);
       } else {
@@ -147,6 +149,40 @@ class Atributo_valor {
         "SELECT * FROM atributos_valores WHERE elim = 0 and superado = 0 order by did asc";
       const results = await executeQuery(connection, selectQuery, []);
       return results;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async deleteMissing(connection, didAtributo, didsActuales = []) {
+    try {
+      if (!Array.isArray(didsActuales)) {
+        didsActuales = [];
+      }
+
+      let deleteQuery = "";
+      let params = [];
+
+      if (didsActuales.length > 0) {
+        deleteQuery = `
+        UPDATE atributos_valores
+        SET elim = 1
+        WHERE didAtributo = ? AND did NOT IN (${didsActuales
+          .map(() => "?")
+          .join(", ")}) AND elim = 0
+      `;
+        params = [didAtributo, ...didsActuales];
+      } else {
+        // Si el array está vacío, eliminar todos los registros del atributo
+        deleteQuery = `
+        UPDATE atributos_valores
+        SET elim = 1
+        WHERE didAtributo = ? AND elim = 0
+      `;
+        params = [didAtributo];
+      }
+
+      await executeQuery(connection, deleteQuery, params);
     } catch (error) {
       throw error;
     }

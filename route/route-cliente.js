@@ -15,6 +15,7 @@ const {
 cliente.post("/postCliente", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
+  let clienteId = 0;
 
   try {
     const cliente = new Cliente(
@@ -28,27 +29,26 @@ cliente.post("/postCliente", async (req, res) => {
     );
 
     const clienteResult = await cliente.insert();
-    let clienteId = clienteResult.insertId;
     if (clienteResult.estado === false) {
       return res.status(400).json(clienteResult);
     }
 
-    if (data.did > 0) {
-      clienteId = data.did;
-    }
-    console.log(clienteResult, "Cliente Result");
+    clienteId = data.did > 0 ? data.did : clienteResult.insertId;
 
-    // Insertar direcciones
+    // ------------------------------
+    // ✅ MANEJO DE DIRECCIONES
+    // ------------------------------
+    const direccionHelper = new ClienteDireccion();
+    const dirDids = Array.isArray(data.direccion)
+      ? data.direccion.map((d) => d.did).filter((did) => did > 0)
+      : [];
+    await direccionHelper.deleteMissing(connection, clienteId, dirDids);
+
     if (Array.isArray(data.direccion)) {
-      console.log("Direcciones:", data.direccion);
-
       for (const dir of data.direccion) {
-        if (dir.did > 0) {
-          clienteId = dir.did;
-        }
         const direccion = new ClienteDireccion(
           dir.did ?? 0,
-          clienteId, // didCliente
+          clienteId,
           dir.data ?? "",
           data.quien ?? 0,
           0,
@@ -59,13 +59,20 @@ cliente.post("/postCliente", async (req, res) => {
       }
     }
 
-    // Insertar contactos
+    // ------------------------------
+    // ✅ MANEJO DE CONTACTOS
+    // ------------------------------
+    const contactoHelper = new ClienteContacto();
+    const contDids = Array.isArray(data.contacto)
+      ? data.contacto.map((c) => c.did).filter((did) => did > 0)
+      : [];
+    await contactoHelper.deleteMissing(connection, clienteId, contDids);
+
     if (Array.isArray(data.contacto)) {
-      console.log("Contactos:", data.contacto);
       for (const cont of data.contacto) {
         const contacto = new ClienteContacto(
           cont.did ?? 0,
-          clienteId, // diCliente
+          clienteId,
           cont.tipo ?? 0,
           cont.valor ?? "",
           data.quien ?? 0,
@@ -73,10 +80,7 @@ cliente.post("/postCliente", async (req, res) => {
           0,
           connection
         );
-        console.log("Contacto:", contacto);
-
-        const contactoResult = await contacto.insert();
-        console.log("Contacto Result:", contactoResult);
+        await contacto.insert();
       }
     }
 

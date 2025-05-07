@@ -32,25 +32,38 @@ atributo.post("/postAtributo", async (req, res) => {
       data.elim ?? 0,
       connection
     );
-    console.log("atributo", atributo);
 
     const response = await atributo.insert();
 
-    for (const valor of data.valores) {
-      const atributoValor = new Atributo_valor(
-        valor.did ?? 0,
-        data.did == 0 ? response.insertId : data.did,
-        valor.valor,
-        data.orden,
-        data.habilitado ?? 1,
-        valor.codigo,
-        data.quien,
-        data.superado ?? 0,
-        data.elim ?? 0,
-        connection
-      );
-      const respuesta = await atributoValor.insert();
+    // Determinar did del atributo creado o existente
+    const didAtributo = data.did == 0 ? response.insertId : data.did;
+
+    // Borrar los valores que ya no están
+    const helperValor = new Atributo_valor();
+    const didsActuales = Array.isArray(data.valores)
+      ? data.valores.map((v) => v.did).filter((d) => d > 0)
+      : [];
+    await helperValor.deleteMissing(connection, didAtributo, didsActuales);
+
+    // Insertar los valores que vinieron
+    if (Array.isArray(data.valores)) {
+      for (const valor of data.valores) {
+        const atributoValor = new Atributo_valor(
+          valor.did ?? 0,
+          didAtributo,
+          valor.valor,
+          data.orden,
+          data.habilitado ?? 1,
+          valor.codigo,
+          data.quien,
+          data.superado ?? 0,
+          data.elim ?? 0,
+          connection
+        );
+        await atributoValor.insert();
+      }
     }
+
     if (response.estado === false) {
       return res.status(200).json({
         estado: false,

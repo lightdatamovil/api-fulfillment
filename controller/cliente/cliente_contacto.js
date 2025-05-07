@@ -49,20 +49,26 @@ class Clente_contacto {
     try {
       const checkQuery = "SELECT id FROM clientes_contactos WHERE did = ?";
       const results = await executeQuery(connection, checkQuery, [this.did]);
-
       if (results.length > 0) {
-        const querydel =
-          "select * from clientes_contactos where didCliente  = ? and superado = 0 and elim = 0";
-
-        const results = await executeQuery(connection, querydel, [
-          this.didCliente,
-        ]);
-        if (results.length > 0) {
-          this.delete(connection, results[0].did);
-        }
         const updateQuery =
           "UPDATE clientes_contactos SET superado = 1 WHERE did = ?";
         await executeQuery(connection, updateQuery, [this.did]);
+        const querydel =
+          "select * from clientes_contactos where didCliente = ? and superado = 0 and elim = 0";
+
+        const results = await executeQuery(
+          connection,
+          querydel,
+          [this.didCliente],
+          true
+        );
+        console.log("RESULTS:", results);
+
+        if (results.length > 0) {
+          for (const row of results) {
+            await this.delete(connection, row.did);
+          }
+        }
 
         return this.createNewRecord(connection);
       } else {
@@ -115,6 +121,25 @@ class Clente_contacto {
         estado: true,
         message: "Cliente cuenta eliminado correctamente.",
       };
+    } catch (error) {
+      throw error;
+    }
+  }
+  async deleteMissing(connection, didCliente, incomingDids = []) {
+    try {
+      const placeholders = incomingDids.length
+        ? incomingDids.map(() => "?").join(", ")
+        : "NULL";
+      const deleteQuery = `
+      UPDATE clientes_contactos 
+      SET elim = 1 
+      WHERE didCliente = ? 
+      AND elim = 0
+      ${incomingDids.length > 0 ? `AND did NOT IN (${placeholders})` : ""}
+    `;
+
+      const params = [didCliente, ...incomingDids];
+      await executeQuery(connection, deleteQuery, params);
     } catch (error) {
       throw error;
     }
