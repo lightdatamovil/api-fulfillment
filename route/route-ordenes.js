@@ -12,7 +12,7 @@ const Ordenes_items = require("../controller/orden/ordenes_items");
 const OrdenesHistorial = require("../controller/orden/ordenes_historial");
 const verificarToken = require("../middleware/token");
 
-orden.post("/postOrden", async (req, res) => {
+orden.post("/postOrden", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
@@ -233,7 +233,7 @@ orden.post("/importExcelOrden", upload.single("file"), async (req, res) => {
   }
 });
 
-orden.post("/PostsubidaMasiva", async (req, res) => {
+orden.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const estadoRepetido = await Ordenes.esEstadoRepetido(
@@ -335,7 +335,7 @@ orden.post("/PostsubidaMasiva", async (req, res) => {
   }
 });
 
-orden.post("/getOrdenes", async (req, res) => {
+orden.post("/getOrdenes", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const ordenes = new Ordenes();
@@ -369,7 +369,7 @@ orden.post("/getOrdenes", async (req, res) => {
   }
 });
 
-orden.post("/getOrdenesById", async (req, res) => {
+orden.post("/getOrdenesById", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const ordenes = new Ordenes();

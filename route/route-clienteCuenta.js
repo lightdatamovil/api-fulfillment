@@ -4,8 +4,9 @@ const clienteCuentaR = express.Router();
 const { getConnectionLocal } = require("../dbconfig");
 
 const Cliente_cuenta = require("../controller/cliente/cliente-cuenta");
+const verificarToken = require("../middleware/token");
 
-clienteCuentaR.post("/clienteCuenta", async (req, res) => {
+clienteCuentaR.post("/clienteCuenta", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
@@ -70,30 +71,37 @@ clienteCuentaR.post("/clienteCuenta", async (req, res) => {
   }
 });
 
-clienteCuentaR.post("/getClienteCuentaById", async (req, res) => {
-  const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
-  const clienteCuenta = new Cliente_cuenta();
+clienteCuentaR.post(
+  "/getClienteCuentaById",
+  verificarToken,
+  async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
+    const clienteCuenta = new Cliente_cuenta();
 
-  try {
-    const response = await clienteCuenta.getClientesById(connection, data.did);
+    try {
+      const response = await clienteCuenta.getClientesById(
+        connection,
+        data.did
+      );
 
-    return res.status(200).json({
-      estado: true,
-      data: response,
-    });
-  } catch (error) {
-    console.error("Error durante la operación:", error);
-    return res.status(500).json({
-      estado: false,
-      error: -1,
-      message: error.message || error,
-    });
-  } finally {
-    connection.end();
+      return res.status(200).json({
+        estado: true,
+        data: response,
+      });
+    } catch (error) {
+      console.error("Error durante la operación:", error);
+      return res.status(500).json({
+        estado: false,
+        error: -1,
+        message: error.message || error,
+      });
+    } finally {
+      connection.end();
+    }
   }
-});
-clienteCuentaR.post("/getClientesCuentas", async (req, res) => {
+);
+clienteCuentaR.post("/getClientesCuentas", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const filtros = {
@@ -126,29 +134,33 @@ clienteCuentaR.post("/getClientesCuentas", async (req, res) => {
   }
 });
 
-clienteCuentaR.post("/deleteClienteCuenta", async (req, res) => {
-  const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+clienteCuentaR.post(
+  "/deleteClienteCuenta",
+  verificarToken,
+  async (req, res) => {
+    const data = req.body;
+    const connection = await getConnectionLocal(data.idEmpresa);
 
-  try {
-    const clienteCuenta = new Cliente_cuenta();
-    const response = await clienteCuenta.delete(connection, data.did);
-    console.log("Respuesta de delete:", response);
-    return res.status(200).json({
-      estado: response.estado !== undefined ? response.estado : false,
-      message: response.message || response,
-    });
-  } catch (error) {
-    console.error("Error durante la operación:", error);
-    return res.status(500).json({
-      estado: false,
-      error: -1,
-      message: error.message || error,
-    });
-  } finally {
-    connection.end();
+    try {
+      const clienteCuenta = new Cliente_cuenta();
+      const response = await clienteCuenta.delete(connection, data.did);
+      console.log("Respuesta de delete:", response);
+      return res.status(200).json({
+        estado: response.estado !== undefined ? response.estado : false,
+        message: response.message || response,
+      });
+    } catch (error) {
+      console.error("Error durante la operación:", error);
+      return res.status(500).json({
+        estado: false,
+        error: -1,
+        message: error.message || error,
+      });
+    } finally {
+      connection.end();
+    }
   }
-});
+);
 
 clienteCuentaR.get("/", async (req, res) => {
   res.status(200).json({

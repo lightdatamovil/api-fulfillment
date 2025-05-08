@@ -8,6 +8,7 @@ const {
   getConnectionLocal,
 } = require("../dbconfig");
 const Usuario = require("../controller/usuario/usuario");
+const verificarToken = require("../middleware/token");
 
 usuario.post("/Postusuario", async (req, res) => {
   const data = req.body;
@@ -106,7 +107,7 @@ usuario.post("/login", async (req, res) => {
   }
 });
 
-usuario.post("/getUsuarios", async (req, res) => {
+usuario.post("/getUsuarios", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const usuario = new Usuario();
@@ -147,7 +148,7 @@ usuario.post("/getUsuarios", async (req, res) => {
   }
 });
 
-usuario.post("/getUsuarioById", async (req, res) => {
+usuario.post("/getUsuarioById", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const usuario = new Usuario();
@@ -171,7 +172,7 @@ usuario.post("/getUsuarioById", async (req, res) => {
   }
 });
 
-usuario.post("/deleteUsuario", async (req, res) => {
+usuario.post("/deleteUsuario", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 

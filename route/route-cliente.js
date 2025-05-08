@@ -11,8 +11,9 @@ const {
   getCompanyById,
   getConnectionLocal,
 } = require("../dbconfig");
+const verificarToken = require("../middleware/token");
 
-cliente.post("/postCliente", async (req, res) => {
+cliente.post("/postCliente", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   let clienteId = 0;
@@ -103,7 +104,7 @@ cliente.post("/postCliente", async (req, res) => {
   }
 });
 
-cliente.post("/getClientes", async (req, res) => {
+cliente.post("/getClientes", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const filtros = {
@@ -135,7 +136,7 @@ cliente.post("/getClientes", async (req, res) => {
   }
 });
 
-cliente.post("/getClienteById", async (req, res) => {
+cliente.post("/getClienteById", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const cliente = new Cliente();
@@ -158,7 +159,7 @@ cliente.post("/getClienteById", async (req, res) => {
     connection.end();
   }
 });
-cliente.post("/deleteCliente", async (req, res) => {
+cliente.post("/deleteCliente", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
@@ -182,7 +183,7 @@ cliente.post("/deleteCliente", async (req, res) => {
   }
 });
 
-cliente.get("/getAllClientes/:empresa", async (req, res) => {
+cliente.get("/getAllClientes/:empresa", verificarToken, async (req, res) => {
   const empresa = req.params.empresa; // <-- esto es lo correcto
 
   if (!empresa) {

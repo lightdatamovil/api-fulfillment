@@ -13,8 +13,9 @@ const { logRed } = require("../fuctions/logsCustom");
 const Atributo = require("../controller/atributo/atributos");
 const Atributo_valor = require("../controller/atributo/atributo_valor");
 const { log } = require("node:console");
+const verificarToken = require("../middleware/token");
 
-atributo.post("/postAtributo", async (req, res) => {
+atributo.post("/postAtributo", verificarToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
@@ -85,7 +86,7 @@ atributo.post("/postAtributo", async (req, res) => {
   }
 });
 
-atributo.post("/deleteAtributo", async (req, res) => {
+atributo.post("/deleteAtributo", verificarToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
@@ -108,7 +109,7 @@ atributo.post("/deleteAtributo", async (req, res) => {
   }
 });
 
-atributo.post("/getAtributoById", async (req, res) => {
+atributo.post("/getAtributoById", verificarToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
@@ -128,7 +129,7 @@ atributo.post("/getAtributoById", async (req, res) => {
     });
   }
 });
-atributo.post("/getAtributos", async (req, res) => {
+atributo.post("/getAtributos", verificarToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
@@ -154,7 +155,7 @@ atributo.post("/getAtributos", async (req, res) => {
     });
   }
 });
-atributo.post("/getAtributosTotal", async (req, res) => {
+atributo.post("/getAtributosTotal", verificarToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
