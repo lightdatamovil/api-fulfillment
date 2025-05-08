@@ -177,6 +177,8 @@ class Cliente {
             did: row.did,
             nombre_fantasia: row.nombre_fantasia,
             habilitado: row.habilitado,
+            codigo: row.codigo,
+            razon_social: row.razon_social,
             quien: row.quien,
             contactos: [],
             direcciones: [],
