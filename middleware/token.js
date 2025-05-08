@@ -22,13 +22,16 @@ function verificarToken(req, res, next) {
       return res.status(403).json({ mensaje: "Token inválido" });
     }
 
-    const { idEmpresa, did } = decoded;
-    const bodyIdEmpresa = req.body.idEmpresa;
-    const bodyQuien = req.body.quien;
-    console.log("verificarToken", decoded, bodyIdEmpresa, bodyQuien);
-    console.log(idEmpresa, "dsads");
-    console.log(did, "dsadsadsadsa");
+    const { idEmpresa, quien } = decoded;
 
+    // Asegurar que el body exista y sea un objeto
+    if (!req.body) req.body = {};
+
+    // Sobreescribe o agrega el campo 'quien' en el body con el valor del token
+    req.body.quien = quien;
+
+    // También podés verificar la empresa como antes
+    const bodyIdEmpresa = req.body.idEmpresa;
     if (idEmpresa !== bodyIdEmpresa) {
       return res.status(403).json({
         mensaje: "Permisos insuficientes: los datos no coinciden con el token",
