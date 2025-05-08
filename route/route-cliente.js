@@ -22,6 +22,8 @@ cliente.post("/postCliente", async (req, res) => {
       data.did ?? 0,
       data.nombre_fantasia,
       data.habilitado,
+      data.codigo,
+      data.razon_social,
       data.quien,
       data.superado ?? 0,
       data.elim ?? 0,
@@ -180,7 +182,7 @@ cliente.post("/deleteCliente", async (req, res) => {
   }
 });
 
-cliente.get("/getClientes/:empresa", async (req, res) => {
+cliente.get("/getAllClientes/:empresa", async (req, res) => {
   const empresa = req.params.empresa; // <-- esto es lo correcto
 
   if (!empresa) {
@@ -194,7 +196,7 @@ cliente.get("/getClientes/:empresa", async (req, res) => {
   const cliente = new Cliente();
 
   try {
-    const response = await cliente.getClienteF(connection);
+    const response = await cliente.getAll(connection);
     return res.status(200).json({
       estado: true,
       data: response,

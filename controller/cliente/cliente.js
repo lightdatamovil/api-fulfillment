@@ -6,7 +6,8 @@ class Cliente {
     did = "",
     nombre_fantasia = "",
     habilitado = 1,
-
+    codigo = "",
+    razon_social = "",
     quien = 0,
     superado = 0,
     elim = 0,
@@ -15,6 +16,8 @@ class Cliente {
     this.did = did;
     this.nombre_fantasia = nombre_fantasia;
     this.habilitado = habilitado;
+    this.codigo = codigo || "";
+    this.razon_social = razon_social || "";
     this.quien = quien || 0;
     this.superado = superado || 0;
     this.elim = elim || 0;
@@ -221,12 +224,45 @@ class Cliente {
     }
   }
 
-  async getClienteF(connection) {
+  async getAll(connection) {
     try {
-      const query =
-        "SELECT * FROM clientes WHERE elim = 0 and superado = 0 ORDER BY id DESC LIMIT 1";
-      const results = await executeQuery(connection, query, []);
-      return results;
+      const query = `
+      SELECT 
+        c.did AS cliente_did,
+        c.codigo, 
+        c.nombre_fantasia, 
+        cc.did AS cuenta_did, 
+        cc.flex
+      FROM clientes c
+      JOIN clientes_cuentas cc ON c.did = cc.didCliente
+      WHERE c.elim = 0 AND c.superado = 0
+      ORDER BY c.did DESC
+    `;
+      const rows = await executeQuery(connection, query, []);
+
+      // Agrupar por cliente
+      const clientesMap = new Map();
+
+      for (const row of rows) {
+        const clienteId = row.cliente_did;
+
+        if (!clientesMap.has(clienteId)) {
+          clientesMap.set(clienteId, {
+            did: row.cliente_did,
+            codigo: row.codigo,
+            nombre_fantasia: row.nombre_fantasia,
+            cuentas: [],
+          });
+        }
+
+        clientesMap.get(clienteId).cuentas.push({
+          did: row.cuenta_did,
+          flex: row.flex,
+        });
+      }
+
+      const resultados = Array.from(clientesMap.values());
+      return resultados;
     } catch (error) {
       console.error("Error en GETCLIENTES:", error.message);
       throw error;

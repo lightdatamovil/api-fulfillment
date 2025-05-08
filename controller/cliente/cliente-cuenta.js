@@ -3,20 +3,26 @@ const { executeQuery } = require("../../dbconfig");
 class Cliente_cuenta {
   constructor(
     did = "",
-    diCliente = "",
+    didCliente = "",
     tipo = 0,
     data = "",
     depositos = "",
+    ml_id_vendedor = "",
+    ml_user = "",
+
     quien = 0,
     superado = 0,
     elim = 0,
     connection = null
   ) {
     this.did = did ?? 0;
-    this.diCliente = diCliente;
+    this.didCliente = didCliente;
     this.tipo = tipo || 0;
     this.data = data;
     this.depositos = depositos;
+    this.ml_id_vendedor = ml_id_vendedor || "";
+    this.ml_user = ml_user || "";
+
     this.quien = quien || 0;
     this.superado = superado || 0;
     this.elim = elim || 0;
@@ -84,9 +90,9 @@ class Cliente_cuenta {
       const querycheck =
         "SELECT did FROM clientes WHERE did = ? and elim = 0 and superado = 0";
       const result = await executeQuery(connection, querycheck, [
-        this.diCliente,
+        this.didCliente,
       ]);
-      console.log(result);
+      console.log(result, "bienvenido");
 
       if (!Array.isArray(result) || result.length === 0) {
         return "El cliente no existe";

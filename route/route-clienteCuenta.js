@@ -10,24 +10,39 @@ clienteCuentaR.post("/clienteCuenta", async (req, res) => {
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    // Si el operador es "eliminar"
-    if (data.operador === "eliminar") {
-      const clienteCuenta = new Cliente_cuenta();
-      const response = await clienteCuenta.delete(connection, data.did);
-
-      return res.status(200).json({
-        estado: response.estado !== undefined ? response.estado : false,
-        message: response.message || response,
-      });
+    // Definir los formatos de datos según el tipo de cuenta
+    let dataValue;
+    switch (data.tipo) {
+      case 1: // MercadoFlex
+        dataValue = null;
+        break;
+      case 2: // Tienda Nube
+        dataValue = JSON.stringify({ url: data.url, token: data.token });
+        break;
+      case 3: // Shopify
+        dataValue = JSON.stringify({ url: data.url, apitoken: data.apitoken });
+        break;
+      case 4: // WooCommerce
+        dataValue = JSON.stringify({
+          url: data.url,
+          api: data.api,
+          secret: data.secret,
+        });
+        break;
+      // Agrega más casos según tus necesidades
+      default:
+        dataValue = null;
     }
 
-    // Si es creación o actualización
+    // Crear el objeto Cliente_cuenta con el formato de datos correspondiente
     const clienteCuenta = new Cliente_cuenta(
       data.did ?? 0,
-      data.diCliente,
+      data.didCliente,
       data.tipo,
-      JSON.stringify(data.data ?? {}), // Importante: guardar como string JSON
+      dataValue,
       data.depositos ?? "",
+      data.ml_id_vendedor ?? "",
+      data.ml_user ?? "",
       data.quien ?? 0,
       data.superado ?? 0,
       data.elim ?? 0,
@@ -54,6 +69,7 @@ clienteCuentaR.post("/clienteCuenta", async (req, res) => {
     connection.end();
   }
 });
+
 clienteCuentaR.post("/getClienteCuentaById", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
