@@ -50,10 +50,18 @@ cliente.post("/postCliente", verificarToken, async (req, res) => {
 
     if (Array.isArray(data.direccion)) {
       for (const dir of data.direccion) {
+        const direccionData = {
+          calle: dir.calle ?? "",
+          numero: dir.numero ?? "",
+          cp: dir.cp ?? "",
+          localidad: dir.localidad ?? "",
+          provincia: dir.provincia ?? "",
+        };
+
         const direccion = new ClienteDireccion(
           dir.did ?? 0,
           clienteId,
-          dir.data ?? "",
+          JSON.stringify(direccionData), // se guarda como JSON en texto
           data.quien ?? 0,
           0,
           0,
