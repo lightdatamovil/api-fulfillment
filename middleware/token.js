@@ -29,7 +29,7 @@ function verificarToken(req, res, next) {
     console.log(idEmpresa, "dsads");
     console.log(did, "dsadsadsadsa");
 
-    if (idEmpresa !== bodyIdEmpresa || did !== bodyQuien) {
+    if (idEmpresa !== bodyIdEmpresa) {
       return res.status(403).json({
         mensaje: "Permisos insuficientes: los datos no coinciden con el token",
       });
