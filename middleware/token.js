@@ -33,8 +33,8 @@ function verificarToken(req, res, next) {
     // También podés verificar la empresa como antes
     let bodyIdEmpresa = req.body.idEmpresa;
 
-    if (req.params.idEmpresa) {
-      bodyIdEmpresa = req.params.idEmpresa;
+    if (req.params.empresa) {
+      bodyIdEmpresa = req.params.empresa;
     }
 
     if (idEmpresa != bodyIdEmpresa) {
