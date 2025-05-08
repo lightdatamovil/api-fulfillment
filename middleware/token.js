@@ -31,7 +31,12 @@ function verificarToken(req, res, next) {
     req.body.quien = quien;
 
     // También podés verificar la empresa como antes
-    const bodyIdEmpresa = req.body.idEmpresa;
+    let bodyIdEmpresa = req.body.idEmpresa;
+
+    if (req.params.idEmpresa) {
+      bodyIdEmpresa = req.params.idEmpresa;
+    }
+
     if (idEmpresa != bodyIdEmpresa) {
       return res.status(403).json({
         mensaje: "Permisos insuficientes: los datos no coinciden con el token",
