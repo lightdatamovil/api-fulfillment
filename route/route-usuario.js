@@ -10,7 +10,7 @@ const {
 const Usuario = require("../controller/usuario/usuario");
 const verificarToken = require("../middleware/token");
 
-usuario.post("/Postusuario", async (req, res) => {
+usuario.post("/postUsuario", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 

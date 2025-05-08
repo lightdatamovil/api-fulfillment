@@ -60,17 +60,19 @@ $Aschemasql["usuarios"] = "CREATE TABLE IF NOT EXISTS usuarios (
 );
 ";
 
-$Aschemasql["clientes"] = "CREATE TABLE IF NOT EXISTS `clientes`  (
-	`id` int(11) NOT NULL AUTO_INCREMENT,
-	`did` int(11) NOT NULL,
-	`quien` int(11) NULL DEFAULT NULL,
-	`habilitado` int(11) NULL DEFAULT 1,
-	`nombre_fantasia` varchar(150) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
-	`autofecha` datetime NULL DEFAULT current_timestamp(),
-	`elim` int(11) NULL DEFAULT 0,
-	`superado` int(11) NULL DEFAULT 0,
-	PRIMARY KEY (`id`) USING BTREE
-  );
+$Aschemasql["clientes"] = "CREATE TABLE IF NOT EXISTS `clientes`  
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `did` int(11) NOT NULL,
+  `quien` int(11) NULL DEFAULT NULL,
+  `habilitado` int(11) NULL DEFAULT 1,
+  `nombre_fantasia` varchar(150) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `autofecha` datetime NULL DEFAULT current_timestamp(),
+  `elim` int(11) NULL DEFAULT 0,
+  `superado` int(11) NULL DEFAULT 0,
+  `codigo` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `razon_social` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+);
   
   ";
 
@@ -79,27 +81,40 @@ $Aschemasql["clientes_cuentas"] = "CREATE TABLE IF NOT EXISTS `clientes_cuentas`
   `did` int(11) NOT NULL,
   `didCliente` int(11) NOT NULL,
   `data` text CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
-  `ml_id_vendedor` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `ml_id_vendedor` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
   `ml_user` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
   `depositos` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
   `autofecha` datetime NULL DEFAULT current_timestamp(),
   `quien` int(11) NULL DEFAULT NULL,
   `superado` int(11) NULL DEFAULT 0,
   `elim` int(11) NULL DEFAULT 0,
+  `flex` int(11) NOT NULL,
+  PRIMARY KEY (`id`, `flex`, `did`, `didCliente`, `ml_id_vendedor`) USING BTREE
+);  ";
+
+$Aschemasql["clientes_contactos"] = "CREATE TABLE IF NOT EXISTS `clientes_contactos`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `did` int(11) NOT NULL,
+  `didCliente` int(11) NOT NULL,
+  `tipo` int(11) NOT NULL,
+  `valor` varchar(128) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
+  `superado` int(11) NULL DEFAULT 0,
+  `elim` int(11) NULL DEFAULT 0,
+  `quien` int(11) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 );  ";
 
-$Aschemasql["depositos"] = "CREATE TABLE IF NOT EXISTS `depositos`  
+$Aschemasql["clientes_direcciones"] = "CREATE TABLE IF NOT EXISTS `clientes_direcciones`  
 (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `did` int(11) NOT NULL,
-  `direccion` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
-  `codigo` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
-  `email` varchar(150) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
-  `telefono` varchar(100) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
-  `autofecha` datetime NULL DEFAULT current_timestamp(),
+  `didCliente` int(11) NOT NULL,
+  `data` varchar(128) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL DEFAULT NULL,
+  `autofecha` timestamp NOT NULL DEFAULT current_timestamp(),
   `superado` int(11) NULL DEFAULT 0,
   `elim` int(11) NULL DEFAULT 0,
+  `quien` int(11) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 );";
 
@@ -408,7 +423,7 @@ foreach ($Aempresas as $empresa) {
 
     $mysqli->select_db($db_nombre);
 
-    $Atables = ["OT", 'clientes', 'clientes_cuentas', 'usuarios', 'productos_depositos', 'productos', 'productos_ecommerce', 'productos_combos', 'stock', "stock_consolidado", 'ecommerces', 'ordenes', 'ordenes_items', "depositos", "atributos", "atributos_valores", "sistema_empresa", "producto_variaciones"];
+    $Atables = ["OT", 'clientes', 'clientes_cuentas', "clientes_contactos", "clientes_direcciones", 'usuarios', 'productos_depositos', 'productos', 'productos_ecommerce', 'productos_combos', 'stock', "stock_consolidado", 'ecommerces', 'ordenes', 'ordenes_items', "depositos", "atributos", "atributos_valores", "sistema_empresa", "producto_variaciones"];
 
     foreach ($Atables as $schema) {
 

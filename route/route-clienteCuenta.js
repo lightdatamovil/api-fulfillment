@@ -11,36 +11,14 @@ clienteCuentaR.post("/clienteCuenta", verificarToken, async (req, res) => {
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    // Definir los formatos de datos según el tipo de cuenta
-    let dataValue;
-    switch (data.tipo) {
-      case 1: // MercadoFlex
-        dataValue = null;
-        break;
-      case 2: // Tienda Nube
-        dataValue = JSON.stringify({ url: data.url, token: data.token });
-        break;
-      case 3: // Shopify
-        dataValue = JSON.stringify({ url: data.url, apitoken: data.apitoken });
-        break;
-      case 4: // WooCommerce
-        dataValue = JSON.stringify({
-          url: data.url,
-          api: data.api,
-          secret: data.secret,
-        });
-        break;
-      // Agrega más casos según tus necesidades
-      default:
-        dataValue = null;
-    }
+    // Si el operador es "eliminar"
 
-    // Crear el objeto Cliente_cuenta con el formato de datos correspondiente
+    // Si es creación o actualización
     const clienteCuenta = new Cliente_cuenta(
       data.did ?? 0,
-      data.didCliente,
+      data.diCliente,
       data.tipo,
-      dataValue,
+      JSON.stringify(data.data ?? {}), // Importante: guardar como string JSON
       data.depositos ?? "",
       data.ml_id_vendedor ?? "",
       data.ml_user ?? "",
@@ -70,7 +48,6 @@ clienteCuentaR.post("/clienteCuenta", verificarToken, async (req, res) => {
     connection.end();
   }
 });
-
 clienteCuentaR.post(
   "/getClienteCuentaById",
   verificarToken,
