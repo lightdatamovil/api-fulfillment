@@ -197,9 +197,7 @@ cliente.get("/getAllClientes/:empresa", async (req, res) => {
 
   try {
     const response = await cliente.getAll(connection);
-    return res.status(200).json({
-      response,
-    });
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error durante la operación:", error);
     return res.status(500).json({
