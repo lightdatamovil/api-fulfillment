@@ -32,7 +32,7 @@ function verificarToken(req, res, next) {
 
     // También podés verificar la empresa como antes
     const bodyIdEmpresa = req.body.idEmpresa;
-    if (idEmpresa !== bodyIdEmpresa) {
+    if (idEmpresa != bodyIdEmpresa) {
       return res.status(403).json({
         mensaje: "Permisos insuficientes: los datos no coinciden con el token",
       });
