@@ -196,7 +196,7 @@ cliente.post("/clienteCompleto", verificarToken, async (req, res) => {
     const clienteCuenta = new Cliente_cuenta(
       data.clienteCuenta?.did ?? 0,
       clienteId, // Enlazamos al cliente creado
-      data.clienteCuenta?.tipo,
+      data.clienteCuenta?.tipo ?? 0,
       JSON.stringify(data.clienteCuenta?.data ?? {}),
       data.clienteCuenta?.depositos ?? "",
       data.clienteCuenta?.ml_id_vendedor ?? "",
