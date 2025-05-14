@@ -190,6 +190,8 @@ cliente.post("/clienteCompleto", verificarToken, async (req, res) => {
       }
     }
 
+    const dataML = JSON.stringify(data.clienteCuenta?.data ?? {});
+
     // ------------------------------
     // ✅ CLIENTE CUENTA
     // ------------------------------
@@ -199,8 +201,8 @@ cliente.post("/clienteCompleto", verificarToken, async (req, res) => {
       data.clienteCuenta?.tipo ?? 0,
       JSON.stringify(data.clienteCuenta?.data ?? {}),
       data.clienteCuenta?.depositos ?? "",
-      data.clienteCuenta?.ml_id_vendedor ?? "",
-      data.clienteCuenta?.ml_user ?? "",
+      data.clienteCuenta?.tipo == 1 ? dataML.ml_id_vendedor ?? "" : "",
+      data.clienteCuenta?.tipo == 1 ? dataML.ml_user ?? "" : "",
       data.quien ?? 0,
       data.superado ?? 0,
       data.elim ?? 0,

@@ -9,7 +9,6 @@ class Cliente_cuenta {
     depositos = "",
     ml_id_vendedor = "",
     ml_user = "",
-
     quien = 0,
     superado = 0,
     elim = 0,
