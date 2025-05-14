@@ -113,7 +113,7 @@ cliente.post("/postCliente", verificarToken, async (req, res) => {
   }
 });
 
-cliente.post("/clienteCompleto", verificarToken, async (req, res) => {
+cliente.post("/clienteCompleto", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   let clienteId = 0;
@@ -189,33 +189,42 @@ cliente.post("/clienteCompleto", verificarToken, async (req, res) => {
         await contacto.insert();
       }
     }
-
-    const dataML = JSON.stringify(data.clienteCuenta?.data ?? {});
+    console.log("data.cuenta", data.cuenta);
 
     // ------------------------------
     // ✅ CLIENTE CUENTA
     // ------------------------------
-    const clienteCuenta = new Cliente_cuenta(
-      data.clienteCuenta?.did ?? 0,
-      clienteId, // Enlazamos al cliente creado
-      data.clienteCuenta?.tipo ?? 0,
-      JSON.stringify(data.clienteCuenta?.data ?? {}),
-      data.clienteCuenta?.depositos ?? "",
-      data.clienteCuenta?.tipo == 1 ? dataML.ml_id_vendedor ?? "" : "",
-      data.clienteCuenta?.tipo == 1 ? dataML.ml_user ?? "" : "",
-      data.quien ?? 0,
-      data.superado ?? 0,
-      data.elim ?? 0,
-      connection
-    );
+    if (Array.isArray(data.cuenta)) {
+      for (const cuenta of data.cuenta) {
+        const cuentaData = cuenta.data ?? {};
+        const cuentaTipo = cuenta.tipo ?? 0;
 
-    const clienteCuentaResult = await clienteCuenta.insert();
+        console.log("cuentaTipo", cuentaTipo);
+
+        const clienteCuenta = new Cliente_cuenta(
+          cuenta.did ?? 0,
+          clienteId,
+          cuentaTipo,
+          JSON.stringify(cuentaData),
+          cuenta.depositos ?? "",
+          cuentaTipo === 1 ? cuentaData.ml_id_vendedor ?? "" : "",
+          cuentaTipo === 1 ? cuentaData.ml_user ?? "" : "",
+          data.quien ?? 0,
+          data.superado ?? 0,
+          data.elim ?? 0,
+          connection
+        );
+
+        await clienteCuenta.insert();
+
+        const clienteCuentaResult = await clienteCuenta.insert();
+      }
+    }
 
     return res.status(200).json({
       estado: true,
       message: "Cliente completo creado correctamente",
       didUsuario: clienteId,
-      clienteCuenta: clienteCuentaResult,
     });
   } catch (error) {
     console.error("Error durante la operación:", error);

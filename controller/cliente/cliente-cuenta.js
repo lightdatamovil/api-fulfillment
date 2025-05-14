@@ -4,7 +4,7 @@ class Cliente_cuenta {
   constructor(
     did = "",
     didCliente = "",
-    tipo = 0,
+    flex = 0,
     data = "",
     depositos = "",
     ml_id_vendedor = "",
@@ -16,7 +16,7 @@ class Cliente_cuenta {
   ) {
     this.did = did ?? 0;
     this.didCliente = didCliente;
-    this.tipo = tipo || 0;
+    this.flex = flex || 0;
     this.data = data;
     this.depositos = depositos;
     this.ml_id_vendedor = ml_id_vendedor || "";
