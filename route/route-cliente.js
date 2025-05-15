@@ -146,12 +146,12 @@ cliente.post("/clienteCompleto", async (req, res) => {
     // ------------------------------
     const direccionHelper = new ClienteDireccion();
     const dirDids = Array.isArray(data.direccion)
-      ? data.direccion.map((d) => d.did).filter((did) => did > 0)
+      ? data.direcciones.map((d) => d.did).filter((did) => did > 0)
       : [];
     await direccionHelper.deleteMissing(connection, clienteId, dirDids);
 
-    if (Array.isArray(data.direccion)) {
-      for (const dir of data.direccion) {
+    if (Array.isArray(data.direcciones)) {
+      for (const dir of data.direcciones) {
         const direccion = new ClienteDireccion(
           dir.did ?? 0,
           clienteId,
@@ -169,13 +169,13 @@ cliente.post("/clienteCompleto", async (req, res) => {
     // ✅ CONTACTOS
     // ------------------------------
     const contactoHelper = new ClienteContacto();
-    const contDids = Array.isArray(data.contacto)
-      ? data.contacto.map((c) => c.did).filter((did) => did > 0)
+    const contDids = Array.isArray(data.contactos)
+      ? data.contactos.map((c) => c.did).filter((did) => did > 0)
       : [];
     await contactoHelper.deleteMissing(connection, clienteId, contDids);
 
-    if (Array.isArray(data.contacto)) {
-      for (const cont of data.contacto) {
+    if (Array.isArray(data.contactos)) {
+      for (const cont of data.contactos) {
         const contacto = new ClienteContacto(
           cont.did ?? 0,
           clienteId,
@@ -194,12 +194,10 @@ cliente.post("/clienteCompleto", async (req, res) => {
     // ------------------------------
     // ✅ CLIENTE CUENTA
     // ------------------------------
-    if (Array.isArray(data.cuenta)) {
-      for (const cuenta of data.cuenta) {
+    if (Array.isArray(data.cuentas)) {
+      for (const cuenta of data.cuentas) {
         const cuentaData = cuenta.data ?? {};
         const cuentaTipo = cuenta.tipo ?? 0;
-
-        console.log("cuentaTipo", cuentaTipo);
 
         const clienteCuenta = new Cliente_cuenta(
           cuenta.did ?? 0,
@@ -270,7 +268,7 @@ cliente.post("/getClientes", verificarToken, async (req, res) => {
   }
 });
 
-cliente.post("/getClienteById", verificarToken, async (req, res) => {
+cliente.post("/getClienteById", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const cliente = new Cliente();
