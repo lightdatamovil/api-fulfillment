@@ -276,7 +276,7 @@ class Cliente {
       const query = `
         SELECT 
           c.*, 
-          d.did as direccion_did, d.data as direccion_data, c.razon_social,
+          d.did as direccion_did, d.data as direccion_data, c.razon_social, c.codigo,
           co.did as contacto_did, co.tipo as contacto_tipo, co.valor as contacto_valor,
           cc.did as cuenta_did, cc.flex as tipo, cc.data as cuenta_data, cc.ml_id_vendedor, cc.ml_user, cc.depositos
         FROM clientes c
@@ -298,6 +298,7 @@ class Cliente {
         did: results[0].did,
         nombre_fantasia: results[0].nombre_fantasia,
         razon_social: results[0].razon_social,
+        codigo: results[0].codigo,
         habilitado: results[0].habilitado,
         quien: results[0].quien,
         contactos: [],
