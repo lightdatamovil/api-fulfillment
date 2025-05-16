@@ -116,8 +116,6 @@ cliente.post("/postCliente", async (req, res) => {
         );
 
         await clienteCuenta.insert();
-
-        const clienteCuentaResult = await clienteCuenta.insert();
       }
     }
 
