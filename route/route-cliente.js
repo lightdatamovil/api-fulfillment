@@ -53,7 +53,7 @@ cliente.post("/postCliente", async (req, res) => {
 
     if (Array.isArray(data.direcciones)) {
       for (const dir of data.direcciones) {
-        const direccionData = json.stringify(dir.data ?? {});
+        const direccionData = JSON.stringify(dir.data ?? {});
         const direccion = new ClienteDireccion(
           dir.did ?? 0,
           clienteId,
