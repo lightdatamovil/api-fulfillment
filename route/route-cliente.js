@@ -37,7 +37,7 @@ cliente.post("/postCliente", async (req, res) => {
 
     const clienteResult = await cliente.insert();
     if (clienteResult.estado === false) {
-      return res.status(400).json(clienteResult);
+      return res.status(200).json(clienteResult);
     }
 
     clienteId = data.did > 0 ? data.did : clienteResult.insertId;
