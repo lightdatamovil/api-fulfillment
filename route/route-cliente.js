@@ -14,106 +14,7 @@ const {
 const verificarToken = require("../middleware/token");
 const Cliente_cuenta = require("../controller/cliente/cliente-cuenta");
 
-cliente.post("/postCliente", verificarToken, async (req, res) => {
-  const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
-  let clienteId = 0;
-
-  try {
-    const cliente = new Cliente(
-      data.did ?? 0,
-      data.nombre_fantasia,
-      data.habilitado,
-      data.codigo,
-      data.razon_social,
-      data.quien,
-      data.superado ?? 0,
-      data.elim ?? 0,
-      connection
-    );
-
-    const clienteResult = await cliente.insert();
-    if (clienteResult.estado === false) {
-      return res.status(400).json(clienteResult);
-    }
-
-    clienteId = data.did > 0 ? data.did : clienteResult.insertId;
-
-    // ------------------------------
-    // ✅ MANEJO DE DIRECCIONES
-    // ------------------------------
-    const direccionHelper = new ClienteDireccion();
-    const dirDids = Array.isArray(data.direccion)
-      ? data.direccion.map((d) => d.did).filter((did) => did > 0)
-      : [];
-    await direccionHelper.deleteMissing(connection, clienteId, dirDids);
-
-    if (Array.isArray(data.direccion)) {
-      for (const dir of data.direccion) {
-        const direccionData = {
-          calle: dir.calle ?? "",
-          numero: dir.numero ?? "",
-          cp: dir.cp ?? "",
-          localidad: dir.localidad ?? "",
-          provincia: dir.provincia ?? "",
-        };
-
-        const direccion = new ClienteDireccion(
-          dir.did ?? 0,
-          clienteId,
-          JSON.stringify(direccionData), // se guarda como JSON en texto
-          data.quien ?? 0,
-          0,
-          0,
-          connection
-        );
-        await direccion.insert();
-      }
-    }
-
-    // ------------------------------
-    // ✅ MANEJO DE CONTACTOS
-    // ------------------------------
-    const contactoHelper = new ClienteContacto();
-    const contDids = Array.isArray(data.contacto)
-      ? data.contacto.map((c) => c.did).filter((did) => did > 0)
-      : [];
-    await contactoHelper.deleteMissing(connection, clienteId, contDids);
-
-    if (Array.isArray(data.contacto)) {
-      for (const cont of data.contacto) {
-        const contacto = new ClienteContacto(
-          cont.did ?? 0,
-          clienteId,
-          cont.tipo ?? 0,
-          cont.valor ?? "",
-          data.quien ?? 0,
-          0,
-          0,
-          connection
-        );
-        await contacto.insert();
-      }
-    }
-
-    return res.status(200).json({
-      estado: true,
-      message: "Cliente creado correctamente",
-      didUsuario: clienteId,
-    });
-  } catch (error) {
-    console.error("Error durante la operación:", error);
-    return res.status(500).json({
-      estado: false,
-      error: -1,
-      message: error.message || error,
-    });
-  } finally {
-    connection.end();
-  }
-});
-
-cliente.post("/clienteCompleto", async (req, res) => {
+cliente.post("/postCliente", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   let clienteId = 0;
@@ -145,7 +46,7 @@ cliente.post("/clienteCompleto", async (req, res) => {
     // ✅ DIRECCIONES
     // ------------------------------
     const direccionHelper = new ClienteDireccion();
-    const dirDids = Array.isArray(data.direccion)
+    const dirDids = Array.isArray(data.direcciones)
       ? data.direcciones.map((d) => d.did).filter((did) => did > 0)
       : [];
     await direccionHelper.deleteMissing(connection, clienteId, dirDids);
@@ -189,7 +90,7 @@ cliente.post("/clienteCompleto", async (req, res) => {
         await contacto.insert();
       }
     }
-    console.log("data.cuenta", data.cuenta);
+    console.log("data.cuenta", data.cuentas);
 
     // ------------------------------
     // ✅ CLIENTE CUENTA
