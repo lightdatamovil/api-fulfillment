@@ -17,7 +17,7 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
   try {
     const usuarioRegex = /^[a-zA-Z0-9_]+$/; // Solo permite letras, números y guion bajo
     if (!usuarioRegex.test(data.usuario)) {
-      return res.status(400).json({
+      return res.status(200).json({
         estado: false,
         message:
           "El campo 'usuario' no puede contener caracteres especiales ni espacios.",
@@ -47,7 +47,7 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
 
     const usuarioResult = await usuario.insert();
     if (usuarioResult.estado === false) {
-      return res.status(400).json({
+      return res.status(200).json({
         estado: false,
         message: usuarioResult.message || usuarioResult,
       });
@@ -79,7 +79,7 @@ usuario.post("/login", async (req, res) => {
   console.log("empresaInfo", empresaInfo.did);
 
   if (!empresaInfo || !empresaInfo.did) {
-    return res.status(400).json({
+    return res.status(200).json({
       estado: false,
       message: "Código de empresa inválido o no registrado.",
     });
