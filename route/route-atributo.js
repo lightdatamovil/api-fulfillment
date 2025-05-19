@@ -155,26 +155,27 @@ atributo.post("/getAtributos", verificarToken, async (req, res) => {
     });
   }
 });
-atributo.post("/getAtributosTotal", verificarToken, async (req, res) => {
-  try {
-    const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
-    const atributo = new Atributo();
-    const response = await atributo.getAllFull(connection);
+atributo.get(
+  "/getAllAtributos/:idEmpresa",
+  verificarToken,
+  async (req, res) => {
+    try {
+      const data = req.params;
+      const connection = await getConnectionLocal(data.idEmpresa);
+      const atributo = new Atributo();
+      const response = await atributo.getAllFull(connection);
 
-    return res.status(200).json({
-      estado: true,
-      data: response,
-    });
-  } catch (error) {
-    console.error("Error en /getAtributos:", error);
-    return res.status(500).json({
-      estado: false,
-      mensaje: "Ocurrio un error al obtener los atributos",
-      error: error.message,
-    });
+      return res.status(200).json(response);
+    } catch (error) {
+      console.error("Error en /getAtributos:", error);
+      return res.status(500).json({
+        estado: false,
+        mensaje: "Ocurrio un error al obtener los atributos",
+        error: error.message,
+      });
+    }
   }
-});
+);
 
 atributo.get("/", async (req, res) => {
   res.status(200).json({
