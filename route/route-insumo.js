@@ -97,7 +97,7 @@ insumo.post("/getInsumos", verificarToken, async (req, res) => {
   }
 });
 
-insumo.post("/getInsumosById", verificarToken, async (req, res) => {
+insumo.post("/getInsumoById", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const insumo = new Insumo();
