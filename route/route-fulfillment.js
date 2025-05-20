@@ -122,7 +122,7 @@ router.post("/movimientos-stock", async (req, res) => {
         data.elim ?? 0,
         connection
       );
-      console.log(movimiento, "movimiento");
+      //  console.log(movimiento, "movimiento");
 
       await movimiento.insert();
     }
@@ -226,7 +226,7 @@ router.post("/producto", async (req, res) => {
             0,
             connection
           );
-          console.log(productoDeposito, "productoDeposito");
+          //  console.log(productoDeposito, "productoDeposito");
 
           await productoDeposito.insert();
         }

@@ -15,68 +15,71 @@ const ProductoDeposito = require("../controller/producto/productoDeposito");
 const ProductoEcommerce = require("../controller/producto/productoEcommerce");
 const ProductO1 = require("../controller/producto/producto");
 const StockConsolidado = require("../controller/stock/stock_consolidado");
+const ProductoInsumo = require("../controller/producto/productoInsumo");
+const ProductoVariantes = require("../controller/producto/productoVariaciones");
 
-producto.post("/producto", async (req, res) => {
+producto.post("/postProducto", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    if (data.operador === "eliminar") {
-      const producto = new ProductO1();
-      const response = await producto.delete(connection, data.did);
-      console.log("Respuesta de delete:", response);
-      return res.status(200).json({
-        estado: response.estado !== undefined ? response.estado : false,
-        message: response.message || response,
-      });
+    // Crear nuevo producto
+    const producto = new ProductO1(
+      data.did ?? 0,
+      data.cliente,
+      data.sku,
+      data.ean,
+      data.titulo,
+      data.descripcion,
+      data.imagen,
+      data.habilitado,
+      data.esCombo,
+      data.posicion ?? "",
+      data.quien,
+      data.superado ?? 0,
+      data.elim ?? 0,
+      connection
+    );
+
+    const productoResult = await producto.insert();
+
+    if (productoResult.estado === false) {
+      return res
+        .status(400)
+        .json({ status: false, message: productoResult.message });
     }
-    if (data.operador === "forzarEliminar") {
-      const producto = new ProductO1();
-      const response = await producto.forzarDelete(connection, data.did);
-      console.log("Respuesta de delete:", response);
-      return res.status(200).json({
-        estado: response.estado !== undefined ? response.estado : false,
-        message: response.message || response,
-      });
-    } else {
-      // Crear nuevo producto
-      const producto = new ProductO1(
-        data.did ?? 0,
-        data.cliente,
-        data.sku,
-        data.titulo,
-        data.descripcion,
-        data.imagen,
-        data.habilitado,
-        data.esCombo,
-        data.posicion ?? "",
-        data.quien,
-        data.superado ?? 0,
-        data.elim ?? 0,
-        connection
-      );
 
-      const productoResult = await producto.insert();
+    let productId = productoResult.insertId;
+    if (
+      data.did != 0 &&
+      data.did != null &&
+      data.did != undefined &&
+      data.did != ""
+    ) {
+      productId = data.did;
+    }
 
-      const productId = productoResult.insertId;
+    const dIdProducto = data.did;
 
-      // Procesar combos
-      if (data.combo && Array.isArray(data.combo)) {
-        // Convertir `combo` en un único objeto JSON
-        const comboArray = JSON.stringify(
-          data.combo.map((item) => ({
-            VariantId: item.did,
-            cantidad: parseInt(item.cantidad), // Convertir cantidad a número
-          }))
-        );
+    // Borrar los valores que ya no están
+    const helperValor = new ProductoCombo();
+    const didsActuales = Array.isArray(data.combos)
+      ? data.combos
+          .filter((v) => v && typeof v.did === "number")
+          .map((v) => v.did)
+          .filter((d) => d > 0)
+      : [];
 
-        console.log("Combo antes de insertar:", comboArray); // Verifica el formato correcto
+    await helperValor.deleteMissing(connection, dIdProducto, didsActuales);
 
+    if (data.combos && Array.isArray(data.combos)) {
+      for (const item of data.combos) {
         const productoCombo = new ProductoCombo(
-          data.did ?? 0,
-          productId,
-          0, // cantidad general (se maneja dentro de combo)
-          data.combo,
+          item.did ?? 0, // did producto combo
+          productId, // id producto padre (el nuevo producto insertado)
+          item.did, // id del producto hijo (parte del combo)
+          parseInt(item.cantidad), // cantidad de ese producto en el combo
+          null, // data.combo ya no es necesario acá
           data.quien,
           0,
           0,
@@ -85,86 +88,74 @@ producto.post("/producto", async (req, res) => {
 
         await productoCombo.insert();
       }
-
-      if (data.variantes && Array.isArray(data.variantes)) {
-        for (const variante of data.variantes) {
-          const varianteA = new Variante(
-            variante.did ?? 0,
-            productId,
-            variante.data,
-            data.quien,
-            0,
-            0,
-
-            connection
-          );
-          console.log(varianteA, "productoDeposito");
-
-          const resultsVariante = await varianteA.insert();
-          const variantId = resultsVariante.insertId;
-
-          const stockConsolidado = new StockConsolidado(
-            data.did ?? 0, // did se genera automáticamente
-            productId,
-            variantId, // didVariante (puede ser 0 si no se relaciona con una variante específica)
-            variante.cantidad, // Asignar la cantidad total
-            data.quien,
-            0,
-            0,
-            connection
-          );
-
-          if (data.ecommerce && Array.isArray(data.ecommerce)) {
-            for (const ecommerceItem of data.ecommerce) {
-              const productoEcommerce = new ProductoEcommerce(
-                data.did ?? 0,
-                productoResult.insertId,
-                variantId ?? 0,
-                ecommerceItem.tienda,
-
-                ecommerceItem.link,
-                ecommerceItem.habilitado,
-                ecommerceItem.sync,
-                ecommerceItem.sku,
-                data.quien,
-                0,
-                0,
-                connection
-              );
-              await productoEcommerce.insert();
-            }
-          }
-
-          await stockConsolidado.insert();
-        }
-      }
-
-      // Procesar depósitos
-      if (data.depositos && Array.isArray(data.depositos)) {
-        for (const deposito of data.depositos) {
-          const productoDeposito = new ProductoDeposito(
-            deposito.did ?? 0,
-            data.did ?? productoResult.insertId,
-            deposito.did,
-
-            deposito.habilitado, // habilitado
-            data.quien,
-            0,
-            0,
-            connection
-          );
-          console.log(productoDeposito, "productoDeposito");
-
-          await productoDeposito.insert();
-        }
-      }
-
-      // Procesar ecommerce
-
-      return res.status(200).json({
-        estado: true,
-      });
     }
+    const helperInsumo = new ProductoInsumo();
+    const didsInsumosActuales = Array.isArray(data.insumos)
+      ? data.insumos
+          .filter((v) => v && typeof v.did === "number")
+          .map((v) => v.did)
+          .filter((d) => d > 0)
+      : [];
+
+    await helperInsumo.deleteMissing(
+      connection,
+      dIdProducto,
+      didsInsumosActuales
+    );
+
+    if (data.insumos && Array.isArray(data.insumos)) {
+      for (const ins of data.insumos) {
+        const insumo = new ProductoInsumo(
+          ins.did, // did producto combo
+          productId, // id producto padre (el nuevo producto insertado)
+          ins.did, // id del producto hijo (parte del combo)
+          parseFloat(ins.cantidad), // cantidad de ese producto en el combo
+          ins.habilitado ?? 1, // data.combo ya no es necesario acá
+          data.quien,
+          0,
+          0,
+          connection
+        );
+
+        await insumo.insert();
+      }
+    }
+    const helperVariante = new ProductoVariantes();
+    const variantesActuales = Array.isArray(data.variantes)
+      ? data.variantes
+          .filter((v) => v && v.data?.did)
+          .map((v) => v.data.did)
+          .filter((d) => d > 0)
+      : [];
+
+    await helperVariante.deleteMissing(
+      connection,
+      dIdProducto,
+      variantesActuales
+    );
+
+    if (data.variantes && Array.isArray(data.variantes)) {
+      for (const variante of data.variantes) {
+        const varianteA = new ProductoVariantes(
+          variante.did,
+          productId,
+
+          variante.data,
+          data.quien,
+          0,
+          0,
+
+          connection
+        );
+
+        const resultsVariante = await varianteA.insert();
+        const variantId = resultsVariante.insertId;
+      }
+    }
+
+    return res.status(200).json({
+      estado: true,
+    });
   } catch (error) {
     console.error("Error durante la operación:", error);
     return res.status(500).json({
@@ -266,7 +257,7 @@ producto.post("/updateDepositos", async (req, res) => {
       deposito.did,
       deposito.habilitado // habilitado
     );
-    console.log(productoDeposito, "productoDeposito");
+    // console.log(productoDeposito, "productoDeposito");
 
     await productoDeposito.checkAndUpdateDidProductoDeposito(connection);
   }
@@ -290,6 +281,162 @@ producto.get("/", async (req, res) => {
     estado: true,
     mesanje: "Hola chris",
   });
+});
+
+producto.post("/ALGUNAS COSAS VIEJAS DE PRODUCTO ", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+
+  try {
+    // Crear nuevo producto
+    const producto = new ProductO1(
+      data.did ?? 0,
+      data.cliente,
+      data.sku,
+      data.ean,
+      data.titulo,
+      data.descripcion,
+      data.imagen,
+      data.habilitado,
+      data.esCombo,
+      data.posicion ?? "",
+      data.quien,
+      data.superado ?? 0,
+      data.elim ?? 0,
+      connection
+    );
+
+    const productoResult = await producto.insert();
+
+    const productId = productoResult.insertId;
+
+    // Procesar combos
+    if (data.combos && Array.isArray(data.combos)) {
+      for (const item of data.combos) {
+        const productoCombo = new ProductoCombo(
+          data.did ?? 0, // did producto combo
+          productId, // id producto padre (el nuevo producto insertado)
+          item.did, // id del producto hijo (parte del combo)
+          parseInt(item.cantidad), // cantidad de ese producto en el combo
+          null, // data.combo ya no es necesario acá
+          data.quien,
+          0,
+          0,
+          connection
+        );
+
+        await productoCombo.insert();
+      }
+    }
+
+    if (data.insumos && Array.isArray(data.insumos)) {
+      for (const ins of data.insumos) {
+        const insumo = new ProductoInsumo(
+          0, // did producto combo
+          productId, // id producto padre (el nuevo producto insertado)
+          ins.did, // id del producto hijo (parte del combo)
+          parseFloat(ins.cantidad), // cantidad de ese producto en el combo
+          ins.habilitado ?? 1, // data.combo ya no es necesario acá
+          data.quien,
+          0,
+          0,
+          connection
+        );
+
+        await insumo.insert();
+      }
+    }
+
+    if (data.variantes && Array.isArray(data.variantes)) {
+      for (const variante of data.variantes) {
+        const varianteA = new ProductoVariantes(
+          0,
+          productId,
+
+          variante.data,
+          data.quien,
+          0,
+          0,
+
+          connection
+        );
+        //    console.log(varianteA, "productoDeposito");
+
+        const resultsVariante = await varianteA.insert();
+        const variantId = resultsVariante.insertId;
+      }
+    }
+    /*  const stockConsolidado = new StockConsolidado(
+          data.did ?? 0, // did se genera automáticamente
+          productId,
+          variantId, // didVariante (puede ser 0 si no se relaciona con una variante específica)
+          variante.cantidad, // Asignar la cantidad total
+          data.quien,
+          0,
+          0,
+          connection
+        );
+
+        if (data.ecommerce && Array.isArray(data.ecommerce)) {
+          for (const ecommerceItem of data.ecommerce) {
+            const productoEcommerce = new ProductoEcommerce(
+              data.did ?? 0,
+              productoResult.insertId,
+              variantId ?? 0,
+              ecommerceItem.tienda,
+
+              ecommerceItem.link,
+              ecommerceItem.habilitado,
+              ecommerceItem.sync,
+              ecommerceItem.sku,
+              data.quien,
+              0,
+              0,
+              connection
+            );
+            await productoEcommerce.insert();
+          }
+        }
+
+        await stockConsolidado.insert();
+      }
+    }
+
+    // Procesar depósitos
+    if (data.depositos && Array.isArray(data.depositos)) {
+      for (const deposito of data.depositos) {
+        const productoDeposito = new ProductoDeposito(
+          deposito.did ?? 0,
+          data.did ?? productoResult.insertId,
+          deposito.did,
+
+          deposito.habilitado, // habilitado
+          data.quien,
+          0,
+          0,
+          connection
+        );
+        console.log(productoDeposito, "productoDeposito");
+
+        await productoDeposito.insert();
+      }
+    }
+*/
+    // Procesar ecommerce
+
+    return res.status(200).json({
+      estado: true,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
 });
 
 module.exports = producto;
