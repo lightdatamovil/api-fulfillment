@@ -152,6 +152,33 @@ insumo.post("/deleteInsumo", async (req, res) => {
   }
 });
 
+insumo.get("/getAllInsumos/:empresa", verificarToken, async (req, res) => {
+  const empresa = req.params.empresa; // <-- esto es lo correcto
+
+  if (!empresa) {
+    return res.status(400).json({
+      estado: false,
+      error: "Falta el parámetro 'empresa'",
+    });
+  }
+
+  const connection = await getConnectionLocal(empresa);
+  const insumo = new Insumo();
+
+  try {
+    const response = await insumo.getAll(connection);
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
 insumo.get("/", async (req, res) => {
   res.status(200).json({
     estado: true,

@@ -1,4 +1,3 @@
-const e = require("cors");
 const { getConnection, executeQuery } = require("../../dbconfig");
 
 class Cliente {
