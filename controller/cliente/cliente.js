@@ -232,6 +232,7 @@ class Cliente {
         c.did AS cliente_did,
         c.codigo, 
         c.nombre_fantasia, 
+        c.habilitado,
         cc.did AS cuenta_did, 
         cc.flex
       FROM clientes c
@@ -252,6 +253,7 @@ class Cliente {
             did: row.cliente_did,
             codigo: row.codigo,
             nombre_fantasia: row.nombre_fantasia,
+            habilitado: row.habilitado,
             cuentas: [],
           });
         }

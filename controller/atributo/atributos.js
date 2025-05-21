@@ -330,7 +330,8 @@ class Atributo {
             codigo: row.atributo_codigo,
             did: row.atributo_id,
             obs: row.descripcion,
-            // habilitado: row.habilitado,
+
+            habilitado: row.habilitado,
             valores: [],
           });
         }
