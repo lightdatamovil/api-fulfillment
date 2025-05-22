@@ -58,12 +58,13 @@ insumo.post("/postInsumo", verificarToken, async (req, res) => {
 insumo.post("/getInsumos", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
-  const { page, limit, nombre, habilitado, codigo, did, didCliente } = data;
+  const { pagina, cantidad, nombre, habilitado, codigo, did, didCliente } =
+    data;
   const insumo = new Insumo();
   try {
     const response = await insumo.getInsumos(connection, {
-      page: page || 1,
-      limit: limit || 10,
+      pagina: pagina || 1,
+      cantidad: cantidad || 10,
       nombre: nombre || "",
       habilitado: habilitado || "",
       codigo: codigo || "",

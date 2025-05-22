@@ -167,32 +167,24 @@ class ProductO1 {
   }
   async traerProductos(connection, data = {}) {
     try {
-      let condiciones = [];
+      let condiciones = ["p.elim = 0", "p.superado = 0"];
       let valores = [];
-      let joins = "";
 
-      // Condiciones fijas si es necesario
-      condiciones.push("p.elim = 0", "p.superado = 0");
-
-      if (data.flex !== undefined) {
-        joins += "INNER JOIN productos_ecommerces pe ON pe.didProducto = p.did";
-        condiciones.push("pe.flex = ?");
-        valores.push(data.flex);
-      }
-
-      if (data.habilitado !== undefined) {
+      if (data.habilitado !== undefined && data.habilitado !== "") {
         condiciones.push("p.habilitado = ?");
         valores.push(data.habilitado);
       }
 
-      if (data.esCombo !== undefined) {
+      if (data.esCombo !== undefined && data.esCombo !== "") {
         condiciones.push("p.esCombo = ?");
         valores.push(data.esCombo);
       }
 
-      if (data.cliente !== undefined) {
-        condiciones.push("p.didCliente = ?");
-        valores.push(data.cliente);
+      if (data.cliente !== undefined && data.cliente !== "") {
+        {
+          condiciones.push("p.didCliente = ?");
+          valores.push(data.cliente);
+        }
       }
 
       if (data.sku !== undefined && data.sku.trim() !== "") {
@@ -200,56 +192,61 @@ class ProductO1 {
         valores.push(`%${data.sku}%`);
       }
 
+      if (data.titulo !== undefined && data.titulo.trim() !== "") {
+        condiciones.push("p.titulo LIKE ?");
+        valores.push(`%${data.titulo}%`);
+      }
+
+      if (data.ean !== undefined && data.ean.trim() !== "") {
+        condiciones.push("p.ean LIKE ?");
+        valores.push(`%${data.ean}%`);
+      }
+
       const whereClause =
         condiciones.length > 0 ? `WHERE ${condiciones.join(" AND ")}` : "";
-      const query = `
-      SELECT p.didCliente, p.sku, p.titulo, p.habilitado, p.did AS productId,
-             v.did AS variantId, v.sku AS variantSku, v.cantidad AS variantCantidad
+
+      const pagina = Number(data.pagina) || 1;
+      const cantidad = Number(data.cantidad) || 10;
+      const offset = (pagina - 1) * cantidad;
+
+      // Consulta para total de registros
+      const totalQuery = `
+      SELECT COUNT(*) AS total
       FROM productos AS p
-      LEFT JOIN variantes AS v ON v.didProducto = p.did
-      ${joins}
       ${whereClause}
-    `;
+      `;
+      const totalResult = await executeQuery(connection, totalQuery, valores);
+      const totalRegistros = totalResult[0]?.total || 0;
+      const totalPaginas = Math.ceil(totalRegistros / cantidad);
 
-      const results = await executeQuery(connection, query, valores);
+      // Consulta principal con paginado
+      const query = `
+      SELECT p.did AS productId, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo
+      FROM productos AS p
+      ${whereClause}
+      ORDER BY p.did DESC
+      LIMIT ? OFFSET ?
+      `;
 
-      // Agrupar los resultados por producto
-      const productos = results.reduce((acc, row) => {
-        const {
-          productId,
-          variantId,
-          variantSku,
-          variantCantidad,
-          ...producto
-        } = row;
+      const results = await executeQuery(connection, query, [
+        ...valores,
+        cantidad,
+        offset,
+      ]);
 
-        // Si el producto no está en el acumulador, lo inicializamos
-        if (!acc[productId]) {
-          acc[productId] = { ...producto, variantes: [] };
-        }
-
-        // Si hay una variante, la agregamos al producto
-        if (variantId) {
-          acc[productId].variantes.push({
-            variantId,
-            variantSku,
-            variantCantidad,
-          });
-        }
-
-        return acc;
-      }, {});
-
-      // Convertir el objeto acumulador a un array
-      return Object.values(productos);
+      return {
+        data: results,
+        totalRegistros,
+        totalPaginas,
+        pagina,
+        cantidad,
+      };
     } catch (error) {
       console.error("Error al traer productos:", error.message);
       throw {
-        status: 500,
-        response: {
-          estado: false,
-          error: -1,
-        },
+        estado: false,
+        error: -1,
+        message: error.message || error,
       };
     }
   }

@@ -168,6 +168,43 @@ producto.post("/postProducto", async (req, res) => {
   }
 });
 
+producto.post("/getProductos", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+  const producto = new ProductO1();
+
+  try {
+    const response = await producto.traerProductos(connection, {
+      pagina: data.pagina || 1,
+      cantidad: data.cantidad || 10,
+      titulo: data.titulo || "",
+      sku: data.sku || "",
+      habilitado: data.habilitado || "",
+      esCombo: data.esCombo || "",
+      cliente: data.cliente || "",
+      ean: data.ean || "",
+    });
+
+    return res.status(200).json({
+      estado: true,
+      totalRegistros: response.totalRegistros,
+      totalPaginas: response.totalPaginas,
+      pagina: response.pagina,
+      cantidad: response.cantidad,
+      data: response.data,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+
 producto.post("/getProductsId", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
