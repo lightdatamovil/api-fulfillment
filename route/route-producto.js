@@ -205,7 +205,7 @@ producto.post("/getProductos", async (req, res) => {
   }
 });
 
-producto.post("/getProductsId", async (req, res) => {
+producto.post("/getProductosById", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const producto = new ProductO1();

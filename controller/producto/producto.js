@@ -1,5 +1,6 @@
 const e = require("cors");
 const { getConnection, executeQuery } = require("../../dbconfig");
+const { roundToNearestHoursWithOptions } = require("date-fns/fp");
 
 class ProductO1 {
   constructor(
@@ -255,40 +256,34 @@ class ProductO1 {
     try {
       const query = `
       SELECT 
-        p.did,
-        p.didCliente AS cliente,
-  
-        p.titulo,
-        p.sku,
-        p.descripcion,
-        p.habilitado,
-        p.esCombo,
-        p.imagen,
+  p.did,
+  p.didCliente AS cliente,
+  p.titulo,
+  p.sku,
+  p.ean,
+  p.descripcion,
+  p.habilitado,
+  p.esCombo,
+  p.imagen,
+  pv.data,
+  pv.did as didVariante,
+  pc.did AS didCombo,
+  pc.cantidad,
+  pc.didProductoCombo
 
-        pe.flex,
-        pe.url AS link,
-        pe.sku AS skuEcommerce,
- 
-        pe.habilitado AS habilitadoEcommerce,
-        pe.sync,
+FROM productos AS p
+LEFT JOIN productos_combos AS pc 
+  ON pc.didProducto = p.did AND pc.elim = 0 AND pc.superado = 0
+LEFT JOIN productos_variantes AS pv 
+  ON pv.didProducto = p.did AND pv.elim = 0 AND pv.superado = 0
+LEFT JOIN productos_insumos AS pi 
+  ON pi.didProducto = p.did AND pi.elim = 0 AND pi.superado = 0
+WHERE p.did = ? AND p.elim = 0 AND p.superado = 0
 
-        pc.did AS comboDid,
-        pc.cantidad,
-        pc.combo,
-        p.posicion,
-        
-
-        pd.didDeposito,
-        pd.habilitado AS habilitadoDeposito
-
-      FROM productos AS p
-      LEFT JOIN productos_combos AS pc ON pc.didProducto = p.did 
-      LEFT JOIN productos_depositos AS pd ON pd.didProducto = p.did
-      LEFT JOIN productos_ecommerces AS pe ON pe.didProducto = p.did 
-      WHERE p.did = ? AND p.elim = 0 AND p.superado = 0 and pc.elim = 0 AND pc.superado = 0 AND pd.elim = 0 AND pd.superado = 0 AND pe.elim = 0 AND pe.superado = 0
     `;
 
-      const rows = await executeQuery(connection, query, [id]);
+      const rows = await executeQuery(connection, query, [id], true);
+      console.log(rows);
 
       if (!rows.length) return null;
       console.log(rows, "rows");
@@ -303,41 +298,9 @@ class ProductO1 {
         habilitado: rows[0].habilitado,
         esCombo: rows[0].esCombo,
         imagen: rows[0].imagen || "",
-        ecommerce: [],
-        combo: JSON.parse(rows[0].combo) || rows[0].combo,
-        depositos: [],
-        posicion: rows[0].posicion,
+
+        //combo: JSON.parse(rows[0].combo) || rows[0].combo || "",
       };
-
-      const ecommerceMap = new Set();
-      const comboMap = new Set();
-      const depositoMap = new Set();
-
-      for (const row of rows) {
-        // ECOMMERCE
-        if (row.flex && !ecommerceMap.has(row.flex + row.link)) {
-          producto.ecommerce.push({
-            tienda: row.flex,
-            link: row.link,
-            sku: row.sku_ecommerce,
-            habilitado: row.habilitadoEcommerce,
-            sku: row.skuEcommerce,
-            sync: row.sync,
-          });
-          ecommerceMap.add(row.flex + row.link);
-        }
-
-        // COMBO
-
-        // DEPOSITOS
-        if (row.didDeposito && !depositoMap.has(row.didDeposito)) {
-          producto.depositos.push({
-            did: row.didDeposito,
-            habilitado: row.habilitadoDeposito,
-          });
-          depositoMap.add(row.didDeposito);
-        }
-      }
 
       return producto;
     } catch (error) {

@@ -237,7 +237,7 @@ class Cliente {
         cc.flex
       FROM clientes c
       JOIN clientes_cuentas cc ON c.did = cc.didCliente
-      WHERE c.elim = 0 AND c.superado = 0
+      WHERE c.elim = 0 AND c.superado = 0 and cc.elim = 0 and cc.superado = 0
       ORDER BY c.did DESC
     `;
       const rows = await executeQuery(connection, query, []);
