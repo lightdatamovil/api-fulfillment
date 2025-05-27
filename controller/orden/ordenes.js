@@ -334,13 +334,12 @@ class Ordenes {
             LIMIT ? OFFSET ?
         `;
 
-      const results = await executeQuery(
-        connection,
-        query,
-        [...valores, cantidad, offset],
-        true
-      );
-      console.log(results, "results");
+      const results = await executeQuery(connection, query, [
+        ...valores,
+        cantidad,
+        offset,
+      ]);
+      //  console.log(results, "results");
 
       // Actualizar caché de clientes
       for (const orden of results) {
@@ -372,6 +371,16 @@ class Ordenes {
       const countResult = await executeQuery(connection, countQuery, valores);
       const total = countResult[0]?.total || 0;
       const totalPages = Math.ceil(total / cantidad);
+      const datosFormateados = results.map((orden) => ({
+        cliente: orden.cliente,
+        fecha: orden.fecha_venta,
+        origen: orden.flex,
+        idVenta: orden.number,
+        estado: orden.status,
+        total: orden.total_amount,
+        armado: orden.fecha_armado,
+        ot: orden.ot,
+      }));
 
       return {
         estado: true,
@@ -380,7 +389,7 @@ class Ordenes {
         totalPaginas: totalPages,
         pagina,
         cantidad,
-        data: results,
+        data: datosFormateados,
       };
     } catch (error) {
       console.error("Error en getTodasLasOrdenes:", error.message);

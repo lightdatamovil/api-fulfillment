@@ -153,6 +153,38 @@ producto.post("/postProducto", async (req, res) => {
       }
     }
 
+    const helperEcommerce = new ProductoEcommerce();
+
+    const ecommerceActuales = data.ecommerce
+      .filter((v) => v && typeof v.did === "number")
+      .map((v) => v.did)
+      .filter((d) => d > 0);
+
+    await helperEcommerce.deleteMissing(
+      connection,
+      dIdProducto,
+      ecommerceActuales
+    );
+
+    for (const ecommerceItem of data.ecommerce) {
+      const productoEcommerce = new ProductoEcommerce(
+        ecommerceItem.did ?? 0, // Usamos el did del ecommerceItem aquí
+        productId,
+        ecommerceItem.didCuenta ?? 0,
+        ecommerceItem.flex ?? 0,
+        ecommerceItem.variante ?? "",
+        ecommerceItem.sku,
+        ecommerceItem.ean ?? "",
+        ecommerceItem.url ?? "",
+        ecommerceItem.actualizar ?? 0,
+        data.quien,
+        0,
+        0,
+        connection
+      );
+      await productoEcommerce.insert();
+    }
+
     return res.status(200).json({
       estado: true,
     });

@@ -335,7 +335,7 @@ orden.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
   }
 });
 
-orden.post("/getOrdenes", verificarToken, async (req, res) => {
+orden.post("/getOrdenes", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const ordenes = new Ordenes();

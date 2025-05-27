@@ -14,6 +14,7 @@ class ProductO1 {
     habilitado = 0,
     esCombo = 0,
     posicion = "",
+    cm3 = 0,
     quien = 0,
     superado = 0,
     elim = 0,
@@ -29,6 +30,7 @@ class ProductO1 {
     this.habilitado = habilitado;
     this.esCombo = esCombo;
     this.posicion = posicion;
+    this.cm3 = cm3;
     this.quien = quien || 0;
     this.superado = superado;
     this.elim = elim;
@@ -222,7 +224,7 @@ class ProductO1 {
 
       // Consulta principal con paginado
       const query = `
-      SELECT p.did AS productId, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo
+      SELECT p.did AS productId, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo,p.cm3
       FROM productos AS p
       ${whereClause}
       ORDER BY p.did DESC
@@ -263,9 +265,11 @@ class ProductO1 {
   p.ean,
   p.descripcion,
   p.habilitado,
+  p.cm3,
   p.esCombo,
   p.imagen,
   pv.data,
+
   pv.did as didVariante,
   pc.did AS didCombo,
   pc.cantidad,
@@ -298,6 +302,7 @@ WHERE p.did = ? AND p.elim = 0 AND p.superado = 0
         habilitado: rows[0].habilitado,
         esCombo: rows[0].esCombo,
         imagen: rows[0].imagen || "",
+        cm3: rows[0].cm3 || 0,
 
         //combo: JSON.parse(rows[0].combo) || rows[0].combo || "",
       };
