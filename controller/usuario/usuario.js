@@ -149,7 +149,7 @@ class Usuario {
 
       // 🧂 Hasheamos la contraseña si está presente y no está ya en formato hash
 
-      if (this.pass != "" && this.pass != null && this.pass != undefined) {
+      if (this.pass != "" || this.pass != null || this.pass != undefined) {
         const hash = crypto
           .createHash("sha256")
           .update(this.pass)
