@@ -112,19 +112,19 @@ class Usuario {
       ]);
 
       if (results.length > 0) {
-        this.pass = results[0].pass;
+        const pass = results[0].pass;
         const updateQuery = "UPDATE usuarios SET superado = 1 WHERE did = ?";
         await executeQuery(connection, updateQuery, [this.did]);
-        return this.createNewRecord(connection);
+        return this.createNewRecord(connection, pass);
       } else {
-        return this.createNewRecord(connection);
+        return this.createNewRecord(connection, "");
       }
     } catch (error) {
       throw error;
     }
   }
 
-  async createNewRecord(connection) {
+  async createNewRecord(connection, pass) {
     try {
       const querycheck =
         "SELECT usuario FROM usuarios WHERE usuario = ? and superado = 0 and elim = 0";
@@ -157,7 +157,7 @@ class Usuario {
         // Guardamos el salt y el hash
         this.pass = `${hash}`;
       }
-
+      this.pass = pass;
       const values = filteredColumns.map((column) => this[column]);
       const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(
         ", "
