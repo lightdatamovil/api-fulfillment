@@ -105,12 +105,14 @@ class Usuario {
 
   async checkAndUpdateDidProducto(connection) {
     try {
-      const checkDidProductoQuery = "SELECT id FROM usuarios WHERE did = ?";
+      const checkDidProductoQuery =
+        "SELECT id, pass FROM usuarios WHERE did = ?";
       const results = await executeQuery(connection, checkDidProductoQuery, [
         this.did,
       ]);
 
       if (results.length > 0) {
+        this.pass = results[0].pass;
         const updateQuery = "UPDATE usuarios SET superado = 1 WHERE did = ?";
         await executeQuery(connection, updateQuery, [this.did]);
         return this.createNewRecord(connection);
@@ -154,14 +156,6 @@ class Usuario {
           .digest("hex");
         // Guardamos el salt y el hash
         this.pass = `${hash}`;
-      } else {
-        const checkpass =
-          "SELECT pass  FROM usuarios WHERE did = ? and superado = 0 and elim = 0";
-        const resultscheck = await executeQuery(this.connection, checkpass, [
-          this.did,
-        ]);
-
-        this.pass = resultscheck[0].pass;
       }
 
       const values = filteredColumns.map((column) => this[column]);
