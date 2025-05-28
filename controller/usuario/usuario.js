@@ -105,8 +105,11 @@ class Usuario {
 
   async checkAndUpdateDidProducto(connection) {
     try {
-      const checkDidProductoQuery = "SELECT id, pass FROM usuarios WHERE did = ?";
-      const results = await executeQuery(connection, checkDidProductoQuery, [this.did]);
+      const checkDidProductoQuery =
+        "SELECT id, pass FROM usuarios WHERE did = ?";
+      const results = await executeQuery(connection, checkDidProductoQuery, [
+        this.did,
+      ]);
 
       if (results.length > 0) {
         if (!this.pass || this.pass.trim() === "") {
@@ -124,8 +127,11 @@ class Usuario {
   async createNewRecord(connection) {
     try {
       // Validar que no exista usuario duplicado
-      const querycheck = "SELECT usuario FROM usuarios WHERE usuario = ? AND superado = 0 AND elim = 0";
-      const resultscheck = await executeQuery(connection, querycheck, [this.usuario]);
+      const querycheck =
+        "SELECT usuario FROM usuarios WHERE usuario = ? AND superado = 0 AND elim = 0";
+      const resultscheck = await executeQuery(connection, querycheck, [
+        this.usuario,
+      ]);
 
       if (resultscheck.length > 0) {
         return {
@@ -139,24 +145,34 @@ class Usuario {
       const results = await executeQuery(connection, columnsQuery, []);
 
       const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+      const filteredColumns = tableColumns.filter(
+        (column) => this[column] !== undefined
+      );
 
       // Si pass viene con valor, la hasheamos con SHA256 simple
       if (this.pass && this.pass.trim() !== "") {
-        const hash = crypto.createHash("sha256").update(this.pass).digest("hex");
+        const hash = crypto
+          .createHash("sha256")
+          .update(this.pass)
+          .digest("hex");
         this.pass = hash;
       }
 
       // Preparamos los valores para insertar
       const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+      const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(
+        ", "
+      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
 
       const insertResult = await executeQuery(connection, insertQuery, values);
 
       // Si el did está vacío o 0, actualizamos para que coincida con el id insertado
       if (this.did == 0 || this.did == null || this.did === "") {
         const updateQuery = "UPDATE usuarios SET did = ? WHERE id = ?";
-        await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
+        await executeQuery(connection, updateQuery, [
+          insertResult.insertId,
+          insertResult.insertId,
+        ]);
       }
 
       return { insertId: insertResult.insertId };
@@ -164,7 +180,6 @@ class Usuario {
       throw error;
     }
   }
-}
 
   async delete(connection, did) {
     try {
