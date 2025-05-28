@@ -106,7 +106,7 @@ class Usuario {
   async checkAndUpdateDidProducto(connection) {
     try {
       const checkDidProductoQuery =
-        "SELECT id, pass FROM usuarios WHERE did = ?";
+        "SELECT id, pass FROM usuarios WHERE did = ?  and superado = 0 AND elim = 0";
       const results = await executeQuery(connection, checkDidProductoQuery, [
         this.did,
       ]);
