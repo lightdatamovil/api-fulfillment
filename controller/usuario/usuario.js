@@ -110,23 +110,25 @@ class Usuario {
       const results = await executeQuery(connection, checkDidProductoQuery, [
         this.did,
       ]);
-      let pass;
+
+      let previousPassword = "";
+
       if (results.length > 0) {
-        if (!this.pass) {
-          pass = results[0].pass;
+        // Si NO se envió una nueva contraseña, usamos la anterior
+        if (!this.pass || this.pass.trim() === "") {
+          this.pass = results[0].pass; // <-- Se la dejamos directamente
         }
         const updateQuery = "UPDATE usuarios SET superado = 1 WHERE did = ?";
         await executeQuery(connection, updateQuery, [this.did]);
-        return this.createNewRecord(connection, pass);
-      } else {
-        return this.createNewRecord(connection, "");
       }
+
+      return this.createNewRecord(connection);
     } catch (error) {
       throw error;
     }
   }
 
-  async createNewRecord(connection, pass) {
+  async createNewRecord(connection) {
     try {
       const querycheck =
         "SELECT usuario FROM usuarios WHERE usuario = ? and superado = 0 and elim = 0";
@@ -149,17 +151,15 @@ class Usuario {
         (column) => this[column] !== undefined
       );
 
-      // 🧂 Hasheamos la contraseña si está presente y no está ya en formato hash
-
-      if (this.pass != "" || this.pass != null || this.pass != undefined) {
-        const hash = crypto
-          .createHash("sha256")
-          .update(this.pass)
-          .digest("hex");
-        // Guardamos el salt y el hash
-        this.pass = `${hash}`;
+      // ✅ Solo hasheamos la contraseña si es una nueva contraseña (no hash viejo)
+      if (
+        this.pass &&
+        !this.pass.startsWith("$5$") &&
+        this.pass.trim() !== ""
+      ) {
+        this.pass = this.hashPassword(this.pass);
       }
-      this.pass = pass;
+
       const values = filteredColumns.map((column) => this[column]);
       const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(
         ", "
