@@ -110,10 +110,10 @@ class Usuario {
       const results = await executeQuery(connection, checkDidProductoQuery, [
         this.did,
       ]);
-
+      let pass;
       if (results.length > 0) {
         if (!this.pass) {
-          const pass = results[0].pass;
+          pass = results[0].pass;
         }
         const updateQuery = "UPDATE usuarios SET superado = 1 WHERE did = ?";
         await executeQuery(connection, updateQuery, [this.did]);
