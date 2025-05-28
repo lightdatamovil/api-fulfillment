@@ -114,6 +114,8 @@ class Usuario {
       if (results.length > 0) {
         if (!this.pass || this.pass.trim() === "") {
           // Mantener la contraseña antigua
+          console.log("Mantener la contraseña antigua");
+
           this.pass = results[0].pass;
           const queryUpdate = "UPDATE usuarios SET superado = 1 WHERE did = ?";
           await executeQuery(connection, queryUpdate, [this.did]);
