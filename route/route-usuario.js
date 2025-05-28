@@ -46,6 +46,8 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
       connection
     );
 
+    console.log(contraseña, "contraseña");
+
     const usuarioResult = await usuario.insert();
     if (usuarioResult.estado === false) {
       return res.status(401).json({
