@@ -122,7 +122,10 @@ class Usuario {
         await executeQuery(connection, queryUpdate, [this.did]);
         return this.createNewRecord(connection);
       }
-      return this.createNewRecord(connection);
+      return {
+        estado: false,
+        mensaje: "El usuario no existe",
+      };
     } catch (error) {
       throw error;
     }
