@@ -43,7 +43,7 @@ class ProductO1 {
 
   async insert() {
     try {
-      if (this.did === null || this.did === "") {
+      if (this.did === null || this.did === "" || this.did === 0) {
         return this.createNewRecord(this.connection);
       } else {
         return this.checkAndUpdateDidProducto(this.connection);
@@ -83,9 +83,13 @@ class ProductO1 {
     try {
       const querycheck =
         "SELECT sku FROM productos WHERE sku = ? and superado = 0 and elim = 0";
-      const resultscheck = await executeQuery(this.connection, querycheck, [
-        this.sku,
-      ]);
+      const resultscheck = await executeQuery(
+        connection,
+        querycheck,
+        [this.sku],
+        true
+      );
+      console.log(resultscheck, "resultscheck");
 
       if (resultscheck.length > 0) {
         return {

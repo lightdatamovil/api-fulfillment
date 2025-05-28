@@ -28,13 +28,14 @@ producto.post("/postProducto", async (req, res) => {
       data.did ?? 0,
       data.cliente,
       data.sku,
-      data.ean,
       data.titulo,
+      data.ean,
       data.descripcion,
       data.imagen,
       data.habilitado,
       data.esCombo,
       data.posicion ?? "",
+      data.cm3 ?? 0,
       data.quien,
       data.superado ?? 0,
       data.elim ?? 0,
@@ -139,12 +140,10 @@ producto.post("/postProducto", async (req, res) => {
         const varianteA = new ProductoVariantes(
           variante.did,
           productId,
-
-          variante.data,
+          JSON.stringify(variante.data), // 👈 transformás el objeto a string
           data.quien,
           0,
           0,
-
           connection
         );
 
@@ -155,36 +154,38 @@ producto.post("/postProducto", async (req, res) => {
 
     const helperEcommerce = new ProductoEcommerce();
 
-    const ecommerceActuales = data.ecommerce
-      .filter((v) => v && typeof v.did === "number")
-      .map((v) => v.did)
-      .filter((d) => d > 0);
+    const ecommerceActuales = Array.isArray(data.ecommerce)
+      ? data.ecommerce
+          .filter((v) => v && typeof v.did === "number")
+          .map((v) => v.did)
+          .filter((d) => d > 0)
+      : [];
 
     await helperEcommerce.deleteMissing(
       connection,
       dIdProducto,
       ecommerceActuales
     );
-
-    for (const ecommerceItem of data.ecommerce) {
-      const productoEcommerce = new ProductoEcommerce(
-        ecommerceItem.did ?? 0, // Usamos el did del ecommerceItem aquí
-        productId,
-        ecommerceItem.didCuenta ?? 0,
-        ecommerceItem.flex ?? 0,
-        ecommerceItem.variante ?? "",
-        ecommerceItem.sku,
-        ecommerceItem.ean ?? "",
-        ecommerceItem.url ?? "",
-        ecommerceItem.actualizar ?? 0,
-        data.quien,
-        0,
-        0,
-        connection
-      );
-      await productoEcommerce.insert();
+    if (data.ecommerce && Array.isArray(data.ecommerce)) {
+      for (const ecommerceItem of data.ecommerce) {
+        const productoEcommerce = new ProductoEcommerce(
+          ecommerceItem.did ?? 0, // Usamos el did del ecommerceItem aquí
+          productId,
+          ecommerceItem.didCuenta ?? 0,
+          ecommerceItem.flex ?? 0,
+          JSON.stringify(ecommerceItem.variante) ?? "",
+          ecommerceItem.sku,
+          ecommerceItem.ean ?? "",
+          ecommerceItem.url ?? "",
+          ecommerceItem.actualizar ?? 0,
+          data.quien,
+          0,
+          0,
+          connection
+        );
+        await productoEcommerce.insert();
+      }
     }
-
     return res.status(200).json({
       estado: true,
     });

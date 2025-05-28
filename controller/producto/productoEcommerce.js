@@ -148,7 +148,7 @@ class ProductoEcommerce {
         SET elim = 1
         WHERE didProducto = ? AND did NOT IN (${didsActuales
           .map(() => "?")
-          .join(", ")}) AND elim = 0
+          .join(", ")}) AND elim = 0 and superado = 0
       `;
         params = [didAtributo, ...didsActuales];
       } else {

@@ -27,6 +27,7 @@ class Usuario {
     modulo_inicial = 0,
     app_habilitada = 0,
     codigo_cliente = "",
+    telefono = "",
 
     quien = 0,
     superado = 0,
@@ -47,6 +48,7 @@ class Usuario {
     this.modulo_inicial = modulo_inicial || 0;
     this.app_habilitada = app_habilitada || 0;
     this.codigo_cliente = codigo_cliente || "";
+    this.telefono = telefono || "";
 
     this.superado = superado || 0;
     this.elim = elim || 0;

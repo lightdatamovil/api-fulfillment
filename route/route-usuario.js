@@ -39,6 +39,7 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
       data.modulo_inicial ?? 0,
       data.app_habilitada ?? 0,
       data.codigo_cliente ?? "",
+      data.telefono ?? "",
       data.quien,
       data.superado ?? 0,
       data.elim ?? 0,
