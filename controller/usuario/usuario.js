@@ -154,6 +154,14 @@ class Usuario {
           .digest("hex");
         // Guardamos el salt y el hash
         this.pass = `${hash}`;
+      } else {
+        const checkpass =
+          "SELECT pass  FROM usuarios WHERE did = ? and superado = 0 and elim = 0";
+        const resultscheck = await executeQuery(this.connection, checkpass, [
+          this.did,
+        ]);
+
+        this.pass = resultscheck[0].pass;
       }
 
       const values = filteredColumns.map((column) => this[column]);
