@@ -117,14 +117,11 @@ class Usuario {
           console.log("Mantener la contraseña antigua");
 
           this.pass = results[0].pass;
-          const queryUpdate = "UPDATE usuarios SET superado = 1 WHERE did = ?";
-          await executeQuery(connection, queryUpdate, [this.did]);
         }
+        const queryUpdate = "UPDATE usuarios SET superado = 1 WHERE did = ?";
+        await executeQuery(connection, queryUpdate, [this.did]);
         return this.createNewRecord(connection);
       }
-
-      const queryUpdate = "UPDATE usuarios SET superado = 1 WHERE did = ?";
-      await executeQuery(connection, queryUpdate, [this.did]);
       return this.createNewRecord(connection);
     } catch (error) {
       throw error;
