@@ -105,21 +105,14 @@ class Usuario {
 
   async checkAndUpdateDidProducto(connection) {
     try {
-      const checkDidProductoQuery =
-        "SELECT id, pass FROM usuarios WHERE did = ?";
-      const results = await executeQuery(connection, checkDidProductoQuery, [
-        this.did,
-      ]);
-
-      let previousPassword = "";
+      const checkDidProductoQuery = "SELECT id, pass FROM usuarios WHERE did = ?";
+      const results = await executeQuery(connection, checkDidProductoQuery, [this.did]);
 
       if (results.length > 0) {
-        // Si NO se envió una nueva contraseña, usamos la anterior
         if (!this.pass || this.pass.trim() === "") {
-          this.pass = results[0].pass; // <-- Se la dejamos directamente
+          // Mantener la contraseña antigua
+          this.pass = results[0].pass;
         }
-        const updateQuery = "UPDATE usuarios SET superado = 1 WHERE did = ?";
-        await executeQuery(connection, updateQuery, [this.did]);
       }
 
       return this.createNewRecord(connection);
@@ -130,11 +123,9 @@ class Usuario {
 
   async createNewRecord(connection) {
     try {
-      const querycheck =
-        "SELECT usuario FROM usuarios WHERE usuario = ? and superado = 0 and elim = 0";
-      const resultscheck = await executeQuery(this.connection, querycheck, [
-        this.usuario,
-      ]);
+      // Validar que no exista usuario duplicado
+      const querycheck = "SELECT usuario FROM usuarios WHERE usuario = ? AND superado = 0 AND elim = 0";
+      const resultscheck = await executeQuery(connection, querycheck, [this.usuario]);
 
       if (resultscheck.length > 0) {
         return {
@@ -143,36 +134,29 @@ class Usuario {
         };
       }
 
+      // Obtener columnas de la tabla
       const columnsQuery = "DESCRIBE usuarios";
       const results = await executeQuery(connection, columnsQuery, []);
 
       const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter(
-        (column) => this[column] !== undefined
-      );
+      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-      // ✅ Solo hasheamos la contraseña si es una nueva contraseña (no hash viejo)
-      if (
-        this.pass &&
-        !this.pass.startsWith("$5$") &&
-        this.pass.trim() !== ""
-      ) {
-        this.pass = this.hashPassword(this.pass);
+      // Si pass viene con valor, la hasheamos con SHA256 simple
+      if (this.pass && this.pass.trim() !== "") {
+        const hash = crypto.createHash("sha256").update(this.pass).digest("hex");
+        this.pass = hash;
       }
 
+      // Preparamos los valores para insertar
       const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(
-        ", "
-      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+      const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
 
       const insertResult = await executeQuery(connection, insertQuery, values);
 
-      if (this.did == 0 || this.did == null) {
+      // Si el did está vacío o 0, actualizamos para que coincida con el id insertado
+      if (this.did == 0 || this.did == null || this.did === "") {
         const updateQuery = "UPDATE usuarios SET did = ? WHERE id = ?";
-        await executeQuery(connection, updateQuery, [
-          insertResult.insertId,
-          insertResult.insertId,
-        ]);
+        await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
       }
 
       return { insertId: insertResult.insertId };
@@ -180,6 +164,7 @@ class Usuario {
       throw error;
     }
   }
+}
 
   async delete(connection, did) {
     try {
