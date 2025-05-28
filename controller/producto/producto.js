@@ -261,45 +261,57 @@ class ProductO1 {
   async traerProductoId(connection, id) {
     try {
       const query = `
-      SELECT 
-  p.did,
-  p.didCliente AS cliente,
-  p.titulo,
-  p.sku,
-  p.ean,
-  p.descripcion,
-  p.habilitado,
-  p.cm3,
-  p.esCombo,
-  p.imagen,
-  pv.data,
+        SELECT 
+          p.did,
+          p.didCliente AS cliente,
+          p.titulo,
+          p.sku,
+          p.ean,
+          p.descripcion,
+          p.habilitado,
+          p.cm3,
+          p.esCombo,
+          p.imagen,
+  
+          pv.did as didVariante,
+          pv.data AS dataVariante,
+  
+          pc.did AS didCombo,
+          pc.cantidad AS cantidadCombo,
+          pc.didProductoCombo,
+  
+          pi.did AS didInsumo,
+          pi.cantidad AS cantidadInsumo,
+  
+          pe.did AS didEcommerce,
+          pe.url AS urlEcommerce,
+          pe.flex AS flexEcommerce,
+          pe.actualizar AS actualizarEcommerce,
+          pe.sku AS skuEcommerce,
+          pe.ean AS eanEcommerce,
 
-  pv.did as didVariante,
-  pc.did AS didCombo,
-  pc.cantidad,
-  pc.didProductoCombo
+          pe.variante AS varianteEcommerce
 
-FROM productos AS p
-LEFT JOIN productos_combos AS pc 
-  ON pc.didProducto = p.did AND pc.elim = 0 AND pc.superado = 0
-LEFT JOIN productos_variantes AS pv 
-  ON pv.didProducto = p.did AND pv.elim = 0 AND pv.superado = 0
-LEFT JOIN productos_insumos AS pi 
-  ON pi.didProducto = p.did AND pi.elim = 0 AND pi.superado = 0
-WHERE p.did = ? AND p.elim = 0 AND p.superado = 0
 
-    `;
+  
+        FROM productos AS p
+        LEFT JOIN productos_combos AS pc 
+          ON pc.didProducto = p.did AND pc.elim = 0 AND pc.superado = 0
+        LEFT JOIN productos_variantes AS pv 
+          ON pv.didProducto = p.did AND pv.elim = 0 AND pv.superado = 0
+        LEFT JOIN productos_insumos AS pi 
+          ON pi.didProducto = p.did AND pi.elim = 0 AND pi.superado = 0
+        LEFT JOIN productos_ecommerces AS pe 
+          ON pe.didProducto = p.did AND pe.elim = 0 AND pe.superado = 0
+        WHERE p.did = ? AND p.elim = 0 AND p.superado = 0
+      `;
 
       const rows = await executeQuery(connection, query, [id], true);
-      console.log(rows);
-
       if (!rows.length) return null;
-      console.log(rows, "rows");
 
       const producto = {
         did: rows[0].did,
         cliente: rows[0].cliente,
-        idEmpresa: rows[0].idEmpresa,
         titulo: rows[0].titulo,
         sku: rows[0].sku,
         descripcion: rows[0].descripcion,
@@ -307,9 +319,62 @@ WHERE p.did = ? AND p.elim = 0 AND p.superado = 0
         esCombo: rows[0].esCombo,
         imagen: rows[0].imagen || "",
         cm3: rows[0].cm3 || 0,
-
-        //combo: JSON.parse(rows[0].combo) || rows[0].combo || "",
+        variantes: [],
+        insumos: [],
+        combos: [],
+        ecommerce: [],
       };
+
+      const setVariante = new Set();
+      const setInsumo = new Set();
+      const setCombo = new Set();
+      const setEcommerce = new Set();
+
+      for (const row of rows) {
+        // Variantes
+        if (row.didVariante && !setVariante.has(row.didVariante)) {
+          setVariante.add(row.didVariante);
+          producto.variantes.push({
+            did: row.didVariante,
+            data: row.dataVariante ? JSON.parse(row.dataVariante) : null,
+          });
+        }
+
+        // Insumos
+        if (row.didInsumo && !setInsumo.has(row.didInsumo)) {
+          setInsumo.add(row.didInsumo);
+          producto.insumos.push({
+            did: row.didInsumo,
+            cantidad: row.cantidadInsumo,
+          });
+        }
+
+        // Combos
+        if (row.didCombo && !setCombo.has(row.didCombo)) {
+          setCombo.add(row.didCombo);
+          producto.combos.push({
+            did: row.didCombo,
+            cantidad: row.cantidadCombo,
+            didProductoCombo: row.didProductoCombo,
+          });
+        }
+
+        // Ecommerce
+        if (row.didEcommerce && !setEcommerce.has(row.didEcommerce)) {
+          setEcommerce.add(row.didEcommerce);
+          producto.ecommerce.push({
+            did: row.didEcommerce,
+            variante: row.varianteEcommerce
+              ? JSON.parse(row.varianteEcommerce)
+              : null,
+            url: row.urlEcommerce,
+            flex: row.flexEcommerce,
+            actualizar: row.actualizarEcommerce,
+            sku: row.skuEcommerce,
+            ean: row.eanEcommerce,
+          });
+        }
+      }
 
       return producto;
     } catch (error) {
@@ -323,6 +388,7 @@ WHERE p.did = ? AND p.elim = 0 AND p.superado = 0
       };
     }
   }
+
   async filtro(connection, data) {
     try {
       let condiciones = ["p.elim = 0", "p.superado = 0"];

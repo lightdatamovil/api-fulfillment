@@ -40,7 +40,9 @@ class Usuario {
     this.mail = mail;
     this.usuario = usuario;
     this.imagen = imagen;
-    this.pass = pass;
+    if (pass) {
+      this.pass = pass;
+    }
     this.habilitado = habilitado;
     this.perfiles = perfiles;
     this.accesos = accesos;
@@ -59,6 +61,15 @@ class Usuario {
     return JSON.stringify(this);
   }
 
+  /*************  ✨ Windsurf Command ⭐  *************/
+  /**
+   * Genera un hash de la contraseña dada, utilizando un salt aleatorio
+   * y el algoritmo SHA-256.
+   *
+   * @param {string} password La contrase a a hashear
+   * @return {string} El hash de la contrase a en formato $5$salt$hashedPassword
+   */
+  /*******  9568ac78-ef79-4fa5-90e6-27bb7b32be31  *******/
   hashPassword(password) {
     // Generar un salt aleatorio
     const salt = crypto.randomBytes(16).toString("hex");
@@ -136,10 +147,14 @@ class Usuario {
 
       // 🧂 Hasheamos la contraseña si está presente y no está ya en formato hash
 
-      // Hashear la contraseña con el salt
-      const hash = crypto.createHash("sha256").update(this.pass).digest("hex");
-      // Guardamos el salt y el hash
-      this.pass = `${hash}`;
+      if (this.pass != "" && this.pass != null && this.pass != undefined) {
+        const hash = crypto
+          .createHash("sha256")
+          .update(this.pass)
+          .digest("hex");
+        // Guardamos el salt y el hash
+        this.pass = `${hash}`;
+      }
 
       const values = filteredColumns.map((column) => this[column]);
       const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(
