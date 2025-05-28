@@ -120,7 +120,16 @@ class Usuario {
 
           this.pass = results[0].pass;
           console.log(this.pass);
+        } else {
+          console.log("entramosss");
+
+          const hash = crypto
+            .createHash("sha256")
+            .update(this.pass)
+            .digest("hex");
+          this.pass = hash;
         }
+
         const queryUpdate = "UPDATE usuarios SET superado = 1 WHERE did = ?";
         await executeQuery(connection, queryUpdate, [this.did]);
         return this.createNewRecord(connection);
@@ -161,15 +170,6 @@ class Usuario {
       console.log(this.pass, "this.pass");
 
       // Si pass viene con valor, la hasheamos con SHA256 simple
-      if (this.pass) {
-        console.log("entramosss");
-
-        const hash = crypto
-          .createHash("sha256")
-          .update(this.pass)
-          .digest("hex");
-        this.pass = hash;
-      }
 
       // Preparamos los valores para insertar
       const values = filteredColumns.map((column) => this[column]);
