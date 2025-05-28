@@ -40,9 +40,9 @@ class Usuario {
     this.mail = mail;
     this.usuario = usuario;
     this.imagen = imagen;
-    if (pass) {
-      this.pass = pass;
-    }
+
+    this.pass = pass;
+
     this.habilitado = habilitado;
     this.perfiles = perfiles;
     this.accesos = accesos;

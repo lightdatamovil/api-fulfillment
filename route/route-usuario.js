@@ -31,7 +31,7 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
       data.apellido,
       data.mail,
       data.usuario,
-      data.contraseña,
+      data.contraseña ?? "",
       data.imagen,
       data.habilitado,
       data.perfil,
