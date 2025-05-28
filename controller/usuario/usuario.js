@@ -120,9 +120,11 @@ class Usuario {
           const queryUpdate = "UPDATE usuarios SET superado = 1 WHERE did = ?";
           await executeQuery(connection, queryUpdate, [this.did]);
         }
-        return;
+        return this.createNewRecord(connection);
       }
 
+      const queryUpdate = "UPDATE usuarios SET superado = 1 WHERE did = ?";
+      await executeQuery(connection, queryUpdate, [this.did]);
       return this.createNewRecord(connection);
     } catch (error) {
       throw error;
