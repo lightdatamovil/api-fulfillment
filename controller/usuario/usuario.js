@@ -110,15 +110,16 @@ class Usuario {
       const results = await executeQuery(connection, checkDidProductoQuery, [
         this.did,
       ]);
-      if (!this.pass) {
-        if (results.length > 0) {
+
+      if (results.length > 0) {
+        if (!this.pass) {
           const pass = results[0].pass;
-          const updateQuery = "UPDATE usuarios SET superado = 1 WHERE did = ?";
-          await executeQuery(connection, updateQuery, [this.did]);
-          return this.createNewRecord(connection, pass);
         }
+        const updateQuery = "UPDATE usuarios SET superado = 1 WHERE did = ?";
+        await executeQuery(connection, updateQuery, [this.did]);
+        return this.createNewRecord(connection, pass);
       } else {
-        return this.createNewRecord(connection, this.pass);
+        return this.createNewRecord(connection, "");
       }
     } catch (error) {
       throw error;
