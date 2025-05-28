@@ -158,9 +158,12 @@ class Usuario {
       const filteredColumns = tableColumns.filter(
         (column) => this[column] !== undefined
       );
+      console.log(this.pass, "this.pass");
 
       // Si pass viene con valor, la hasheamos con SHA256 simple
-      if (this.pass && this.pass.trim() !== "") {
+      if (this.pass) {
+        console.log("entramosss");
+
         const hash = crypto
           .createHash("sha256")
           .update(this.pass)
