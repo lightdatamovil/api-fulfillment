@@ -9,6 +9,7 @@ const {
 } = require("../dbconfig");
 
 const { logRed } = require("../fuctions/logsCustom");
+const verificarToken = require("../middleware/token");
 
 const ProductoCombo = require("../controller/producto/productoCombo");
 const ProductoDeposito = require("../controller/producto/productoDeposito");
@@ -18,7 +19,7 @@ const StockConsolidado = require("../controller/stock/stock_consolidado");
 const ProductoInsumo = require("../controller/producto/productoInsumo");
 const ProductoVariantes = require("../controller/producto/productoVariaciones");
 
-producto.post("/postProducto", async (req, res) => {
+producto.post("/postProducto", verificarToken, async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
@@ -137,9 +138,9 @@ producto.post("/postProducto", async (req, res) => {
 
     if (data.variantes) {
       const varianteA = new ProductoVariantes(
-        data.variante.did,
+        data.variantes.did,
         productId,
-        JSON.stringify(data.variante.data), // 👈 transformás el objeto a string
+        JSON.stringify(data.variantes.data), // 👈 transformás el objeto a string
         data.quien,
         0,
         0,
