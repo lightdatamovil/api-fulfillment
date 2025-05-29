@@ -135,21 +135,19 @@ producto.post("/postProducto", async (req, res) => {
       variantesActuales
     );
 
-    if (data.variantes && Array.isArray(data.variantes)) {
-      for (const variante of data.variantes) {
-        const varianteA = new ProductoVariantes(
-          variante.did,
-          productId,
-          JSON.stringify(variante.data), // 👈 transformás el objeto a string
-          data.quien,
-          0,
-          0,
-          connection
-        );
+    if (data.variantes) {
+      const varianteA = new ProductoVariantes(
+        data.variante.did,
+        productId,
+        JSON.stringify(data.variante.data), // 👈 transformás el objeto a string
+        data.quien,
+        0,
+        0,
+        connection
+      );
 
-        const resultsVariante = await varianteA.insert();
-        const variantId = resultsVariante.insertId;
-      }
+      const resultsVariante = await varianteA.insert();
+      const variantId = resultsVariante.insertId;
     }
 
     const helperEcommerce = new ProductoEcommerce();

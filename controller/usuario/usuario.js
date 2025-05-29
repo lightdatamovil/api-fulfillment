@@ -4,13 +4,6 @@ const { getConnection, executeQuery } = require("../../dbconfig");
 const { log } = require("console");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = "tu_clave_secreta";
-function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString("hex"); // Generar un salt aleatorio
-  const hashedPassword = crypto
-    .pbkdf2Sync(password, salt, 1000, 64, "sha256")
-    .toString("hex");
-  return `$5$${salt}$${hashedPassword}`;
-}
 
 class Usuario {
   constructor(
@@ -61,29 +54,6 @@ class Usuario {
     return JSON.stringify(this);
   }
 
-  /*************  ✨ Windsurf Command ⭐  *************/
-  /**
-   * Genera un hash de la contraseña dada, utilizando un salt aleatorio
-   * y el algoritmo SHA-256.
-   *
-   * @param {string} password La contrase a a hashear
-   * @return {string} El hash de la contrase a en formato $5$salt$hashedPassword
-   */
-  /*******  9568ac78-ef79-4fa5-90e6-27bb7b32be31  *******/
-  hashPassword(password) {
-    // Generar un salt aleatorio
-    const salt = crypto.randomBytes(16).toString("hex");
-
-    // Crear el hash de la contraseña usando SHA-256
-    const hash = crypto
-      .createHash("sha256")
-      .update(password + salt)
-      .digest("hex");
-
-    // Formato de salida: $5$salt$hashedPassword
-    return `$5$${salt}$${hash}`;
-  }
-
   async insert() {
     try {
       if (this.did === null || this.did === "") {
@@ -113,11 +83,6 @@ class Usuario {
 
       if (results.length > 0) {
         if (!this.pass || this.pass.trim() == "") {
-          // Mantener la contraseña antigua
-          console.log("Mantener la contraseña antigua");
-
-          console.log(results[0].pass);
-
           this.pass = results[0].pass;
           console.log(this.pass);
         } else {
@@ -167,9 +132,6 @@ class Usuario {
       const filteredColumns = tableColumns.filter(
         (column) => this[column] !== undefined
       );
-      console.log(this.pass, "this.pass");
-
-      // Si pass viene con valor, la hasheamos con SHA256 simple
 
       // Preparamos los valores para insertar
       const values = filteredColumns.map((column) => this[column]);
