@@ -388,6 +388,29 @@ class ProductO1 {
       };
     }
   }
+  async traerProductosAll(connection) {
+    try {
+      const query = `
+        SELECT p.did AS productId, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo, p.cm3
+        FROM productos AS p
+        WHERE p.elim = 0 AND p.superado = 0
+        ORDER BY p.did DESC
+      `;
+
+      const results = await executeQuery(connection, query);
+
+      return {
+        data: results,
+      };
+    } catch (error) {
+      console.error("Error al traer productos:", error.message);
+      throw {
+        estado: false,
+        error: -1,
+        message: error.message || error,
+      };
+    }
+  }
 
   async filtro(connection, data) {
     try {

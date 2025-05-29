@@ -345,6 +345,31 @@ producto.post("/getProducts", async (req, res) => {
   });
 });
 
+producto.get("/getAllProductos/:empresa", async (req, res) => {
+  const empresa = req.params.empresa;
+  if (!empresa) {
+    return res.status(400).json({
+      estado: false,
+      message: "El ID de la empresa es requerido",
+    });
+  }
+  const connection = await getConnectionLocal(empresa);
+  const producto = new ProductO1();
+  try {
+    const response = await producto.getAllProductos(connection);
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+
 producto.get("/", async (req, res) => {
   res.status(200).json({
     estado: true,
