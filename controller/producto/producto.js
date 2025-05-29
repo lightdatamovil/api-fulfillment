@@ -399,9 +399,7 @@ class ProductO1 {
 
       const results = await executeQuery(connection, query);
 
-      return {
-        data: results,
-      };
+      return results;
     } catch (error) {
       console.error("Error al traer productos:", error.message);
       throw {

@@ -357,7 +357,8 @@ producto.get("/getAllProductos/:empresa", async (req, res) => {
   const producto = new ProductO1();
   try {
     const response = await producto.traerProductosAll(connection);
-    return res.status(200).json(response[0]);
+
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error durante la operación:", error);
     return res.status(500).json({
