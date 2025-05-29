@@ -452,7 +452,6 @@ class ProductO1 {
     `;
 
       const results = await executeQuery(connection, filtroQuery, valores);
-      console.log(results, "results");
 
       return results;
     } catch (error) {
