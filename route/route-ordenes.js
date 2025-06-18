@@ -11,6 +11,7 @@ const Ordenes = require("../controller/orden/ordenes");
 const Ordenes_items = require("../controller/orden/ordenes_items");
 const OrdenesHistorial = require("../controller/orden/ordenes_historial");
 const verificarToken = require("../middleware/token");
+const InsertOrder = require("../fuctions/insertOrdenes");
 
 orden.post("/postOrden", verificarToken, async (req, res) => {
   const data = req.body;
@@ -113,6 +114,38 @@ orden.post("/postOrden", verificarToken, async (req, res) => {
       estado: true,
       data: response,
     });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+orden.post("/postOrden2", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+
+  try {
+    // Verificar si el estado ya existe
+
+    const result = await InsertOrder(connection, data);
+    // Insertar orden
+
+    if (result.success == true) {
+      return res.status(200).json({
+        estado: true,
+        data: result,
+      });
+    } else {
+      return res.status(400).json({
+        estado: false,
+        mensaje: result.message,
+      });
+    }
   } catch (error) {
     console.error("Error durante la operación:", error);
     return res.status(500).json({

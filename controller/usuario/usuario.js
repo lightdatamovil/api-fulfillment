@@ -56,11 +56,12 @@ class Usuario {
 
   async insert() {
     try {
-      if (this.did === null || this.did === "") {
+      if (!this.did || this.did == 0) {
         return this.createNewRecord(this.connection);
       } else {
         return this.checkAndUpdateDidProducto(this.connection);
       }
+
     } catch (error) {
       console.error("Error en el método insert:", error.message);
       throw {
