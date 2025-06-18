@@ -211,6 +211,8 @@ class Cliente {
           });
         }
       }
+      console.log("QUERY:", dataQuery);
+      console.log("VALUES:", dataValues);
 
       return {
         totalRegistros,
