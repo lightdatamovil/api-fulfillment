@@ -121,7 +121,7 @@ class Cliente {
   }
   async getClientes(connection, filtros) {
     try {
-      const conditions = ["c.superado = 0 and elim = 0"];
+      const conditions = ["c.superado = 0 and c.elim = 0"];
       const values = [];
 
       if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
