@@ -213,14 +213,16 @@ class Cliente {
       }
       console.log("QUERY:", dataQuery);
       console.log("VALUES:", dataValues);
+      console.log(Object.values(clientesMap));
 
       return {
         totalRegistros,
         totalPaginas,
         pagina,
         cantidad: cantidadPorPagina,
-        clientes: Object.values(clientesMap),
+        clientes: Object.values(clientesMap).sort((a, b) => b.did - a.did), // 👈 Orden descendente real por did
       };
+
     } catch (error) {
       console.error("Error en GETCLIENTES:", error.message);
       throw error;
