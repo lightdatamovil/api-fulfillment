@@ -121,7 +121,7 @@ class Cliente {
   }
   async getClientes(connection, filtros) {
     try {
-      const conditions = ["c.superado = 0"];
+      const conditions = ["c.superado = 0 and elim = 0"];
       const values = [];
 
       if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
@@ -161,7 +161,7 @@ class Cliente {
       LEFT JOIN clientes_direcciones d ON d.didCliente = c.did AND d.elim = 0
       LEFT JOIN clientes_contactos co ON co.didCliente = c.did AND co.elim = 0
       ${whereClause}
-      ORDER BY c.did DESC
+      ORDER BY c.did ASC 
       LIMIT ? OFFSET ?
     `;
 
