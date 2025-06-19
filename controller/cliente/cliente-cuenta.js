@@ -139,6 +139,26 @@ class Cliente_cuenta {
       throw error;
     }
   }
+  async deleteMissingFlex(connection, didCliente, incomingFlexIds = []) {
+    try {
+      const placeholders = incomingFlexIds.length
+        ? incomingFlexIds.map(() => "?").join(", ")
+        : "NULL";
+
+      const deleteQuery = `
+        UPDATE clientes_cuentas 
+        SET elim = 1 
+        WHERE didCliente = ? 
+        AND elim = 0
+        ${incomingFlexIds.length > 0 ? `AND flex NOT IN (${placeholders})` : ""}
+      `;
+
+      const params = [didCliente, ...incomingFlexIds];
+      await executeQuery(connection, deleteQuery, params);
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async getClientes(connection, filtros = {}) {
     try {

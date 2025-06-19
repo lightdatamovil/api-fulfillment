@@ -1,4 +1,20 @@
 const { getConnection, executeQuery } = require("../../dbconfig");
+function encodeArr(data) {
+  const json = JSON.stringify(data); // Serializa el objeto
+  const base64 = Buffer.from(json).toString('base64'); // Lo codifica en base64
+  return base64;
+}
+function generateToken4() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
+  let token = "";
+
+  for (let i = 0; i < 4; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    token += chars.charAt(randomIndex);
+  }
+
+  return token;
+}
 
 class Cliente {
   constructor(
@@ -211,9 +227,8 @@ class Cliente {
           });
         }
       }
-      console.log("QUERY:", dataQuery);
-      console.log("VALUES:", dataValues);
-      console.log(Object.values(clientesMap));
+      console.log();
+
 
       return {
         totalRegistros,
@@ -276,7 +291,8 @@ class Cliente {
     }
   }
 
-  async getClientesById(connection, did) {
+  async getClientesById(connection, did, idEmpresa) {
+    let didCuenta = 0;
     try {
       const query = `
         SELECT 
@@ -346,7 +362,33 @@ class Cliente {
             depositos: row.depositos,
           });
         }
+        didCuenta = row.cuenta_did;
       }
+
+      const didcliente = results[0].did;
+      const GLOBAL_empresa_id = idEmpresa;
+      const pais = "AR"; // Simulando `$_SESSION["configuracion"]["pais"]`
+
+      // Generar autofecha
+      const now = new Date();
+      const autofecha = now
+        .toISOString()
+        .replace(/[-T:.Z]/g, '') // Elimina símbolos y formato ISO
+        .slice(0, 14) +           // YYYYMMDDHHMMSS
+        generateToken4();         // Agrega el token aleatorio
+
+      const data = {
+        autofecha,
+        didcliente,
+        didCuenta,
+        didempresa: GLOBAL_empresa_id,
+        pais
+      };
+      const resultado = encodeArr(data)
+      console.log(resultado, "data");
+
+      // Agregar el token generado a la respuesta
+
 
       return cliente;
     } catch (error) {

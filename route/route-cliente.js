@@ -96,6 +96,14 @@ cliente.post("/postCliente", async (req, res) => {
     // ------------------------------
     // ✅ CLIENTE CUENTA
     // ------------------------------
+    const cuentaHelper = new Cliente_cuenta();
+    const cuentaFlexIds = Array.isArray(data.cuentas)
+      ? data.cuentas.map((c) => c.flex).filter((flex) => flex > 0)
+      : [];
+
+    // Verificar y eliminar cuentas que no tienen flex
+    await cuentaHelper.deleteMissingFlex(connection, clienteId, cuentaFlexIds);
+
     if (Array.isArray(data.cuentas)) {
       for (const cuenta of data.cuentas) {
         const cuentaData = cuenta.data ?? {};
@@ -118,6 +126,7 @@ cliente.post("/postCliente", async (req, res) => {
         await clienteCuenta.insert();
       }
     }
+
 
     return res.status(200).json({
       estado: true,
@@ -174,7 +183,7 @@ cliente.post("/getClienteById", async (req, res) => {
   const cliente = new Cliente();
 
   try {
-    const response = await cliente.getClientesById(connection, data.did);
+    const response = await cliente.getClientesById(connection, data.did, data.idEmpresa);
 
     return res.status(200).json({
       estado: true,

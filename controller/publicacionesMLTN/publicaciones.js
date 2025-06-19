@@ -73,6 +73,7 @@ async function getPublicacionesML(pagina = 1, cantidad = 20) {
                 id: item.id,
                 producto: item.title,
                 seller_custom_field: item.seller_custom_field || null,
+
                 variations: item.variations || [],
                 fullItem: item
             });
@@ -300,6 +301,7 @@ async function getPublicacionesUnificadas(pagina = 1, cantidad = 20) {
             });
 
             const item = itemRes.data;
+            //   return item.variations
 
             // Extraer solo la información necesaria
             publicaciones.push({
@@ -309,7 +311,8 @@ async function getPublicacionesUnificadas(pagina = 1, cantidad = 20) {
                 estado: item.status,
                 sellerId: item.seller_id,
                 // Obtener la URL de la imagen
-                imagenUrl: item.pictures.length > 0 ? item.pictures[0].url : null, // Tomar la primera imagen
+                imagenUrl: item.pictures.length > 0 ? item.pictures[0].url : null,
+                atributo: item.variations?.[0]?.attribute_combinations?.[0]?.name || null, // Tomar la primera imagen
                 variaciones: item.variations.map(v => ({
                     id: v.id,
                     nombre: v.attribute_combinations.map(a => a.value_name).join(" / "),
@@ -511,6 +514,83 @@ async function unificarPublicaciones(pagina = 1, cantidad = 20) {
         }
     };
 }
+async function construirAtributosConDids(connection, atributosInput) {
+    const resultado = [];
+
+    for (const atributo of atributosInput) {
+        const nombreAtributo = atributo.nombre.trim();
+        let didAtributo;
+
+        // Buscar si ya existe el atributo
+        const [atributoExistente] = await executeQuery(
+            connection,
+            "SELECT did FROM atributos WHERE nombre = ? LIMIT 1",
+            [nombreAtributo]
+        );
+
+        if (atributoExistente) {
+            didAtributo = atributoExistente.did;
+        } else {
+            // Generar nuevo did
+            const [maxAtributo] = await executeQuery(
+                connection,
+                "SELECT MAX(did) AS maxDid FROM atributos",
+                []
+            );
+            didAtributo = (maxAtributo?.maxDid || 0) + 1;
+
+            // Insertar nuevo atributo
+            await executeQuery(
+                connection,
+                "INSERT INTO atributos (nombre, did) VALUES (?, ?)",
+                [nombreAtributo, didAtributo]
+            );
+        }
+
+        const variantes = [];
+
+        for (const valor of atributo.valores) {
+            const valorTrimmed = valor.trim();
+            let didValor;
+
+            // Buscar si ya existe el valor del atributo
+            const [valorExistente] = await executeQuery(
+                connection,
+                "SELECT did FROM atributo_valores WHERE didAtributo = ? AND valor = ? LIMIT 1",
+                [didAtributo, valorTrimmed]
+            );
+
+            if (valorExistente) {
+                didValor = valorExistente.did;
+            } else {
+                // Generar nuevo did para valor
+                const [maxValor] = await executeQuery(
+                    connection,
+                    "SELECT MAX(did) AS maxDid FROM atributo_valores",
+                    []
+                );
+                didValor = (maxValor?.maxDid || 0) + 1;
+
+                // Insertar nuevo valor
+                await executeQuery(
+                    connection,
+                    "INSERT INTO atributo_valores (didAtributo, valor, did) VALUES (?, ?, ?)",
+                    [didAtributo, valorTrimmed, didValor]
+                );
+            }
+
+            variantes.push({ valor: valorTrimmed, did: didValor });
+        }
+
+        resultado.push({
+            atributoNombre: nombreAtributo,
+            didAtributo,
+            variantes
+        });
+    }
+
+    return resultado;
+}
 
 
 
@@ -522,6 +602,7 @@ module.exports = {
     getPublicacionesUnificadas,
     getPublicacionesMLSimplificado,
     getPublicacionesTNSimplificado,
-    unificarPublicaciones
+    unificarPublicaciones,
+    construirAtributosConDids
 
 };
