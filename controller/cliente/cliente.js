@@ -1,4 +1,5 @@
 const { getConnection, executeQuery } = require("../../dbconfig");
+const { logYellow } = require("../../fuctions/logsCustom");
 function encodeArr(data) {
   const json = JSON.stringify(data); // Serializa el objeto
   const base64 = Buffer.from(json).toString('base64'); // Lo codifica en base64
@@ -151,7 +152,7 @@ class Cliente {
       }
 
       const whereClause = conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
+        ? ` WHERE ${conditions.join(" AND ")}`
         : "";
 
       const pagina = Number(filtros.pagina) || 1;
@@ -174,8 +175,8 @@ class Cliente {
         d.did as direccion_did, d.data as direccion_data, 
         co.did as contacto_did, co.tipo as contacto_tipo, co.valor as contacto_valor
       FROM clientes c
-      LEFT JOIN clientes_direcciones d ON d.didCliente = c.did AND d.elim = 0
-      LEFT JOIN clientes_contactos co ON co.didCliente = c.did AND co.elim = 0
+      LEFT JOIN clientes_direcciones d ON d.didCliente = c.did AND d.elim = 0 AND d.superado = 0
+      LEFT JOIN clientes_contactos co ON co.didCliente = c.did AND co.elim = 0  AND  co.superado = 0
       ${whereClause}
       ORDER BY c.did DESC
       LIMIT ? OFFSET ?
@@ -183,6 +184,8 @@ class Cliente {
 
       const dataValues = [...values, cantidadPorPagina, offset];
       const results = await executeQuery(connection, dataQuery, dataValues);
+
+
 
       // Agrupar resultados por cliente
       const clientesMap = {};
@@ -227,7 +230,7 @@ class Cliente {
           });
         }
       }
-      console.log();
+
 
 
       return {

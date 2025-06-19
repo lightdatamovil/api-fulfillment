@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { redisClient } = require('../../dbconfig');
+const { redisClient, executeQuery } = require('../../dbconfig');
 
 const USER_ID_ML = "746339074";
 
@@ -358,6 +358,7 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
         });
 
         const publicaciones = [];
+        return res
 
         for (const p of res.data) {
             const titulo = typeof p.name === 'string' ? p.name : p.name?.es || p.name?.default || 'Sin nombre';
@@ -472,8 +473,10 @@ async function unificarPublicaciones(pagina = 1, cantidad = 20) {
         if (!publicacionesUnificadas[sku]) {
             publicacionesUnificadas[sku] = {
                 titulo: pubML.producto,
+
                 sku: sku,
                 precio: pubML.precio,
+                atributo: pubML.atributo,
                 imagenUrl: pubML.imagenUrl,
                 variantes: [],
                 union: [] // Inicializar union aquí
@@ -514,11 +517,20 @@ async function unificarPublicaciones(pagina = 1, cantidad = 20) {
         }
     };
 }
-async function construirAtributosConDids(connection, atributosInput) {
+async function construirAtributosConDids(connection) {
     const resultado = [];
+    const respuesta = await unificarPublicaciones();
+
+    if (!respuesta.estado || !Array.isArray(respuesta.response.publicaciones)) {
+        console.error("Error al obtener publicaciones:", respuesta);
+        return resultado; // O manejar el error de otra manera
+    }
+
+    const atributosInput = respuesta.response.publicaciones;
+    console.log(atributosInput);
 
     for (const atributo of atributosInput) {
-        const nombreAtributo = atributo.nombre.trim();
+        const nombreAtributo = atributo.titulo.trim(); // Asegúrate de que 'titulo' sea correcto
         let didAtributo;
 
         // Buscar si ya existe el atributo
@@ -591,6 +603,7 @@ async function construirAtributosConDids(connection, atributosInput) {
 
     return resultado;
 }
+
 
 
 

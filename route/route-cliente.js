@@ -145,7 +145,7 @@ cliente.post("/postCliente", async (req, res) => {
   }
 });
 
-cliente.post("/getClientes", verificarToken, async (req, res) => {
+cliente.post("/getClientes", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const filtros = {
