@@ -142,12 +142,12 @@ class Cliente {
       const values = [];
 
       if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
-        conditions.push("clientes.habilitado = ?");
+        conditions.push("c.habilitado = ?");
         values.push(filtros.habilitado);
       }
 
       if (filtros.nombre_fantasia) {
-        conditions.push("clientes.nombre_fantasia LIKE ?");
+        conditions.push("c.nombre_fantasia LIKE ?");
         values.push(`%${filtros.nombre_fantasia}%`);
       }
 
