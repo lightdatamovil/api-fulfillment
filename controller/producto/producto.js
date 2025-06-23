@@ -240,7 +240,7 @@ class ProductO1 {
         ...valores,
         cantidad,
         offset,
-      ]);
+      ], true);
 
       return {
         data: results,
