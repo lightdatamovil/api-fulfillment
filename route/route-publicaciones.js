@@ -14,7 +14,7 @@ const Atributo = require("../controller/atributo/atributos");
 const Atributo_valor = require("../controller/atributo/atributo_valor");
 const { log } = require("node:console");
 const verificarToken = require("../middleware/token");
-const { getPublicacionesML, getPublicacionesTN, getPublicacionesUnificadas, obtenerDatosUnificados, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosConDids } = require("../controller/publicacionesMLTN/publicaciones");
+const { getPublicacionesML, getPublicacionesTN, getPublicacionesUnificadas, obtenerDatosUnificados, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosConDids, construirAtributosYProductosConDids } = require("../controller/publicacionesMLTN/publicaciones");
 
 publicaciones.post("/publicacionesML", async (req, res) => {
     try {
@@ -120,7 +120,7 @@ publicaciones.post("/variante", async (req, res) => {
         //  console.log("data", data);
 
 
-        const publicaciones = await construirAtributosConDids(connection);
+        const publicaciones = await construirAtributosYProductosConDids(connection);
         res.status(200).json({
             estado: true,
             response: publicaciones,

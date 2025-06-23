@@ -625,6 +625,164 @@ async function construirAtributosConDids(connection) {
     return resultado;
 }
 
+async function construirAtributosYProductosConDids(connection) {
+    const resultado = { atributos: [], productos: [] };
+    const respuesta = await unificarPublicaciones();
+
+    if (!respuesta.estado || !Array.isArray(respuesta.response.publicaciones)) {
+        console.error("Error al obtener publicaciones:", respuesta);
+        return resultado; // O manejar el error de otra manera
+    }
+
+    const publicacionesInput = respuesta.response.publicaciones;
+    console.log(publicacionesInput);
+
+    for (const publicacion of publicacionesInput) {
+        // Manejo de atributos
+        const nombreAtributo = publicacion.atributo; // Solo proceder si existe
+        if (nombreAtributo) {
+            let didAtributo;
+
+            // Buscar si ya existe el atributo
+            const [atributoExistente] = await executeQuery(
+                connection,
+                "SELECT did FROM atributos WHERE nombre = ? LIMIT 1",
+                [nombreAtributo]
+            );
+
+            if (atributoExistente) {
+                didAtributo = atributoExistente.did;
+            } else {
+                // Generar nuevo did
+                const [maxAtributo] = await executeQuery(
+                    connection,
+                    "SELECT MAX(did) AS maxDid FROM atributos",
+                    []
+                );
+                didAtributo = (maxAtributo?.maxDid || 0) + 1;
+
+                // Insertar nuevo atributo
+                await executeQuery(
+                    connection,
+                    "INSERT INTO atributos (nombre, did) VALUES (?, ?)",
+                    [nombreAtributo, didAtributo]
+                );
+            }
+
+            const variantes = [];
+
+            // Verificar si hay variantes
+            if (Array.isArray(publicacion.variantes)) {
+                for (const variante of publicacion.variantes) {
+                    if (Array.isArray(variante.values)) {
+                        for (const valor of variante.values) {
+                            const valorString = valor.es; // Cambia 'es' a la propiedad correcta si es necesario
+
+                            if (typeof valorString === 'string') {
+                                const valorTrimmed = valorString.trim();
+                                let didValor;
+
+                                // Buscar si ya existe el valor del atributo
+                                const [valorExistente] = await executeQuery(
+                                    connection,
+                                    "SELECT did FROM atributos_valores WHERE didAtributo = ? AND valor = ? LIMIT 1",
+                                    [didAtributo, valorTrimmed]
+                                );
+
+                                if (!valorExistente) {
+                                    // Generar nuevo did para valor
+                                    const [maxValor] = await executeQuery(
+                                        connection,
+                                        "SELECT MAX(did) AS maxDid FROM atributos_valores",
+                                        []
+                                    );
+                                    didValor = (maxValor?.maxDid || 0) + 1;
+
+                                    // Insertar nuevo valor
+                                    await executeQuery(
+                                        connection,
+                                        "INSERT INTO atributos_valores (didAtributo, valor, did) VALUES (?, ?, ?)",
+                                        [didAtributo, valorTrimmed, didValor]
+                                    );
+                                }
+
+                                variantes.push({ valor: valorTrimmed, did: didValor });
+                            } else {
+                                console.warn(`El valor ${valorString} no es una cadena válida.`);
+                            }
+                        }
+                    } else {
+                        console.warn(`La variante de ${nombreAtributo} no tiene valores válidos.`);
+                    }
+                }
+            }
+
+            resultado.atributos.push({
+                atributoNombre: nombreAtributo,
+                didAtributo,
+                variantes
+            });
+        }
+
+        // Manejo de productos
+        const skuProducto = publicacion.sku; // SKU del producto
+        if (skuProducto) {
+            const eanProducto = publicacion.ean || null; // EAN del producto, puede ser null
+            const nombreProducto = publicacion.titulo.trim(); // Título del producto
+            const descripcionProducto = publicacion.descripcion || ''; // Descripción del producto
+            const imagenProducto = publicacion.imagen || ''; // URL de la imagen
+            const habilitadoProducto = publicacion.habilitado !== undefined ? publicacion.habilitado : true; // Habilitado por defecto
+
+            // Verificar si el SKU ya existe en la base de datos
+            const [productoExistente] = await executeQuery(
+                connection,
+                "SELECT did FROM productos WHERE sku = ? LIMIT 1",
+                [skuProducto]
+            );
+
+            // Si no existe el producto, proceder a insertarlo
+            if (!productoExistente) {
+                // Generar nuevo did para el producto
+                const [maxProducto] = await executeQuery(
+                    connection,
+                    "SELECT MAX(did) AS maxDid FROM productos",
+                    []
+                );
+                const didProducto = (maxProducto?.maxDid || 0) + 1;
+
+                // Insertar nuevo producto
+                await executeQuery(
+                    connection,
+                    "INSERT INTO productos (did, sku, ean, titulo, descripcion, imagen, habilitado) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [didProducto, skuProducto, eanProducto, nombreProducto, descripcionProducto, imagenProducto, habilitadoProducto]
+                );
+
+                // Obtener el ID del producto insertado
+                const [productoInsertado] = await executeQuery(
+                    connection,
+                    "SELECT LAST_INSERT_ID() AS id"
+                );
+
+                resultado.productos.push({
+                    productoNombre: nombreProducto,
+                    didProducto: productoInsertado.id,
+                    sku: skuProducto,
+                    ean: eanProducto,
+                    descripcion: descripcionProducto,
+                    imagen: imagenProducto,
+                    habilitado: habilitadoProducto
+                });
+            } else {
+                console.log(`El producto con SKU ${skuProducto} ya existe.`);
+            }
+        } else {
+            console.warn("No se proporcionó SKU para el producto, no se insertará.");
+        }
+    }
+
+    return resultado;
+}
+
 
 
 
@@ -636,6 +794,7 @@ module.exports = {
     getPublicacionesMLSimplificado,
     getPublicacionesTNSimplificado,
     unificarPublicaciones,
-    construirAtributosConDids
+    construirAtributosConDids,
+    construirAtributosYProductosConDids
 
 };
