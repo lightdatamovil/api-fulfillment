@@ -151,6 +151,17 @@ class Cliente {
         values.push(`%${filtros.nombre_fantasia}%`);
       }
 
+      if (filtros.codigo) {
+        conditions.push("c.codigo LIKE ?");
+        values.push(`%${filtros.codigo}%`);
+      }
+
+      if (filtros.razon_social) {
+        conditions.push("c.razon_social LIKE ?");
+        values.push(`%${filtros.razon_social}%`);
+      }
+
+
       const whereClause = conditions.length
         ? ` WHERE ${conditions.join(" AND ")}`
         : "";

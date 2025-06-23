@@ -150,6 +150,9 @@ cliente.post("/getClientes", async (req, res) => {
   const connection = await getConnectionLocal(data.idEmpresa);
   const filtros = {
     nombre_fantasia: data.nombre_fantasia ?? null,
+    razon_social: data.razon_social ?? null,
+    codigo: data.codigo ?? null,
+
     habilitado: data.habilitado ?? 2,
     pagina: data.pagina ?? 1,
     cantidad: data.cantidad ?? 10,
@@ -164,6 +167,7 @@ cliente.post("/getClientes", async (req, res) => {
       pagina: response["pagina"],
       cantidad: response["cantidad"],
       data: response["clientes"],
+
     });
   } catch (error) {
     console.error("Error durante la operación:", error);
