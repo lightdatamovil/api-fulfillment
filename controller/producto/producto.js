@@ -229,7 +229,7 @@ class ProductO1 {
 
       // Consulta principal con paginado
       const query = `
-      SELECT p.did AS productId, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo,p.cm3
+      SELECT p.did AS did, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo,p.cm3
       FROM productos AS p
       ${whereClause}
       ORDER BY p.did DESC
@@ -392,7 +392,7 @@ class ProductO1 {
   async traerProductosAll(connection) {
     try {
       const query = `
-        SELECT p.did AS productId, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo, p.cm3
+        SELECT p.did AS did, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo, p.cm3
         FROM productos AS p
         WHERE p.elim = 0 AND p.superado = 0
         ORDER BY p.did DESC
