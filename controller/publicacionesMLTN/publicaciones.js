@@ -358,7 +358,7 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
         });
 
         const publicaciones = [];
-        return res
+
 
         for (const p of res.data) {
             const titulo = typeof p.name === 'string' ? p.name : p.name?.es || p.name?.default || 'Sin nombre';
@@ -414,8 +414,9 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
 async function unificarPublicaciones(pagina = 1, cantidad = 20) {
     // Obtener publicaciones de Tiendanube
     const publicacionesTN = await getPublicacionesTNSimplificado(pagina, cantidad);
+    //  return publicacionesTN
     if (!publicacionesTN.estado) {
-        console.error("Error al obtener publicaciones de Tiendanube:", publicacionesTN.response);
+        console.error("Error al obtener publicaciones de Tiendanube:", publicacionesTN.response.resultados);
         return { estado: false, mensaje: "Error al obtener publicaciones de Tiendanube" };
     }
 
@@ -428,6 +429,7 @@ async function unificarPublicaciones(pagina = 1, cantidad = 20) {
 
     const publicacionesUnificadas = {};
 
+
     // Procesar publicaciones de Tiendanube
     for (const pubTN of publicacionesTN.response.resultados) {
         const variant = pubTN.data_variant; // Acceder directamente a data_variant
@@ -437,6 +439,7 @@ async function unificarPublicaciones(pagina = 1, cantidad = 20) {
             publicacionesUnificadas[sku] = {
                 titulo: pubTN.producto,
                 sku: sku,
+
                 precio: variant.price,
                 imagenUrl: variant.image_url,
                 variantes: [],
@@ -473,7 +476,7 @@ async function unificarPublicaciones(pagina = 1, cantidad = 20) {
         if (!publicacionesUnificadas[sku]) {
             publicacionesUnificadas[sku] = {
                 titulo: pubML.producto,
-
+                atributo: pubML.atributo,
                 sku: sku,
                 precio: pubML.precio,
                 atributo: pubML.atributo,
@@ -528,9 +531,11 @@ async function construirAtributosConDids(connection) {
 
     const atributosInput = respuesta.response.publicaciones;
     console.log(atributosInput);
+    //return true
 
     for (const atributo of atributosInput) {
-        const nombreAtributo = atributo.titulo.trim(); // Asegúrate de que 'titulo' sea correcto
+        console.log(JSON.stringify(atributo));
+        const nombreAtributo = atributo.atributo || "Sin atributo"; // Asegúrate de que 'titulo' sea correcto
         let didAtributo;
 
         // Buscar si ya existe el atributo
@@ -561,37 +566,53 @@ async function construirAtributosConDids(connection) {
 
         const variantes = [];
 
-        for (const valor of atributo.valores) {
-            const valorTrimmed = valor.trim();
-            let didValor;
-
-            // Buscar si ya existe el valor del atributo
-            const [valorExistente] = await executeQuery(
-                connection,
-                "SELECT did FROM atributo_valores WHERE didAtributo = ? AND valor = ? LIMIT 1",
-                [didAtributo, valorTrimmed]
-            );
-
-            if (valorExistente) {
-                didValor = valorExistente.did;
-            } else {
-                // Generar nuevo did para valor
-                const [maxValor] = await executeQuery(
-                    connection,
-                    "SELECT MAX(did) AS maxDid FROM atributo_valores",
-                    []
-                );
-                didValor = (maxValor?.maxDid || 0) + 1;
-
-                // Insertar nuevo valor
-                await executeQuery(
-                    connection,
-                    "INSERT INTO atributo_valores (didAtributo, valor, did) VALUES (?, ?, ?)",
-                    [didAtributo, valorTrimmed, didValor]
-                );
+        // Iterar sobre las variantes del atributo
+        for (const variante of atributo.variantes) {
+            // Asegúrate de que 'values' sea un array
+            if (!Array.isArray(variante.values)) {
+                console.warn(`La variante de ${nombreAtributo} no tiene valores válidos.`);
+                continue; // O manejar el caso de otra manera
             }
 
-            variantes.push({ valor: valorTrimmed, did: didValor });
+            for (const valor of variante.values) {
+                // Accede a la propiedad 'es' que contiene el valor deseado
+                const valorString = valor.es; // Cambia 'es' a la propiedad correcta si es necesario
+
+                if (typeof valorString === 'string') {
+                    const valorTrimmed = valorString.trim();
+                    let didValor;
+
+                    // Buscar si ya existe el valor del atributo
+                    const [valorExistente] = await executeQuery(
+                        connection,
+                        "SELECT did FROM atributos_valores WHERE didAtributo = ? AND valor = ? LIMIT 1",
+                        [didAtributo, valorTrimmed]
+                    );
+
+                    if (valorExistente) {
+                        didValor = valorExistente.did;
+                    } else {
+                        // Generar nuevo did para valor
+                        const [maxValor] = await executeQuery(
+                            connection,
+                            "SELECT MAX(did) AS maxDid FROM atributos_valores",
+                            []
+                        );
+                        didValor = (maxValor?.maxDid || 0) + 1;
+
+                        // Insertar nuevo valor
+                        await executeQuery(
+                            connection,
+                            "INSERT INTO atributos_valores (didAtributo, valor, did) VALUES (?, ?, ?)",
+                            [didAtributo, valorTrimmed, didValor]
+                        );
+                    }
+
+                    variantes.push({ valor: valorTrimmed, did: didValor });
+                } else {
+                    console.warn(`El valor ${valorString} no es una cadena válida.`);
+                }
+            }
         }
 
         resultado.push({
@@ -603,7 +624,6 @@ async function construirAtributosConDids(connection) {
 
     return resultado;
 }
-
 
 
 

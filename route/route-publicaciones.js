@@ -117,7 +117,7 @@ publicaciones.post("/variante", async (req, res) => {
     try {
         const data = req.body;
         const connection = await getConnectionLocal(data.idEmpresa);
-        console.log("data", data);
+        //  console.log("data", data);
 
 
         const publicaciones = await construirAtributosConDids(connection);

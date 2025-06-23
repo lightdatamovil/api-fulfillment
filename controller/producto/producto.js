@@ -188,10 +188,11 @@ class ProductO1 {
       }
 
       if (data.cliente !== undefined && data.cliente !== "") {
-        {
-          condiciones.push("p.didCliente = ?");
-          valores.push(data.cliente);
-        }
+
+        condiciones.push("p.didCliente = ?");
+        valores.push(data.cliente);
+
+
       }
 
       if (data.sku !== undefined && data.sku.trim() !== "") {
