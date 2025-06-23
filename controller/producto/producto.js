@@ -376,6 +376,7 @@ class ProductO1 {
           });
         }
       }
+      console.log(producto, "producto");
 
       return producto;
     } catch (error) {
