@@ -67,9 +67,9 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
     const helperValor = new ProductoCombo();
     const didsActuales = Array.isArray(data.combos)
       ? data.combos
-          .filter((v) => v && typeof v.did === "number")
-          .map((v) => v.did)
-          .filter((d) => d > 0)
+        .filter((v) => v && typeof v.did === "number")
+        .map((v) => v.did)
+        .filter((d) => d > 0)
       : [];
 
     await helperValor.deleteMissing(connection, dIdProducto, didsActuales);
@@ -94,9 +94,9 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
     const helperInsumo = new ProductoInsumo();
     const didsInsumosActuales = Array.isArray(data.insumos)
       ? data.insumos
-          .filter((v) => v && typeof v.did === "number")
-          .map((v) => v.did)
-          .filter((d) => d > 0)
+        .filter((v) => v && typeof v.did === "number")
+        .map((v) => v.did)
+        .filter((d) => d > 0)
       : [];
 
     await helperInsumo.deleteMissing(
@@ -125,9 +125,9 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
     const helperVariante = new ProductoVariantes();
     const variantesActuales = Array.isArray(data.variantes)
       ? data.variantes
-          .filter((v) => v && v.data?.did)
-          .map((v) => v.data.did)
-          .filter((d) => d > 0)
+        .filter((v) => v && v.data?.did)
+        .map((v) => v.data.did)
+        .filter((d) => d > 0)
       : [];
 
     await helperVariante.deleteMissing(
@@ -155,9 +155,9 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
 
     const ecommerceActuales = Array.isArray(data.ecommerce)
       ? data.ecommerce
-          .filter((v) => v && typeof v.did === "number")
-          .map((v) => v.did)
-          .filter((d) => d > 0)
+        .filter((v) => v && typeof v.did === "number")
+        .map((v) => v.did)
+        .filter((d) => d > 0)
       : [];
 
     await helperEcommerce.deleteMissing(
@@ -237,7 +237,7 @@ producto.post("/getProductos", async (req, res) => {
   }
 });
 
-producto.post("/getProductosById", async (req, res) => {
+producto.post("/getProductoById", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const producto = new ProductO1();
