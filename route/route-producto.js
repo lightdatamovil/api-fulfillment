@@ -244,7 +244,7 @@ producto.post("/getProductoById", async (req, res) => {
   const response = await producto.traerProductoId(connection, data.did);
   return res.status(200).json({
     estado: true,
-    productos: response,
+    data: response,
   });
 });
 producto.post("/updateProducts", async (req, res) => {
