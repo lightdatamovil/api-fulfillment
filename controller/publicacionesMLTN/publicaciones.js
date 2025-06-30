@@ -782,6 +782,110 @@ async function construirAtributosYProductosConDids(connection) {
 
     return resultado;
 }
+async function construirAtributosDesdePublicaciones(connection) {
+    const atributos = [];
+    const respuesta = await unificarPublicaciones();
+    const producto = respuesta.response.publicaciones;
+
+    if (!respuesta.estado || !Array.isArray(respuesta.response.publicaciones)) {
+        console.error("Error al obtener publicaciones:", respuesta);
+        return { estado: false, response: { atributos: [] } };
+    }
+
+    const publicacionesInput = respuesta.response.publicaciones;
+
+    const mapaAtributos = new Map();
+
+    // Obtener el último did usado
+    const [maxAtributo] = await executeQuery(
+        connection,
+        "SELECT MAX(id) AS maxDid FROM atributos"
+    );
+    const [maxValor] = await executeQuery(
+        connection,
+        "SELECT MAX(id) AS maxDid FROM atributos_valores"
+    );
+
+    let didAtributoSimulado = (maxAtributo?.maxDid || 0);
+    let didValorSimulado = (maxValor?.maxDid || 0);
+
+    for (const publicacion of publicacionesInput) {
+        const nombreAtributo = publicacion.atributo?.trim();
+
+
+        if (!nombreAtributo) continue;
+
+        if (!mapaAtributos.has(nombreAtributo)) {
+            let didAtributo;
+            let variantes = [];
+
+            const [atributoExistente] = await executeQuery(
+                connection,
+                "SELECT did FROM atributos WHERE nombre = ? LIMIT 1",
+                [nombreAtributo]
+            );
+
+            if (atributoExistente) {
+                didAtributo = atributoExistente.did;
+
+                const valoresExistentes = await executeQuery(
+                    connection,
+                    "SELECT valor, did FROM atributos_valores WHERE didAtributo = ?",
+                    [didAtributo]
+                );
+
+                variantes = valoresExistentes.map(v => ({
+                    valor: v.valor,
+                    did: v.did
+                }));
+            } else {
+                // Simulación de atributo nuevo
+                didAtributoSimulado++;
+                didAtributo = didAtributoSimulado;
+                variantes = [];
+            }
+
+            mapaAtributos.set(nombreAtributo, {
+                atributoNombre: nombreAtributo,
+                didAtributo,
+                variantes
+            });
+        }
+
+        const atributoActual = mapaAtributos.get(nombreAtributo);
+        const variantesActuales = new Set(atributoActual.variantes.map(v => v.valor));
+
+        if (Array.isArray(publicacion.variantes)) {
+            for (const variante of publicacion.variantes) {
+                if (Array.isArray(variante.values)) {
+                    for (const valorObj of variante.values) {
+                        const valorStr = valorObj?.es?.trim();
+                        if (!valorStr || variantesActuales.has(valorStr)) continue;
+
+                        didValorSimulado++;
+                        atributoActual.variantes.push({
+                            valor: valorStr,
+                            did: didValorSimulado
+                        });
+                        variantesActuales.add(valorStr);
+                    }
+                }
+            }
+        }
+    }
+
+    // Construir salida final
+    const atributosFinal = Array.from(mapaAtributos.values());
+
+    return {
+        estado: true,
+        response: {
+            atributos: atributosFinal,
+            producto: producto
+        }
+    };
+}
+
 
 
 
@@ -795,6 +899,7 @@ module.exports = {
     getPublicacionesTNSimplificado,
     unificarPublicaciones,
     construirAtributosConDids,
-    construirAtributosYProductosConDids
+    construirAtributosYProductosConDids,
+    construirAtributosDesdePublicaciones
 
 };

@@ -333,7 +333,7 @@ class Usuario {
           },
           JWT_SECRET,
           {
-            expiresIn: "4h", // duración del token
+            expiresIn: "8h", // duración del token
           }
         );
 
