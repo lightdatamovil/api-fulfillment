@@ -112,7 +112,7 @@ publicaciones.post("/uni", async (req, res) => {
 
 })
 
-publicaciones.post("/variante", async (req, res) => {
+publicaciones.post("/getProductosImportados", async (req, res) => {
 
     try {
         const data = req.body;
@@ -123,7 +123,7 @@ publicaciones.post("/variante", async (req, res) => {
         const publicaciones = await construirAtributosDesdePublicaciones(connection);
         res.status(200).json({
             estado: true,
-            response: publicaciones,
+            data: publicaciones,
         });
 
     } catch (error) {

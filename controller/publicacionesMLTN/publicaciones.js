@@ -785,7 +785,12 @@ async function construirAtributosYProductosConDids(connection) {
 async function construirAtributosDesdePublicaciones(connection) {
     const atributos = [];
     const respuesta = await unificarPublicaciones();
+    const ml = await getPublicacionesMLSimplificado();
+    const tn = await getPublicacionesTNSimplificado();
+    const publicacionesML = ml.response.resultados;
     const producto = respuesta.response.publicaciones;
+    const productosTN = tn.response.resultados;
+
 
     if (!respuesta.estado || !Array.isArray(respuesta.response.publicaciones)) {
         console.error("Error al obtener publicaciones:", respuesta);
@@ -878,11 +883,13 @@ async function construirAtributosDesdePublicaciones(connection) {
     const atributosFinal = Array.from(mapaAtributos.values());
 
     return {
-        estado: true,
-        response: {
-            atributos: atributosFinal,
-            producto: producto
-        }
+
+
+        atributos: atributosFinal,
+        producto: producto,
+        productoML: publicacionesML,
+        productoTN: productosTN
+
     };
 }
 
