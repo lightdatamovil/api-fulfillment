@@ -7,6 +7,7 @@ class Cliente_cuenta {
     flex = 0,
     data = "",
     depositos = "",
+    titulo = "",
     ml_id_vendedor = "",
     ml_user = "",
     quien = 0,

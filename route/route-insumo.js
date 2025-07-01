@@ -22,6 +22,8 @@ insumo.post("/postInsumo", verificarToken, async (req, res) => {
       data.nombre,
       data.didCliente,
       data.codigo,
+      data.clientes,
+      data.unidad,
       data.habilitado,
       data.quien,
       data.superado || 0,

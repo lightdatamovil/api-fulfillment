@@ -24,6 +24,7 @@ class Cliente {
     habilitado = 1,
     codigo = "",
     razon_social = "",
+    observaciones = "",
     quien = 0,
     superado = 0,
     elim = 0,
@@ -34,6 +35,7 @@ class Cliente {
     this.habilitado = habilitado;
     this.codigo = codigo || "";
     this.razon_social = razon_social || "";
+    this.observaciones = observaciones || "";
     this.quien = quien || 0;
     this.superado = superado || 0;
     this.elim = elim || 0;
@@ -207,6 +209,7 @@ class Cliente {
             nombre_fantasia: row.nombre_fantasia,
             habilitado: row.habilitado,
             codigo: row.codigo,
+            observaciones: row.observaciones,
             razon_social: row.razon_social,
             quien: row.quien,
             contactos: [],
@@ -266,6 +269,7 @@ class Cliente {
         c.codigo, 
         c.nombre_fantasia, 
         c.habilitado,
+        
         cc.did AS cuenta_did, 
         cc.flex
       FROM clientes c
@@ -313,7 +317,7 @@ class Cliente {
           c.*, 
           d.did as direccion_did, d.data as direccion_data, c.razon_social, c.codigo,
           co.did as contacto_did, co.tipo as contacto_tipo, co.valor as contacto_valor,
-          cc.did as cuenta_did, cc.flex as tipo, cc.data as cuenta_data, cc.ml_id_vendedor, cc.ml_user, cc.depositos
+          cc.did as cuenta_did, cc.flex as tipo, cc.data as cuenta_data,cc.titulo, cc.ml_id_vendedor, cc.ml_user, cc.depositos
         FROM clientes c
         LEFT JOIN clientes_direcciones d ON d.didCliente = c.did AND d.elim = 0 AND d.superado = 0
         LEFT JOIN clientes_contactos co ON co.didCliente = c.did AND co.elim = 0 AND co.superado = 0
@@ -332,6 +336,7 @@ class Cliente {
       const cliente = {
         did: results[0].did,
         nombre_fantasia: results[0].nombre_fantasia,
+        observaciones: results[0].observaciones || "",
         razon_social: results[0].razon_social,
         codigo: results[0].codigo,
         habilitado: results[0].habilitado,
@@ -370,6 +375,7 @@ class Cliente {
           cliente.cuentas.push({
             did: row.cuenta_did,
             tipo: row.tipo,
+            titulo: row.titulo,
             data: row.cuenta_data,
             ml_id_vendedor: row.ml_id_vendedor,
             ml_user: row.ml_user,

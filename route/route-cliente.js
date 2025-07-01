@@ -29,6 +29,7 @@ cliente.post("/postCliente", async (req, res) => {
       data.habilitado,
       data.codigo,
       data.razon_social,
+      data.observaciones,
       data.quien,
       data.superado ?? 0,
       data.elim ?? 0,
@@ -115,8 +116,10 @@ cliente.post("/postCliente", async (req, res) => {
           cuentaTipo,
           JSON.stringify(cuentaData),
           cuenta.depositos ?? "",
+          cuenta.titulo ?? "",
           cuentaTipo === 1 ? cuentaData.ml_id_vendedor ?? "" : "",
           cuentaTipo === 1 ? cuentaData.ml_user ?? "" : "",
+
           data.quien ?? 0,
           data.superado ?? 0,
           data.elim ?? 0,

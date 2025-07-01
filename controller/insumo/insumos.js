@@ -7,6 +7,8 @@ class Insumo {
     nombre = "",
     didCliente = "",
     codigo = 0,
+    clientes = "",
+    unidad = 0,
     habilitado = 0,
     quien = 0,
     superado = 0,
@@ -169,6 +171,16 @@ class Insumo {
         conditions.push("i.didCliente = ?");
         values.push(filtros.didCliente);
       }
+      if (filtros.clientes) {
+        const clientesArray = filtros.clientes.split(",").map(c => c.trim()).filter(c => c !== "");
+
+        if (clientesArray.length > 0) {
+          const placeholders = clientesArray.map(() => "?").join(",");
+          conditions.push(`i.clientes IN (${placeholders})`);
+          values.push(...clientesArray);
+        }
+      }
+
 
       const whereClause = conditions.length
         ? `WHERE ${conditions.join(" AND ")}`
