@@ -275,7 +275,7 @@ class Cliente {
         cc.titulo
 
       FROM clientes c
-      JOIN clientes_cuentas cc ON c.did = cc.didCliente AND cc.elim = 0 and cc.superado = 0
+      LEFT JOIN clientes_cuentas cc ON c.did = cc.didCliente AND cc.elim = 0 and cc.superado = 0
       WHERE c.elim = 0 AND c.superado = 0
       ORDER BY c.did DESC
     `;
