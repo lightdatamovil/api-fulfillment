@@ -271,7 +271,9 @@ class Cliente {
         c.habilitado,
         
         cc.did AS cuenta_did, 
-        cc.flex
+        cc.flex,
+        cc.titulo
+
       FROM clientes c
       JOIN clientes_cuentas cc ON c.did = cc.didCliente AND cc.elim = 0 and cc.superado = 0
       WHERE c.elim = 0 AND c.superado = 0
@@ -298,6 +300,7 @@ class Cliente {
         clientesMap.get(clienteId).cuentas.push({
           did: row.cuenta_did,
           flex: row.flex,
+          titulo: row.titulo || "",
         });
       }
 
