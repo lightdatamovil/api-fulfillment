@@ -273,7 +273,9 @@ async function getPublicacionesUnificadas(pagina = 1, cantidad = 20) {
     }
 
     return publicacionesUnificadas;
-} async function getPublicacionesMLSimplificado(pagina = 1, cantidad = 20) {
+}
+
+async function getPublicacionesMLSimplificado(pagina = 1, cantidad = 20) {
     await getTokenRedis();
 
     const sellerId = USER_ID_ML;

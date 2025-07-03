@@ -20,9 +20,9 @@ class Cliente_cuenta {
     this.flex = flex || 0;
     this.data = data;
     this.depositos = depositos;
+    this.titulo = titulo || "";
     this.ml_id_vendedor = ml_id_vendedor || "";
     this.ml_user = ml_user || "";
-
     this.quien = quien || 0;
     this.superado = superado || 0;
     this.elim = elim || 0;
