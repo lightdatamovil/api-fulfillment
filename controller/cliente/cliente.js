@@ -184,7 +184,7 @@ class Cliente {
         ORDER BY c.did DESC
         LIMIT ? OFFSET ?
       `;
-      const clientes = await executeQuery(connection, [...values, cantidadPorPagina, offset]);
+      const clientes = await executeQuery(connection, clientesQuery, [...values, cantidadPorPagina, offset]);
 
       if (clientes.length === 0) {
         return {
@@ -204,7 +204,7 @@ class Cliente {
         FROM clientes_direcciones 
         WHERE didCliente IN (${dids.map(() => '?').join(',')}) AND elim = 0 AND superado = 0
       `;
-      const direcciones = await executeQuery(connection, dids);
+      const direcciones = await executeQuery(connection, direccionesQuery, dids);
 
       // Contactos
       const contactosQuery = `
@@ -212,7 +212,7 @@ class Cliente {
         FROM clientes_contactos 
         WHERE didCliente IN (${dids.map(() => '?').join(',')}) AND elim = 0 AND superado = 0
       `;
-      const contactos = await executeQuery(connection, dids);
+      const contactos = await executeQuery(connection, contactosQuery, dids);
 
       // Mapear clientes con direcciones y contactos
       const clientesFinal = clientes.map(cliente => {
