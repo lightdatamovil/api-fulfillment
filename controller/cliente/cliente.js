@@ -140,7 +140,7 @@ class Cliente {
   }
   async getClientes(connection, filtros) {
     try {
-      const conditions = ["c.superado = 0 and c.elim = 0"];
+      const conditions = ["c.superado = 0 AND c.elim = 0"];
       const values = [];
 
       if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
@@ -163,96 +163,83 @@ class Cliente {
         values.push(`%${filtros.razon_social}%`);
       }
 
-
       const whereClause = conditions.length
-        ? ` WHERE ${conditions.join(" AND ")}`
+        ? `WHERE ${conditions.join(" AND ")}`
         : "";
 
       const pagina = Number(filtros.pagina) || 1;
       const cantidadPorPagina = Number(filtros.cantidad) || 10;
       const offset = (pagina - 1) * cantidadPorPagina;
 
-      const totalQuery = `SELECT COUNT(*) as total FROM clientes ${whereClause.replace(
-        /c\./g,
-        ""
-      )}`;
-
+      // Consulta de total
+      const totalQuery = `SELECT COUNT(*) as total FROM clientes ${whereClause.replace(/c\./g, "")}`;
       const totalResult = await executeQuery(connection, totalQuery, values);
       const totalRegistros = totalResult[0].total;
       const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
 
-      // Trae los datos de clientes + sus direcciones + contactos (si los hay)
-      const dataQuery = `
-      SELECT 
-        c.*, 
-        d.did as direccion_did, d.data as direccion_data, 
-        co.did as contacto_did, co.tipo as contacto_tipo, co.valor as contacto_valor
-      FROM clientes c
-      LEFT JOIN clientes_direcciones d ON d.didCliente = c.did AND d.elim = 0 AND d.superado = 0
-      LEFT JOIN clientes_contactos co ON co.didCliente = c.did AND co.elim = 0  AND  co.superado = 0
-      ${whereClause}
-      ORDER BY c.did DESC
-      LIMIT ? OFFSET ?
-    `;
+      // Traer solo los clientes (sin joins)
+      const clientesQuery = `
+        SELECT c.* FROM clientes c
+        ${whereClause}
+        ORDER BY c.did DESC
+        LIMIT ? OFFSET ?
+      `;
+      const clientes = await executeQuery(connection, [...values, cantidadPorPagina, offset]);
 
-      const dataValues = [...values, cantidadPorPagina, offset];
-      const results = await executeQuery(connection, dataQuery, dataValues);
-
-
-
-      // Agrupar resultados por cliente
-      const clientesMap = {};
-      for (const row of results) {
-        if (!clientesMap[row.did]) {
-          clientesMap[row.did] = {
-            did: row.did,
-            nombre_fantasia: row.nombre_fantasia,
-            habilitado: row.habilitado,
-            codigo: row.codigo,
-            observaciones: row.observaciones,
-            razon_social: row.razon_social,
-            quien: row.quien,
-            contactos: [],
-            direcciones: [],
-          };
-        }
-
-        // Agregar dirección si no está duplicada
-        if (
-          row.direccion_did &&
-          !clientesMap[row.did].direcciones.some(
-            (d) => d.did === row.direccion_did
-          )
-        ) {
-          clientesMap[row.did].direcciones.push({
-            did: row.direccion_did,
-            data: row.direccion_data,
-          });
-        }
-
-        // Agregar contacto si no está duplicado
-        if (
-          row.contacto_did &&
-          !clientesMap[row.did].contactos.some(
-            (c) => c.did === row.contacto_did
-          )
-        ) {
-          clientesMap[row.did].contactos.push({
-            did: row.contacto_did,
-            tipo: row.contacto_tipo,
-            valor: row.contacto_valor,
-          });
-        }
+      if (clientes.length === 0) {
+        return {
+          totalRegistros,
+          totalPaginas,
+          pagina,
+          cantidad: cantidadPorPagina,
+          clientes: [],
+        };
       }
 
+      const dids = clientes.map(c => c.did);
 
+      // Direcciones
+      const direccionesQuery = `
+        SELECT did, didCliente, data 
+        FROM clientes_direcciones 
+        WHERE didCliente IN (${dids.map(() => '?').join(',')}) AND elim = 0 AND superado = 0
+      `;
+      const direcciones = await executeQuery(connection, dids);
+
+      // Contactos
+      const contactosQuery = `
+        SELECT did, didCliente, tipo, valor 
+        FROM clientes_contactos 
+        WHERE didCliente IN (${dids.map(() => '?').join(',')}) AND elim = 0 AND superado = 0
+      `;
+      const contactos = await executeQuery(connection, dids);
+
+      // Mapear clientes con direcciones y contactos
+      const clientesFinal = clientes.map(cliente => {
+        const clienteDirecciones = direcciones.filter(d => d.didCliente === cliente.did)
+          .map(d => ({ did: d.did, data: d.data }));
+        const clienteContactos = contactos.filter(c => c.didCliente === cliente.did)
+          .map(c => ({ did: c.did, tipo: c.tipo, valor: c.valor }));
+
+        return {
+          did: cliente.did,
+          nombre_fantasia: cliente.nombre_fantasia,
+          habilitado: cliente.habilitado,
+          codigo: cliente.codigo,
+          observaciones: cliente.observaciones,
+          razon_social: cliente.razon_social,
+          quien: cliente.quien,
+          contactos: clienteContactos,
+          direcciones: clienteDirecciones,
+        };
+      });
 
       return {
         totalRegistros,
         totalPaginas,
         pagina,
         cantidad: cantidadPorPagina,
-        clientes: Object.values(clientesMap).sort((a, b) => b.did - a.did), // 👈 Orden descendente real por did
+        clientes: clientesFinal,
       };
 
     } catch (error) {
@@ -260,6 +247,7 @@ class Cliente {
       throw error;
     }
   }
+
 
   async getAll(connection) {
     try {
