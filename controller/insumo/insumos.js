@@ -9,7 +9,7 @@ class Insumo {
         this.codigo = codigo || ""
         this.clientes = clientes || ""
         this.unidad = unidad || 0
-        this.habilitado = habilitado || 1
+        this.habilitado = habilitado
         this.quien = quien || 0
         this.superado = superado || 0
         this.elim = elim || 0
