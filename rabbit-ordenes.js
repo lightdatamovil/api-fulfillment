@@ -161,7 +161,7 @@ async function listenToChannel(channelName) {
               const sellersPermitidos = [298477234, 452306476, 23598767, 746339074];
 
               if (!sellersPermitidos.includes(seller_id)) {
-                console.log(`⛔ Seller ${seller_id} no está permitido. Mensaje descartado.`);
+                //  console.log(`⛔ Seller ${seller_id} no está permitido. Mensaje descartado.`);
                 channel.ack(msg); // marcar como procesado para no reintentar
                 return;
               }
