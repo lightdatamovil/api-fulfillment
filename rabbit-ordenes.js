@@ -153,6 +153,7 @@ async function listenToChannel(channelName) {
           if (msg !== null) {
             try {
 
+              const datain = JSON.parse(msg.content.toString());
               const seller_id = datain.sellerid; // asegurarse que sea número
               const resource = datain.resource;
 
@@ -165,7 +166,6 @@ async function listenToChannel(channelName) {
                 return;
               }
 
-              const datain = JSON.parse(msg.content.toString());
               console.log(`📥 Mensaje recibido:`, datain);
               const token = await getTokenForSeller(seller_id);
 
