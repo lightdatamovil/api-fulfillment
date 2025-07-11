@@ -152,8 +152,8 @@ async function listenToChannel(channelName) {
         async (msg) => {
           if (msg !== null) {
             try {
-              const datain = JSON.parse(msg.content.toString());
-              const seller_id = parseInt(datain.sellerid); // asegurarse que sea número
+
+              const seller_id = datain.sellerid; // asegurarse que sea número
               const resource = datain.resource;
 
               // Lista de sellers permitidos
@@ -165,6 +165,8 @@ async function listenToChannel(channelName) {
                 return;
               }
 
+              const datain = JSON.parse(msg.content.toString());
+              console.log(`📥 Mensaje recibido:`, datain);
               const token = await getTokenForSeller(seller_id);
 
               async function getdataSeller(seller_id) {
