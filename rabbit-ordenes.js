@@ -153,8 +153,17 @@ async function listenToChannel(channelName) {
           if (msg !== null) {
             try {
               const datain = JSON.parse(msg.content.toString());
-              const seller_id = datain.sellerid;
+              const seller_id = parseInt(datain.sellerid); // asegurarse que sea número
               const resource = datain.resource;
+
+              // Lista de sellers permitidos
+              const sellersPermitidos = [298477234, 452306476, 23598767, 746339074];
+
+              if (!sellersPermitidos.includes(seller_id)) {
+                console.log(`⛔ Seller ${seller_id} no está permitido. Mensaje descartado.`);
+                channel.ack(msg); // marcar como procesado para no reintentar
+                return;
+              }
 
               const token = await getTokenForSeller(seller_id);
 
@@ -170,6 +179,8 @@ async function listenToChannel(channelName) {
               }
 
               const dataredis = await getdataSeller(seller_id);
+              console.log(`Datos del vendedor ${seller_id}:`, dataredis);
+
               const connLocal = await getConnectionLocal(dataredis.idempresa);
 
               if (token != null) {
