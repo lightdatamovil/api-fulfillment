@@ -159,6 +159,8 @@ async function listenToChannel(channelName) {
 
               // Lista de sellers permitidos
               const sellersPermitidos = [298477234, 452306476, 23598767, 746339074];
+              console.log(`🔍 Verificando seller_id: ${seller_id}`);
+
 
               if (!sellersPermitidos.includes(seller_id)) {
                 //  console.log(`⛔ Seller ${seller_id} no está permitido. Mensaje descartado.`);
