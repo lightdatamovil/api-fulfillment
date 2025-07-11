@@ -114,105 +114,98 @@ async function obtenerDatosEnvioML(resource, token) {
 }
 
 async function listenToChannel(channelName) {
-  let connection;
-  let channel;
+  let connection = null;
+  let channel = null;
+  let isConnecting = false;
 
   const connect = async () => {
+    if (isConnecting) return;
+    isConnecting = true;
+
+    // 🔁 Cerramos conexiones anteriores por las dudas
+    if (channel) {
+      try {
+        await channel.close();
+        console.log("Canal anterior cerrado correctamente.");
+      } catch (e) {
+        console.warn("No se pudo cerrar el canal anterior:", e.message);
+      }
+    }
+    if (connection) {
+      try {
+        await connection.close();
+        console.log("Conexión anterior cerrada correctamente.");
+      } catch (e) {
+        console.warn("No se pudo cerrar la conexión anterior:", e.message);
+      }
+    }
+
     try {
       connection = await amqp.connect(RABBITMQ_URL);
       channel = await connection.createChannel();
       await channel.assertQueue(channelName, { durable: true });
 
-      console.log(`Escuchando mensajes en el canal: ${channelName}`);
+      console.log(`✅ Escuchando mensajes en el canal: ${channelName}`);
+
       channel.consume(
         channelName,
         async (msg) => {
           if (msg !== null) {
-            //     console.log(`Mensaje recibido en ${channelName}:`, msg.content.toString());
-            // {"resource":"/orders/2000011401704360","sellerid":"452306476","fecha":"2025-04-25 14:05:09"}
+            try {
+              const datain = JSON.parse(msg.content.toString());
+              const seller_id = datain.sellerid;
+              const resource = datain.resource;
 
-            const datain = JSON.parse(msg.content.toString());
+              const token = await getTokenForSeller(seller_id);
 
-            const seller_id = datain.sellerid;
-            const resource = datain.resource;
-
-            // console.log(seller_id, resource);
-
-            const token = await getTokenForSeller(seller_id);
-            //   console.log(token);
-
-            // 🔵 Agrego correctamente la función getdataSeller adentro
-            async function getdataSeller(seller_id) {
-              try {
-                if (!redisClient.isOpen) {
-                  await redisClient.connect();
-                }
-                const data = await redisClient.hGet(
-                  "seller_ff_data",
-                  seller_id
-                ); // ahora uso la key correcta
-                if (data) {
-                  const parsedData = JSON.parse(data);
-                  ///  console.log('Datos del Seller:', parsedData);
-                  return parsedData; // 🔹 Devolver los datos parseados
-                } else {
-                  console.log(
-                    `No se encontró data para seller_id: ${seller_id}`
-                  );
+              async function getdataSeller(seller_id) {
+                try {
+                  if (!redisClient.isOpen) await redisClient.connect();
+                  const data = await redisClient.hGet("seller_ff_data", seller_id);
+                  return data ? JSON.parse(data) : null;
+                } catch (err) {
+                  console.error("Error al obtener datos de Redis:", err);
                   return null;
                 }
-              } catch (err) {
-                console.error("Error al obtener datos de Redis:", err);
-                return null;
               }
-            }
 
-            // 🔵 Llamo correctamente la función y obtengo dataredis
-            const dataredis = await getdataSeller(seller_id);
+              const dataredis = await getdataSeller(seller_id);
+              const connLocal = await getConnectionLocal(dataredis.idempresa);
 
-            //   console.log(dataredis,"datos de redis");
+              if (token != null) {
+                const dataOrder = await obtenerDatosEnvioML(resource, token);
+                const keyorder = `${dataOrder.id}-${seller_id}`;
 
-            const connection = await getConnectionLocal(dataredis.idempresa);
+                await InsertOrder(connLocal, dataOrder, dataredis);
 
-            if (token != null) {
-              const dataOrder = await obtenerDatosEnvioML(resource, token);
-              // console.log(JSON.stringify(dataOrder, null, 2));
-              const keyorder = dataOrder.id + "-" + seller_id;
-
-              const ResultOrdenes = await InsertOrder(
-                connection,
-                dataOrder,
-                dataredis
-              );
-
-              if (!Aorders.includes(keyorder)) {
-                Aorders.push(keyorder);
-
-                // inserto
-
-                // actualizo estado
-              } else {
-                // actualizo estado
+                if (!Aorders.includes(keyorder)) {
+                  Aorders.push(keyorder);
+                  // insertar y actualizar
+                } else {
+                  // solo actualizar
+                }
               }
-            }
 
-            channel.ack(msg); // Reconocer el mensaje manualmente
+              channel.ack(msg);
+            } catch (err) {
+              console.error("Error procesando mensaje:", err);
+              channel.nack(msg, false, false); // O descartá el mensaje
+            }
           }
         },
         { noAck: false }
       );
 
+      // 👇 Solo reconectamos desde acá
       connection.on("close", () => {
-        console.log("La conexión con RabbitMQ se cerró. Reintentando...");
+        console.warn("⚠️ Conexión cerrada. Reintentando en 1s...");
+        isConnecting = false;
         setTimeout(connect, 1000);
       });
 
-      channel.on("close", () => {
-        console.log("El canal se cerró. Reintentando...");
-        setTimeout(connect, 1000);
-      });
     } catch (error) {
-      console.error(`Error al escuchar el canal ${channelName}:`, error);
+      console.error(`❌ Error al conectar al canal ${channelName}:`, error);
+      isConnecting = false;
       setTimeout(connect, 1000);
     }
   };
