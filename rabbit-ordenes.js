@@ -158,7 +158,7 @@ async function listenToChannel(channelName) {
               const resource = datain.resource;
 
               // Lista de sellers permitidos
-              const sellersPermitidos = [298477234, 452306476, 23598767, 746339074];
+              const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
               console.log(`🔍 Verificando seller_id: ${seller_id}`);
 
 
