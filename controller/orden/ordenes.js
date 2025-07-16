@@ -177,33 +177,39 @@ class Ordenes {
 
             // 1. Consultar total de ítems
             const countQuery = `
-          SELECT COUNT(*) AS totalItems 
-          FROM ordenes_items 
-          WHERE didOrden = ? AND elim = 0 AND superado = 0
-      `
+                SELECT COUNT(*) AS totalItems 
+                FROM ordenes_items 
+                WHERE didOrden = ? AND elim = 0 AND superado = 0
+            `
             const countResult = await executeQuery(connection, countQuery, [did])
             const totalItems = countResult[0]?.totalItems ?? 0
             const totalPages = Math.ceil(totalItems / cantidad)
 
             // 2. Consultar datos de la orden con ítems paginados
             const query = `
-          SELECT 
-              o.id, o.did, o.didEnvio, o.didCliente, o.didCuenta, o.status, o.flex, 
-              o.number, o.fecha_venta, o.observaciones, o.armado, o.descargado, 
-              o.fecha_armado, o.quien_armado, o.autofecha AS orden_autofecha,
-              oi.codigo, oi.imagen, oi.descripcion, oi.ml_id, oi.dimensions, 
-              oi.cantidad, oi.variacion, oi.seller_sku, 
-              oi.descargado AS item_descargado, 
-              oi.autofecha AS item_autofecha
-          FROM ordenes o
-          LEFT JOIN (
-              SELECT * FROM ordenes_items 
-              WHERE elim = 0 AND superado = 0 
-              AND didOrden = ?
-              LIMIT ? OFFSET ?
-          ) AS oi ON o.did = oi.didOrden
-          WHERE o.did = ? AND o.elim = 0 AND o.superado = 0
-      `
+                SELECT 
+                    o.id, o.did, o.didEnvio, o.didCliente, o.didCuenta, o.status, o.flex, 
+                    o.number, o.fecha_venta, o.observaciones, o.armado, o.descargado, 
+                    o.fecha_armado, o.quien_armado, o.autofecha AS orden_autofecha,
+
+
+                    o.ml_shipment_id, o.ml_id, o.ml_pack_id, o.buyer_id, o.buyer_nickname, 
+                    o.buyer_name, o.buyer_last_name, o.total_amount, o.seller_id, o.didOt,
+
+                    oi.codigo, oi.imagen, oi.descripcion, oi.ml_id AS item_ml_id, oi.dimensions, 
+                    oi.cantidad, oi.variacion, oi.seller_sku, 
+                    oi.descargado AS item_descargado, 
+                    oi.autofecha AS item_autofecha,
+                    oi.idVariacion, oi.user_product_id, oi.variation_attributes
+                FROM ordenes o
+                LEFT JOIN (
+                    SELECT * FROM ordenes_items 
+                    WHERE elim = 0 AND superado = 0 
+                    AND didOrden = ?
+                    LIMIT ? OFFSET ?
+                ) AS oi ON o.did = oi.didOrden
+                WHERE o.did = ? AND o.elim = 0 AND o.superado = 0
+            `
 
             const results = await executeQuery(connection, query, [did, cantidad, offset, did])
 
@@ -225,6 +231,14 @@ class Ordenes {
                 fecha_armado: results[0].fecha_armado,
                 quien_armado: results[0].quien_armado,
                 autofecha: results[0].orden_autofecha,
+                ml_shipment_id: results[0].ml_shipment_id,
+                ml_pack_id: results[0].ml_pack_id,
+                idComprador: results[0].buyer_id,
+                usuarioComprador: results[0].buyer_nickname,
+                nombreComprador: `${results[0].buyer_name} ${results[0].buyer_last_name}`,
+                total: results[0].total_amount,
+                seller_id: results[0].seller_id,
+                didOt: results[0].didOt,
                 items: [],
             }
 
@@ -235,12 +249,15 @@ class Ordenes {
                         imagen: row.imagen,
                         descripcion: row.descripcion,
                         ml_id: row.ml_id,
-                        dimensions: row.dimensions,
+                        dimensiones: row.dimensions,
                         cantidad: row.cantidad,
                         variacion: row.variacion,
                         seller_sku: row.seller_sku,
                         descargado: row.item_descargado,
                         autofecha: row.item_autofecha,
+                        idVariacion: row.variacion,
+                        user_product_id: row.user_product_id,
+                        variacionAtributos: row.variation_attributes,
                     })
                 }
             }
@@ -257,6 +274,7 @@ class Ordenes {
             throw error // Lanzar error para manejo superior
         }
     }
+
     async getTodasLasOrdenes(connection, pagina = 1, cantidad = 10, filtros = {}) {
         try {
             pagina = parseInt(pagina)
@@ -467,6 +485,7 @@ class Ordenes {
             throw error
         }
     }
+
     async delete(connection, did) {
         try {
             const deleteQuery = "UPDATE ordenes SET elim = 1 WHERE did = ?"
