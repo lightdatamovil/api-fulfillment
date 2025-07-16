@@ -354,7 +354,7 @@ orden.post("/getOrdenes", async (req, res) => {
   }
 })
 
-orden.post("/getOrdenesById", verificarToken, async (req, res) => {
+orden.post("/getOrdenById", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const ordenes = new Ordenes();
@@ -362,7 +362,7 @@ orden.post("/getOrdenesById", verificarToken, async (req, res) => {
     const response = await ordenes.getOrdenPorId(connection, data.did);
     return res.status(200).json({
       estado: true,
-      message: "Órdenes obtenidas correctamente",
+
       data: response["orden"],
     });
   } catch (error) {
