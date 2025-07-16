@@ -213,13 +213,20 @@ class Ordenes {
 
             const results = await executeQuery(connection, query, [did, cantidad, offset, did])
 
+            let cliente = ""
+            const clienteQuery = `SELECT nombre_fantasia FROM clientes WHERE did = ?`
+            const clienteResult = await executeQuery(connection, clienteQuery, [results[0].didCliente])
+            if (clienteResult.length > 0) {
+                cliente = clienteResult[0].nombre_fantasia
+            }
+
             if (results.length === 0) return null
 
             const orden = {
                 id: results[0].id,
                 did: results[0].did,
                 didEnvio: results[0].didEnvio,
-                didCliente: results[0].didCliente,
+                cliente,
                 didCuenta: results[0].didCuenta,
                 status: results[0].status,
                 flex: results[0].flex,
