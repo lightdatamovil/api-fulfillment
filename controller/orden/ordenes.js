@@ -201,8 +201,8 @@ class Ordenes {
               WHERE elim = 0 AND superado = 0 
               AND didOrden = ?
               LIMIT ? OFFSET ?
-          ) AS oi ON o.id = oi.didOrden
-          WHERE o.id = ? AND o.elim = 0 AND o.superado = 0
+          ) AS oi ON o.did = oi.didOrden
+          WHERE o.did = ? AND o.elim = 0 AND o.superado = 0
       `
 
             const results = await executeQuery(connection, query, [did, cantidad, offset, did])
@@ -354,6 +354,7 @@ class Ordenes {
             const total = countResult[0]?.total || 0
             const totalPages = Math.ceil(total / cantidad)
             const datosFormateados = results.map((orden) => ({
+                did: orden.did,
                 cliente: orden.cliente,
                 fecha: orden.fecha_venta,
                 origen: orden.flex,
