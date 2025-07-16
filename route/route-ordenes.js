@@ -376,6 +376,30 @@ orden.post("/getOrdenById", async (req, res) => {
     connection.end();
   }
 });
+orden.post("/deleteOrden", async (req, res) => {
+  const data = req.body;
+  const connection = await getConnectionLocal(data.idEmpresa);
+
+  try {
+    const orden = new Ordenes();
+    const response = await orden.delete(connection, data.did);
+    console.log("Respuesta de delete:", response);
+    return res.status(200).json({
+      estado: response.estado !== undefined ? response.estado : false,
+      message: response.message || response,
+    });
+  } catch (error) {
+    console.error("Error durante la operación:", error);
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+
 //
 
 orden.get("/", async (req, res) => {
