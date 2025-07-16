@@ -3,12 +3,6 @@ const { logYellow, logBlue } = require("../../fuctions/logsCustom")
 const { format } = require("date-fns")
 let clientesCache = {}
 
-// Mapeo de valores de flex a descripciones
-const flexMap = {
-    1: "ML",
-    2: "Tienda Nube",
-}
-
 class Ordenes {
     constructor(
         did = "",
@@ -363,8 +357,6 @@ class Ordenes {
                 }
                 // Asignar el nombre del cliente desde la caché
                 orden.cliente = clientesCache[clienteId]
-                // Mapear el valor de flex a su descripción
-                orden.flex = flexMap[orden.flex] || "Desconocido"
                 if (orden.ot == 0) {
                     orden.ot = ""
                 }
@@ -458,24 +450,24 @@ class Ordenes {
             const whereClause = condiciones.length ? `WHERE ${condiciones.join(" AND ")}` : ""
 
             const query = `
-      SELECT id, did, didEnvio, didCliente, didCuenta, status, flex, 
-             number, fecha_venta, observaciones, armado, descargado, 
-             fecha_armado, quien_armado, autofecha, ml_shipment_id, 
-             ml_id, ml_pack_id, buyer_id, buyer_nickname, 
-             buyer_name, buyer_last_name, total_amount
-      FROM ordenes
-      ${whereClause}
-      ORDER BY id DESC
-      LIMIT ? OFFSET ?
-    `
+                SELECT id, did, didEnvio, didCliente, didCuenta, status, flex, 
+                        number, fecha_venta, observaciones, armado, descargado, 
+                        fecha_armado, quien_armado, autofecha, ml_shipment_id, 
+                        ml_id, ml_pack_id, buyer_id, buyer_nickname, 
+                        buyer_name, buyer_last_name, total_amount
+                FROM ordenes
+                ${whereClause}
+                ORDER BY id DESC
+                LIMIT ? OFFSET ?
+                `
 
             const results = await executeQuery(connection, query, [...valores, cantidad, offset])
 
             const countQuery = `
-      SELECT COUNT(*) AS total 
-      FROM ordenes
-      ${whereClause}
-    `
+                SELECT COUNT(*) AS total 
+                FROM ordenes
+                ${whereClause}
+                `
             const countResult = await executeQuery(connection, countQuery, valores)
             const total = countResult[0]?.total || 0
             const totalPages = Math.ceil(total / cantidad)
