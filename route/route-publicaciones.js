@@ -87,14 +87,11 @@ publicaciones.post("/juntar", async (req, res) => {
 })
 
 publicaciones.post("/uni", async (req, res) => {
-
     try {
-        // const data = req.body;
-        //   const connection = await getConnectionLocal(data.idEmpresa);
-        //console.log("data", data);
+        const { tn = true, ml = true, pagina = 1, cantidad = 20 } = req.body;
 
+        const publicaciones = await unificarPublicaciones(pagina, cantidad, tn, ml);
 
-        const publicaciones = await unificarPublicaciones();
         res.status(200).json({
             estado: true,
             response: publicaciones,
@@ -104,13 +101,11 @@ publicaciones.post("/uni", async (req, res) => {
         console.error("Error en publicacionesML:", error);
         return res.status(500).json({
             estado: false,
-            mensaje: "Error al obtener los atributos del producto.",
+            mensaje: "Error al obtener las publicaciones.",
             error: error.message,
         });
     }
-
-
-})
+});
 
 publicaciones.post("/getProductosImportados", async (req, res) => {
 

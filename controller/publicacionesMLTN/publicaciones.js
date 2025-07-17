@@ -413,7 +413,7 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
     }
 }
 
-async function unificarPublicaciones(pagina = 1, cantidad = 20) {
+/*async function unificarPublicaciones(pagina = 1, cantidad = 20) {
     // Obtener publicaciones de Tiendanube
     const publicacionesTN = await getPublicacionesTNSimplificado(pagina, cantidad);
     //  return publicacionesTN
@@ -522,6 +522,117 @@ async function unificarPublicaciones(pagina = 1, cantidad = 20) {
         }
     };
 }
+    */
+
+async function unificarPublicaciones(pagina = 1, cantidad = 20, tn = true, ml = false) {
+    const publicacionesUnificadas = {};
+
+    // --- Obtener y procesar publicaciones de Tiendanube ---
+    if (tn) {
+        const publicacionesTN = await getPublicacionesTNSimplificado(pagina, cantidad);
+        if (!publicacionesTN.estado) {
+            console.error("Error al obtener publicaciones de Tiendanube:", publicacionesTN.response?.resultados);
+            return { estado: false, mensaje: "Error al obtener publicaciones de Tiendanube" };
+        }
+
+        for (const pubTN of publicacionesTN.response.resultados) {
+            const variant = pubTN.data_variant;
+            const sku = variant.sku || 'Sin SKU';
+
+            if (!publicacionesUnificadas[sku]) {
+                publicacionesUnificadas[sku] = {
+                    titulo: pubTN.producto,
+                    sku: sku,
+                    precio: variant.price,
+                    imagenUrl: variant.image_url,
+                    variantes: [],
+                    union: []
+                };
+            }
+
+            const varianteTN = {
+                id: pubTN.id_producto,
+                image_url: variant.image_url,
+                product_id: pubTN.id_producto,
+                price: variant.price,
+                weight: variant.weight || "0.000",
+                sku: variant.sku,
+                values: variant.values || [],
+                visible: true
+            };
+
+            publicacionesUnificadas[sku].variantes.push(varianteTN);
+
+            publicacionesUnificadas[sku].union.push({
+                tipo: 2,
+                seller_id: pubTN.tienda_id,
+                idProducto: pubTN.id_producto
+            });
+        }
+
+        // Si solo se quiere TN, devolver acá
+        if (!ml) {
+            return {
+                estado: true,
+                response: {
+                    publicaciones: Object.values(publicacionesUnificadas)
+                }
+            };
+        }
+    }
+
+    // --- Obtener y procesar publicaciones de Mercado Libre ---
+    if (ml) {
+        const publicacionesML = await getPublicacionesMLSimplificado(pagina, cantidad);
+        if (!publicacionesML.estado) {
+            console.error("Error al obtener publicaciones de Mercado Libre:", publicacionesML.response);
+            return { estado: false, mensaje: "Error al obtener publicaciones de Mercado Libre" };
+        }
+
+        for (const pubML of publicacionesML.response.resultados) {
+            const sku = pubML.variaciones.map(v => v.sku).join(" / ") || 'Sin SKU';
+
+            if (!publicacionesUnificadas[sku]) {
+                publicacionesUnificadas[sku] = {
+                    titulo: pubML.producto,
+                    atributo: pubML.atributo,
+                    sku: sku,
+                    precio: pubML.precio,
+                    imagenUrl: pubML.imagenUrl,
+                    variantes: [],
+                    union: []
+                };
+            }
+
+            const varianteML = {
+                id: pubML.id,
+                image_url: pubML.imagenUrl,
+                product_id: pubML.id,
+                price: pubML.precio,
+                weight: pubML.weight || "0.000",
+                sku: pubML.variaciones.map(v => v.sku).join(" / "),
+                values: pubML.variaciones.map(v => ({ es: v.value })) || [],
+                visible: true
+            };
+
+            publicacionesUnificadas[sku].variantes.push(varianteML);
+
+            publicacionesUnificadas[sku].union.push({
+                tipo: 1,
+                seller_id: pubML.sellerId,
+                idProducto: pubML.id
+            });
+        }
+    }
+
+    return {
+        estado: true,
+        response: {
+            publicaciones: Object.values(publicacionesUnificadas)
+        }
+    };
+}
+
 async function construirAtributosConDids(connection) {
     const resultado = [];
     const respuesta = await unificarPublicaciones();
