@@ -524,7 +524,7 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
 }
     */
 
-async function unificarPublicaciones(pagina = 1, cantidad = 20, tn = true, ml = false) {
+async function unificarPublicaciones(pagina = 1, cantidad = 20, tn = true, ml = true) {
     const publicacionesUnificadas = {};
 
     // --- Obtener y procesar publicaciones de Tiendanube ---
