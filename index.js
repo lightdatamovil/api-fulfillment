@@ -53,7 +53,7 @@ const PORT = 13000;
 
     process.on("SIGINT", async () => {
       console.log("Cerrando servidor...");
-      await redisClient.disconnect();
+
       process.exit();
     });
   } catch (err) {
