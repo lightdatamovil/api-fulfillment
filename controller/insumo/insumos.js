@@ -1,5 +1,4 @@
-const e = require("cors")
-const { getConnection, executeQuery } = require("../../dbconfig")
+const { executeQuery } = require("../../dbconfig")
 
 class Insumo {
     constructor(did = "", nombre = "", didCliente = "", codigo = 0, clientes = "", unidad = 0, habilitado = 0, quien = 0, superado = 0, elim = 0, connection = null) {

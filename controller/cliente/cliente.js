@@ -1,4 +1,4 @@
-const { getConnection, executeQuery } = require("../../dbconfig");
+const { executeQuery } = require("../../dbconfig");
 const { logYellow } = require("../../fuctions/logsCustom");
 function encodeArr(data) {
   const json = JSON.stringify(data); // Serializa el objeto

@@ -1,6 +1,5 @@
 const e = require("cors");
-const { getConnection, executeQuery } = require("../../dbconfig");
-
+const { executeQuery } = require("../../dbconfig");
 class Atributo {
   constructor(
     did = "",
@@ -8,9 +7,7 @@ class Atributo {
     descripcion = "",
     orden = 0,
     habilitado = 0,
-
     codigo = "",
-
     quien = 0,
     superado = 0,
     elim = 0,
@@ -21,19 +18,15 @@ class Atributo {
     this.descripcion = descripcion || "";
     this.orden = orden || 0;
     this.habilitado = habilitado;
-
     this.codigo = codigo || "";
     this.quien = quien || 0;
     this.superado = superado || 0;
     this.elim = elim || 0;
-
     this.connection = connection;
   }
-
   toJSON() {
     return JSON.stringify(this);
   }
-
   async insert() {
     try {
       if (this.did === null || this.did === "") {
@@ -132,55 +125,6 @@ class Atributo {
       throw error;
     }
   }
-
-  /*async getAll(connection) {
-  try {
-    const selectQuery = `
-      SELECT 
-        a.did AS atributo_id,
-        a.nombre,
-        a.codigo AS atributo_codigo,
-        a.descripcion,
-        av.did AS valor_id,
-        av.codigo AS valor_codigo,
-        av.valor AS valor_nombre
-      FROM atributos a
-      LEFT JOIN atributos_valores av ON av.didAtributo = a.did AND av.elim = 0
-      WHERE a.elim = 0 AND a.superado = 0
-      ORDER BY a.did, av.did
-    `;
-
-    const results = await executeQuery(connection, selectQuery, []);
-
-    // Agrupar por atributo
-    const atributosMap = new Map();
-
-    for (const row of results) {
-      if (!atributosMap.has(row.atributo_id)) {
-        atributosMap.set(row.atributo_id, {
-          nombre: row.nombre,
-          codigo: row.atributo_codigo,
-          did: row.atributo_id,
-          descripcion: row.descripcion,
-          valores: []
-        });
-      }
-
-      if (row.valor_id) {
-        atributosMap.get(row.atributo_id).valores.push({
-          did: row.valor_id,
-          codigo: row.valor_codigo,
-          nombre: row.valor_nombre
-        });
-      }
-    }
-
-    return Array.from(atributosMap.values());
-  } catch (error) {
-    throw error;
-  }
-}
-*/
 
   async getAll(connection, did) {
     try {
@@ -351,5 +295,4 @@ class Atributo {
     }
   }
 }
-
 module.exports = Atributo;

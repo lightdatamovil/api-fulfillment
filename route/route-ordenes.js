@@ -1,12 +1,9 @@
 const express = require("express")
 const orden = express.Router()
-
 const multer = require("multer")
 const xlsx = require("xlsx")
 const fs = require("fs")
-
 const { getConnectionLocal } = require("../dbconfig")
-
 const Ordenes = require("../controller/orden/ordenes")
 const Ordenes_items = require("../controller/orden/ordenes_items")
 const OrdenesHistorial = require("../controller/orden/ordenes_historial")

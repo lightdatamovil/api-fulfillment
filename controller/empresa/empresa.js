@@ -1,6 +1,6 @@
 const crypto = require('crypto');
-const { getConnection, executeQuery } = require('../../dbconfig');
-const { log } = require('console');
+const { executeQuery } = require('../../dbconfig');
+
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex'); // Generar un salt aleatorio
@@ -72,25 +72,25 @@ class Empresa {
     try {
       const columnsQuery = 'DESCRIBE sistema_empresa';
       const results = await executeQuery(connection, columnsQuery, []);
-  
+
       const tableColumns = results.map((column) => column.Field);
       const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
-  
+
       // 🧂 Hasheamos la contraseña si está presente y no está ya en formato $5$
       if (this.pass && !this.pass.startsWith('$5$')) {
         this.pass = hashPassword(this.pass); // Usamos hashPassword aquí
       }
-  
+
       const values = filteredColumns.map((column) => this[column]);
       const insertQuery = `INSERT INTO sistema_empresa (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
-  
+
       const insertResult = await executeQuery(connection, insertQuery, values);
-  
+
       if (this.did == 0 || this.did == null) {
         const updateQuery = 'UPDATE sistema_empresa SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
       }
-  
+
       return { insertId: insertResult.insertId };
     } catch (error) {
       throw error;
@@ -110,7 +110,7 @@ class Empresa {
     }
   }
 
-  
+
 }
 
 module.exports = Empresa;

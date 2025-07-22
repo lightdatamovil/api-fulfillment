@@ -1,12 +1,6 @@
 const express = require("express");
 const usuario = express.Router();
-
-const {
-  redisClient,
-  getConnection,
-  getCompanyById,
-  getConnectionLocal,
-} = require("../dbconfig");
+const { getConnectionLocal, } = require("../dbconfig");
 const Usuario = require("../controller/usuario/usuario");
 const verificarToken = require("../middleware/token");
 

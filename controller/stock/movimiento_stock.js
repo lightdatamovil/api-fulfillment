@@ -1,7 +1,5 @@
-const { getConnection, executeQuery } = require('../../dbconfig');
+const { executeQuery } = require('../../dbconfig');
 const Stock = require('./stock');
-const StockConsolidado = require('./stock_consolidado');
-
 class MovimientoStock {
     constructor(
         did = "",
@@ -28,10 +26,10 @@ class MovimientoStock {
         try {
             const insertResult = await this.createNewRecord(this.connection);
             console.log("✅ Insertado lote de movimiento_stock con ID:", insertResult.insertId);
-    
+
             for (const mov of this.data) {
-            
-    
+
+
                 const stock = new Stock(
                     0,
                     mov.didProducto,
@@ -42,13 +40,13 @@ class MovimientoStock {
                     0,
                     this.connection
                 );
-    
+
                 await stock.insert();
-           
+
             }
-    
-           
-    
+
+
+
             return { estado: true, insertId: insertResult.insertId };
         } catch (error) {
             console.error("❌ Error en insert:", error.message);
@@ -62,16 +60,16 @@ class MovimientoStock {
             };
         }
     }
-    
+
 
     async createNewRecord(connection) {
         const columnsQuery = 'DESCRIBE movimientos_stock';
         const results = await executeQuery(connection, columnsQuery, []);
         const tableColumns = results.map((column) => column.Field);
-    
+
         // Creamos copia de datos para insertar
         const tempData = {};
-    
+
         for (const column of tableColumns) {
             if (this[column] !== undefined) {
                 if (column === 'data') {
@@ -81,19 +79,19 @@ class MovimientoStock {
                 }
             }
         }
-    
+
         const filteredColumns = Object.keys(tempData);
         const values = Object.values(tempData);
-    
+
         const insertQuery = `INSERT INTO movimientos_stock (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
         const insertResult = await executeQuery(connection, insertQuery, values);
-    
+
         const updateQuery = 'UPDATE movimientos_stock SET did = ? WHERE id = ?';
         await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
-    
+
         return { insertId: insertResult.insertId };
     }
-    
+
     async update() {
         try {
             const updateQuery = 'UPDATE movimientos_stock SET superado = 1 WHERE did = ?';

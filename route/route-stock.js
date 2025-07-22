@@ -1,17 +1,7 @@
 const express = require("express");
 const stock = express.Router();
-
-const {
-  redisClient,
-  getConnection,
-  getCompanyById,
-  getConnectionLocal,
-} = require("../dbconfig");
-
-const { logRed } = require("../fuctions/logsCustom");
-
+const { getConnectionLocal, } = require("../dbconfig");
 const StockConsolidado = require("../controller/stock/stock_consolidado");
-
 const Stock = require("../controller/stock/stock");
 const MovimientoStock = require("../controller/stock/movimiento_stock");
 

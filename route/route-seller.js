@@ -1,14 +1,11 @@
 const express = require('express');
 const seller = express.Router();
-const { getConnectionLocal } = require('../dbconfig');
-const Empresa = require('../controller/empresa/empresa');
-const { guardarEmpresasMap } = require('../fuctions/empresaMap');
 const { saveSellerRedis } = require('../controller/seller/seller');
 
-seller.post ('/', async (req, res) => {
+seller.post('/', async (req, res) => {
     const data = req.body;
     try {
-        const save =  await saveSellerRedis(data.seller, data);
+        const save = await saveSellerRedis(data.seller, data);
         return res.status(200).json({
             estado: true,
             message: save
@@ -24,10 +21,10 @@ seller.post ('/', async (req, res) => {
 });
 
 seller.get("/", async (req, res) => {
-  res.status(200).json({
-    estado: true,
-    mesanje: "Hola chris"
-  });
+    res.status(200).json({
+        estado: true,
+        mesanje: "Hola chris"
+    });
 });
 
 module.exports = seller;

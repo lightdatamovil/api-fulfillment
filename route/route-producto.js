@@ -1,21 +1,11 @@
 const express = require("express");
 const producto = express.Router();
-
-const {
-  redisClient,
-  getConnection,
-  getCompanyById,
-  getConnectionLocal,
-} = require("../dbconfig");
-
-const { logRed } = require("../fuctions/logsCustom");
+const { getConnectionLocal, } = require("../dbconfig");
 const verificarToken = require("../middleware/token");
-
 const ProductoCombo = require("../controller/producto/productoCombo");
 const ProductoDeposito = require("../controller/producto/productoDeposito");
 const ProductoEcommerce = require("../controller/producto/productoEcommerce");
 const ProductO1 = require("../controller/producto/producto");
-const StockConsolidado = require("../controller/stock/stock_consolidado");
 const ProductoInsumo = require("../controller/producto/productoInsumo");
 const ProductoVariantes = require("../controller/producto/productoVariaciones");
 

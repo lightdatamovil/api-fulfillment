@@ -1,4 +1,4 @@
-const { getConnection, executeQuery } = require('../../dbconfig');
+const { executeQuery } = require('../../dbconfig');
 
 class StockConsolidado {
     constructor(
@@ -51,8 +51,8 @@ class StockConsolidado {
 
             const values = filteredColumns.map((column) => this[column]);
             const insertQuery = `INSERT INTO stock_consolidado (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
-           
-            
+
+
             const insertResult = await executeQuery(connection, insertQuery, values);
             const updateQuery = 'UPDATE stock_consolidado SET did = ? WHERE id = ?';
             await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);

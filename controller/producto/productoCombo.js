@@ -1,4 +1,4 @@
-const { getConnection, executeQuery } = require("../../dbconfig");
+const { executeQuery } = require("../../dbconfig");
 
 class ProductoCombo {
   constructor(
@@ -160,8 +160,8 @@ class ProductoCombo {
         UPDATE productos_combos
         SET elim = 1
         WHERE didProducto = ? AND did NOT IN (${didsActuales
-          .map(() => "?")
-          .join(", ")}) AND elim = 0
+            .map(() => "?")
+            .join(", ")}) AND elim = 0
       `;
         params = [didAtributo, ...didsActuales];
       } else {

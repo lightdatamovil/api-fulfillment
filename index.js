@@ -1,7 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const { redisClient, getFromRedis } = require("./dbconfig");
 const { cargarEmpresasMap } = require("./fuctions/empresaMap");
 
 // Inicializar variable global
@@ -11,14 +10,6 @@ cargarEmpresasMap();
 // Variable local para empresas de Redis
 let empresasDB = null;
 
-async function actualizarEmpresas() {
-  try {
-    const empresasDataJson = await getFromRedis("empresasData");
-    empresasDB = empresasDataJson || [];
-  } catch (error) {
-    console.error("Error al actualizar empresas desde Redis:", error);
-  }
-}
 
 const app = express();
 app.use(bodyParser.json({ limit: "50mb" }));
@@ -31,23 +22,13 @@ app.use(
   })
 );
 
-// Middleware para actualizar empresas desde Redis si no están
-app.use(async (req, res, next) => {
-  if (!empresasDB) {
-    await actualizarEmpresas();
-  }
-  next();
-});
 
 // Rutas
-app.use("/fulfillment", require("./route/route-fulfillment"));
 app.use("/producto", require("./route/route-producto"));
 app.use("/cliente", require("./route/route-cliente"));
-app.use("/fmas", require("./route/route-fmas"));
 app.use("/empresa", require("./route/route-empresa"));
 app.use("/serviceSellerToken", require("./route/route-seller"));
 app.use("/usuario", require("./route/route-usuario"));
-app.use("/clienteCuenta", require("./route/route-clienteCuenta"));
 app.use("/atributo", require("./route/route-atributo"));
 app.use("/stock", require("./route/route-stock"));
 app.use("/orden", require("./route/route-ordenes"));

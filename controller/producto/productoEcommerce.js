@@ -1,14 +1,6 @@
-const crypto = require("crypto")
-const crypt = require("unix-crypt-td-js")
-const { getConnection, executeQuery } = require("../../dbconfig")
-const { log } = require("console")
-const jwt = require("jsonwebtoken")
-const JWT_SECRET = "tu_clave_secreta"
-function hashPassword(password) {
-    const salt = crypto.randomBytes(16).toString("hex") // Generar un salt aleatorio
-    const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, "sha256").toString("hex")
-    return `$5$${salt}$${hashedPassword}`
-}
+
+const { executeQuery } = require("../../dbconfig")
+
 
 class ProductoEcommerce {
     constructor(did = "", didProducto = 0, didCuenta = 0, flex = 0, variante = "", sku = "", ean = "", url = "", actualizar = 0, quien = 0, superado = 0, elim = 0, connection = null) {

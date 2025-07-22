@@ -1,14 +1,4 @@
-const crypto = require("crypto")
-const crypt = require("unix-crypt-td-js")
-const { getConnection, executeQuery } = require("../../dbconfig")
-const { log } = require("console")
-const jwt = require("jsonwebtoken")
-const JWT_SECRET = "tu_clave_secreta"
-function hashPassword(password) {
-    const salt = crypto.randomBytes(16).toString("hex") // Generar un salt aleatorio
-    const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, "sha256").toString("hex")
-    return `$5$${salt}$${hashedPassword}`
-}
+const { executeQuery } = require("../../dbconfig")
 
 class ProductoInsumo {
     constructor(
@@ -17,7 +7,6 @@ class ProductoInsumo {
         didInsumo = 0,
         cantidad = 0,
         habilitado = 0,
-
         quien = 0,
         superado = 0,
         elim = 0,
@@ -28,9 +17,7 @@ class ProductoInsumo {
         this.didInsumo = didInsumo
         this.cantidad = cantidad
         this.habilitado = habilitado
-
         this.quien = quien || 0
-
         this.superado = superado || 0
         this.elim = elim || 0
         this.connection = connection

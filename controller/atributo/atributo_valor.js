@@ -1,5 +1,5 @@
 const e = require("cors");
-const { getConnection, executeQuery } = require("../../dbconfig");
+const { executeQuery } = require("../../dbconfig");
 
 class Atributo_valor {
   constructor(
@@ -19,12 +19,10 @@ class Atributo_valor {
     this.valor = valor || "";
     this.orden = orden || 0;
     this.habilitado = habilitado || 1;
-
     this.codigo = codigo || "";
     this.quien = quien || 0;
     this.superado = superado || 0;
     this.elim = elim || 0;
-
     this.connection = connection;
   }
 
@@ -168,8 +166,8 @@ class Atributo_valor {
         UPDATE atributos_valores
         SET elim = 1
         WHERE didAtributo = ? AND did NOT IN (${didsActuales
-          .map(() => "?")
-          .join(", ")}) AND elim = 0
+            .map(() => "?")
+            .join(", ")}) AND elim = 0
       `;
         params = [didAtributo, ...didsActuales];
       } else {

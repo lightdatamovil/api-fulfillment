@@ -1,4 +1,4 @@
-const { getConnection, executeQuery } = require('../../dbconfig');
+const { executeQuery } = require('../../dbconfig');
 const StockConsolidado = require('./stock_consolidado');
 
 class Stock {
@@ -50,23 +50,23 @@ class Stock {
         try {
             const columnsQuery = 'DESCRIBE stock';
             const results = await executeQuery(connection, columnsQuery, []);
-    
+
             const tableColumns = results.map((column) => column.Field);
             const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
-    
+
             const values = filteredColumns.map((column) => this[column]);
             const insertQuery = `INSERT INTO stock (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
-            
+
             const insertResult = await executeQuery(connection, insertQuery, values);
-    
+
             // Asignar el did como el insertId (si usás eso como identificador único)
             const updateQuery = 'UPDATE stock SET did = ? WHERE id = ?';
             await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
-    
+
             // ----------------------
             // Lógica de Consolidado
             // ----------------------
-    
+
             // Paso 1: Obtener stock anterior no superado
             const selectQuery = `
                 SELECT stock 
@@ -77,7 +77,7 @@ class Stock {
             `;
             const [lastConsolidado] = await executeQuery(connection, selectQuery, [this.didProducto, this.didVariante]);
             const stockAnterior = lastConsolidado ? lastConsolidado.stock : 0;
-    
+
             // Paso 2: Marcar el stock anterior como superado
             if (lastConsolidado) {
                 const markSuperadoQuery = `
@@ -87,10 +87,10 @@ class Stock {
                 `;
                 await executeQuery(connection, markSuperadoQuery, [this.didProducto, this.didVariante]);
             }
-    
+
             // Paso 3: Calcular nuevo stock consolidado y guardar
             const nuevoStock = stockAnterior + this.cantidad;
-    
+
             const stockConsolidado = new StockConsolidado(
                 0,
                 this.didProducto,
@@ -101,17 +101,17 @@ class Stock {
                 0,
                 connection
             );
-    
+
             await stockConsolidado.insert();
-    
+
             return { insertId: insertResult.insertId };
-    
+
         } catch (error) {
             console.error("Error en createNewRecord:", error.message);
             throw error;
         }
     }
-    
+
     async updateExistingRecord(connection) {
         try {
             const updateQuery = 'UPDATE stock SET cantidad = ?, quien = ?, superado = ?, elim = ? WHERE did = ?';
@@ -121,8 +121,6 @@ class Stock {
             throw error;
         }
     }
-
-
 
     async delete(connection, did) {
         try {

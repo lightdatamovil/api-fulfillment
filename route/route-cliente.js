@@ -1,18 +1,11 @@
 const Cliente = require("../controller/cliente/cliente");
-
 const ClienteContacto = require("../controller/cliente/cliente_contacto");
 const ClienteDireccion = require("../controller/cliente/cliente_direccion");
+const Cliente_cuenta = require("../controller/cliente/cliente-cuenta");
 const express = require("express");
 const cliente = express.Router();
-
-const {
-  redisClient,
-  getConnection,
-  getCompanyById,
-  getConnectionLocal,
-} = require("../dbconfig");
+const { getConnectionLocal, } = require("../dbconfig");
 const verificarToken = require("../middleware/token");
-const Cliente_cuenta = require("../controller/cliente/cliente-cuenta");
 
 cliente.post("/postCliente", async (req, res) => {
   const data = req.body;

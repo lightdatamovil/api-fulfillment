@@ -1,6 +1,5 @@
-const { getConnection, getFromRedis, executeQuery } = require("../../dbconfig")
+const { executeQuery } = require("../../dbconfig")
 const { logYellow, logBlue } = require("../../fuctions/logsCustom")
-const { format } = require("date-fns")
 let clientesCache = {}
 
 class Ordenes {

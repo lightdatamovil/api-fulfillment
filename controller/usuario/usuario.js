@@ -1,7 +1,5 @@
 const crypto = require("crypto")
-const crypt = require("unix-crypt-td-js")
-const { getConnection, executeQuery } = require("../../dbconfig")
-const { log } = require("console")
+const { executeQuery } = require("../../dbconfig")
 const jwt = require("jsonwebtoken")
 const JWT_SECRET = "tu_clave_secreta"
 

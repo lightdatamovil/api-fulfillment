@@ -1,18 +1,6 @@
 const express = require("express");
 const publicaciones = express.Router();
-
-const {
-    redisClient,
-    getConnection,
-    getCompanyById,
-    getConnectionLocal,
-} = require("../dbconfig");
-
-const { logRed } = require("../fuctions/logsCustom");
-
-const Atributo = require("../controller/atributo/atributos");
-const Atributo_valor = require("../controller/atributo/atributo_valor");
-const { log } = require("node:console");
+const { getConnectionLocal, } = require("../dbconfig");
 const verificarToken = require("../middleware/token");
 const { getPublicacionesML, getPublicacionesTN, getPublicacionesUnificadas, obtenerDatosUnificados, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosConDids, construirAtributosYProductosConDids, construirAtributosDesdePublicaciones } = require("../controller/publicacionesMLTN/publicaciones");
 

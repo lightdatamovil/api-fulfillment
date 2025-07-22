@@ -1,7 +1,5 @@
-const e = require("cors");
-const { getConnection, executeQuery } = require("../../dbconfig");
-const { roundToNearestHoursWithOptions } = require("date-fns/fp");
 
+const { executeQuery } = require("../../dbconfig");
 class ProductO1 {
   constructor(
     did = "",

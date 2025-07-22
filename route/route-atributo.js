@@ -1,18 +1,11 @@
 const express = require("express");
 const atributo = express.Router();
-
 const {
   redisClient,
-  getConnection,
-  getCompanyById,
   getConnectionLocal,
 } = require("../dbconfig");
-
-const { logRed } = require("../fuctions/logsCustom");
-
 const Atributo = require("../controller/atributo/atributos");
 const Atributo_valor = require("../controller/atributo/atributo_valor");
-const { log } = require("node:console");
 const verificarToken = require("../middleware/token");
 
 atributo.post("/postAtributo", verificarToken, async (req, res) => {
