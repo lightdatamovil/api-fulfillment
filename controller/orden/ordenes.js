@@ -2,7 +2,7 @@ const { executeQuery } = require("../../dbconfig")
 const { logYellow, logBlue } = require("../../fuctions/logsCustom")
 let clientesCache = {}
 
-class Ordenes {
+class Pedidos {
     constructor(
         did = "",
         didEnvio = "",
@@ -80,7 +80,7 @@ class Ordenes {
 
     async checkAndUpdateDidEnvio(connection) {
         try {
-            const checkDidEnvioQuery = "SELECT number,did FROM ordenes WHERE number = ?  and superado = 0 and elim = 0"
+            const checkDidEnvioQuery = "SELECT number,did FROM pedidos WHERE number = ?  and superado = 0 and elim = 0"
             const results = await executeQuery(connection, checkDidEnvioQuery, [this.number, this.didCliente, this.didCuenta, this.flex])
 
             this.did = results[0]?.did || 0
@@ -99,22 +99,22 @@ class Ordenes {
 
     async createNewRecord(connection) {
         try {
-            const columnsQuery = "DESCRIBE ordenes"
+            const columnsQuery = "DESCRIBE pedidos"
             const results = await executeQuery(connection, columnsQuery, [])
 
             const tableColumns = results.map((column) => column.Field)
             const filteredColumns = tableColumns.filter((column) => this[column] !== undefined && !(column === "did" && (this[column] === 0 || this[column] === null)))
 
             const values = filteredColumns.map((column) => this[column])
-            const insertQuery = `INSERT INTO ordenes (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
+            const insertQuery = `INSERT INTO pedidos (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
 
             const insertResult = await executeQuery(connection, insertQuery, values)
             const insertId = insertResult.insertId
             if (this.did == 0 || this.did == null) {
-                const didquery = "select did from ordenes where number = ? "
+                const didquery = "select did from pedidos where number = ? "
                 const didresult = await executeQuery(connection, didquery, [this.number])
                 this.did = didresult[0].did
-                const updateQuery = "UPDATE ordenes SET did = ? WHERE id = ?"
+                const updateQuery = "UPDATE pedidos SET did = ? WHERE id = ?"
                 await executeQuery(connection, updateQuery, [insertId, insertId])
             }
 
@@ -128,7 +128,7 @@ class Ordenes {
 
     async updateRecord(connection) {
         try {
-            const columnsQuery = "DESCRIBE ordenes"
+            const columnsQuery = "DESCRIBE pedidos"
             const results = await executeQuery(connection, columnsQuery, [])
 
             const tableColumns = results.map((column) => column.Field)
@@ -137,7 +137,7 @@ class Ordenes {
             const setClause = filteredColumns.map((column) => `${column} = ?`).join(", ")
             const values = filteredColumns.map((column) => this[column])
 
-            const updateQuery = `UPDATE ordenes SET ${setClause} WHERE number = ?`
+            const updateQuery = `UPDATE pedidos SET ${setClause} WHERE number = ?`
             values.push(this.number) // 'number' va en el WHERE
             console.log(updateQuery, "updateQuery")
 
@@ -153,11 +153,11 @@ class Ordenes {
 
     async eliminar(connection, did) {
         try {
-            const deleteQuery = "UPDATE ordenes set elim = 1 WHERE did = ?"
+            const deleteQuery = "UPDATE pedidos set elim = 1 WHERE did = ?"
             await executeQuery(connection, deleteQuery, [did])
-            const deletetequery2 = "UPDATE ordenes_items set elim = 1 WHERE didOrden = ? and superado = 0"
+            const deletetequery2 = "UPDATE pedidos_items set elim = 1 WHERE didOrden = ? and superado = 0"
             await executeQuery(connection, deletetequery2, [did])
-            const deletequery3 = "UPDATE ordenes_historial set elim = 1 WHERE didOrden = ? and superado = 0"
+            const deletequery3 = "UPDATE pedidos set elim = 1 WHERE didOrden = ? and superado = 0"
             await executeQuery(connection, deletequery3, [did])
         } catch (error) {
             throw error
@@ -171,8 +171,8 @@ class Ordenes {
             // 1. Consultar total de ítems
             const countQuery = `
                 SELECT COUNT(*) AS totalItems 
-                FROM ordenes_items 
-                WHERE didOrden = ? AND elim = 0 AND superado = 0
+                FROM pedidos_items
+                WHERE didPedido = ? AND elim = 0 AND superado = 0
             `
             const countResult = await executeQuery(connection, countQuery, [did])
             const totalItems = countResult[0]?.totalItems ?? 0
@@ -194,13 +194,13 @@ class Ordenes {
                     oi.descargado AS item_descargado, 
                     oi.autofecha AS item_autofecha,
                     oi.idVariacion, oi.user_product_id, oi.variation_attributes
-                FROM ordenes o
+                FROM pedidos o
                 LEFT JOIN (
-                    SELECT * FROM ordenes_items 
+                    SELECT * FROM pedidos_items
                     WHERE elim = 0 AND superado = 0 
-                    AND didOrden = ?
+                    AND didPedido = ?
                     LIMIT ? OFFSET ?
-                ) AS oi ON o.did = oi.didOrden
+                ) AS oi ON o.did = oi.didPedido
                 WHERE o.did = ? AND o.elim = 0 AND o.superado = 0
             `
 
@@ -215,7 +215,7 @@ class Ordenes {
 
             if (results.length === 0) return null
 
-            const orden = {
+            const pedido = {
                 id: results[0].id,
                 did: results[0].did,
                 didEnvio: results[0].didEnvio,
@@ -263,7 +263,7 @@ class Ordenes {
             }
 
             return {
-                orden,
+                pedido,
                 totalItems,
                 totalPages,
                 pagina,
@@ -334,7 +334,7 @@ class Ordenes {
                 o.didOt AS ot,
                 IF(o.fecha_armado IS NULL, '', DATE_FORMAT(o.fecha_armado, '%d/%m/%Y %H:%i')) AS fecha_armado,
                 CONCAT(o.buyer_name, ' ', o.buyer_last_name) AS comprador
-            FROM ordenes o
+            FROM pedidos o
             ${whereClause}
             ORDER BY o.did DESC
             LIMIT ? OFFSET ?
@@ -363,7 +363,7 @@ class Ordenes {
 
             const countQuery = `
             SELECT COUNT(*) AS total 
-            FROM ordenes o
+            FROM pedidos o
             ${whereClause}
         `
             const countResult = await executeQuery(connection, countQuery, valores)
@@ -454,7 +454,7 @@ class Ordenes {
                         fecha_armado, quien_armado, autofecha, ml_shipment_id, 
                         ml_id, ml_pack_id, buyer_id, buyer_nickname, 
                         buyer_name, buyer_last_name, total_amount
-                FROM ordenes
+                FROM pedidos
                 ${whereClause}
                 ORDER BY id DESC
                 LIMIT ? OFFSET ?
@@ -464,7 +464,7 @@ class Ordenes {
 
             const countQuery = `
                 SELECT COUNT(*) AS total 
-                FROM ordenes
+                FROM pedidos
                 ${whereClause}
                 `
             const countResult = await executeQuery(connection, countQuery, valores)
@@ -472,7 +472,7 @@ class Ordenes {
             const totalPages = Math.ceil(total / cantidad)
 
             return {
-                ordenes: results,
+                pedidos: results,
                 total,
                 totalPages,
                 pagina,
@@ -486,11 +486,11 @@ class Ordenes {
 
     async delete(connection, did) {
         try {
-            const deleteQuery = "UPDATE ordenes SET elim = 1 WHERE did = ?"
+            const deleteQuery = "UPDATE pedidos SET elim = 1 WHERE did = ?"
             await executeQuery(connection, deleteQuery, [did])
-            const deleteItemsQuery = "UPDATE ordenes_items SET elim = 1 WHERE didOrden = ? AND superado = 0"
+            const deleteItemsQuery = "UPDATE pedidos_items SET elim = 1 WHERE didPedido = ? AND superado = 0"
             await executeQuery(connection, deleteItemsQuery, [did])
-            const deleteHistorialQuery = "UPDATE ordenes_historial SET elim = 1 WHERE didOrden = ? AND superado = 0 LIMIT 1"
+            const deleteHistorialQuery = "UPDATE pedidos_historial SET elim = 1 WHERE didPedido = ? AND superado = 0 LIMIT 1"
             await executeQuery(connection, deleteHistorialQuery, [did])
 
             return {
@@ -504,10 +504,10 @@ class Ordenes {
 
     // Dentro de la clase Ordenes
     static async esEstadoRepetido(connection, number, nuevoEstado) {
-        const query = "SELECT status FROM ordenes WHERE number = ?"
+        const query = "SELECT status FROM pedidos WHERE number = ?"
         const result = await executeQuery(connection, query, [number])
         if (result.length === 0) return false // No existe, por lo tanto no es repetido
         return result[0].status === nuevoEstado
     }
 }
-module.exports = Ordenes
+module.exports = Pedidos

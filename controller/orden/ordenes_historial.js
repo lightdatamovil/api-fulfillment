@@ -1,9 +1,9 @@
 const { executeQuery } = require('../../dbconfig');
 const { logYellow, logBlue } = require('../../fuctions/logsCustom');
 
-class OrdenesHistorial {
+class pedidoHistorial {
   constructor(
-    didOrden = 0,
+    didPedido = 0,
     estado = "",
 
     quien = 0,
@@ -12,7 +12,7 @@ class OrdenesHistorial {
     connection = null,
 
   ) {
-    this.didOrden = didOrden;
+    this.didPedido = didPedido;
     this.estado = estado;
 
     this.superado = superado;
@@ -54,7 +54,7 @@ class OrdenesHistorial {
 
   async checkAndUpdateDidEnvio(connection) {
     try {
-      const checkDidEnvioQuery = 'SELECT id FROM  ordenes_historial WHERE didOrden =?';
+      const checkDidEnvioQuery = 'SELECT id FROM  pedidos_historial WHERE didOrden =?';
 
 
       const results = await executeQuery(connection, checkDidEnvioQuery, [this.didOrden]);
@@ -65,9 +65,9 @@ class OrdenesHistorial {
 
         console.log("GOLA");
 
-        const updateQuery = 'UPDATE  ordenes_historial SET superado = 1 WHERE didOrden = ?';
+        const updateQuery = 'UPDATE  pedidos_historial SET superado = 1 WHERE didOrden = ?';
         await executeQuery(connection, updateQuery, [this.didOrden]);
-        const updateQuery2 = 'UPDATE  ordenes SET status= ? WHERE did = ? ';
+        const updateQuery2 = 'UPDATE  pedidos SET status= ? WHERE did = ? ';
         await executeQuery(connection, updateQuery2, [this.estado, this.didOrden]);
 
         // Crear un nuevo registro con el mismo `didEnvio`
@@ -83,7 +83,7 @@ class OrdenesHistorial {
 
   async createNewRecord(connection) {
     try {
-      const columnsQuery = 'DESCRIBE  ordenes_historial';
+      const columnsQuery = 'DESCRIBE  pedidos_historial';
 
 
 
@@ -93,7 +93,7 @@ class OrdenesHistorial {
       const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
       const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO  ordenes_historial (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+      const insertQuery = `INSERT INTO  pedidos_historial (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
       const insertResult = await executeQuery(connection, insertQuery, values);
       const insertId = insertResult.insertId;
@@ -110,7 +110,7 @@ class OrdenesHistorial {
 
   async eliminar(connection, did) {
     try {
-      const deleteQuery = 'UPDATE ordenes_historial set elim = 1 WHERE did = ?';
+      const deleteQuery = 'UPDATE pedidos_historial set elim = 1 WHERE did = ?';
       await executeQuery(connection, deleteQuery, [did]);
     } catch (error) {
       throw error;
@@ -153,4 +153,4 @@ class OrdenesHistorial {
   }
 
 }
-module.exports = OrdenesHistorial;
+module.exports = pedidoHistorial;

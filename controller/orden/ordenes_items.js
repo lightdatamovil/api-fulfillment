@@ -1,10 +1,10 @@
 const { executeQuery } = require('../../dbconfig');
 const { logYellow, logBlue } = require('../../fuctions/logsCustom');
 
-class Ordenes_items {
+class Pedidos_items {
     constructor(
         did = "",
-        didOrden = "",
+        didPedido = "",
         codigo = "",
         imagen = "",
         descripcion = "",
@@ -22,7 +22,7 @@ class Ordenes_items {
         connection = null,
     ) {
         this.did = did;
-        this.didOrden = didOrden;
+        this.didPedido = didOrden;
         this.codigo = codigo;
         this.imagen = imagen;
         this.descripcion = descripcion;
@@ -67,7 +67,7 @@ class Ordenes_items {
 
     async checkAndUpdateDidEnvio(connection) {
         try {
-            const checkDidEnvioQuery = 'SELECT id FROM ordenes_items WHERE didOrden = ? and ml_id = ?';
+            const checkDidEnvioQuery = 'SELECT id FROM pedidos_items WHERE didOrden = ? and ml_id = ?';
 
             const results = await executeQuery(connection, checkDidEnvioQuery, [this.didOrden, this.ml_id], true);
             console.log(results, "resultdssdasadasdsads");
@@ -76,7 +76,7 @@ class Ordenes_items {
                 console.log("entramos items");
 
                 // Si `didEnvio` ya existe, actualizarlo
-                const updateQuery = 'UPDATE ordenes_items SET superado = 1 WHERE didOrden = ? and ml_id = ?';;
+                const updateQuery = 'UPDATE pedidos_items SET superado = 1 WHERE didOrden = ? and ml_id = ?';;
                 await executeQuery(connection, updateQuery, [this.didOrden, this.ml_id]);
 
                 // Crear un nuevo registro con el mismo `didEnvio`
@@ -92,14 +92,14 @@ class Ordenes_items {
 
     async createNewRecord(connection) {
         try {
-            const columnsQuery = 'DESCRIBE ordenes_items';
+            const columnsQuery = 'DESCRIBE pedidos_items';
             const results = await executeQuery(connection, columnsQuery, []);
 
             const tableColumns = results.map((column) => column.Field);
             const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
             const values = filteredColumns.map((column) => this[column]);
-            const insertQuery = `INSERT INTO ordenes_items (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+            const insertQuery = `INSERT INTO pedidos_items (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
             const insertResult = await executeQuery(connection, insertQuery, values);
 
             const insertId = insertResult.insertId;
@@ -110,4 +110,4 @@ class Ordenes_items {
         }
     }
 }
-module.exports = Ordenes_items;
+module.exports = Pedidos_items;

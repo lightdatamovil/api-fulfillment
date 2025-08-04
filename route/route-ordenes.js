@@ -4,13 +4,13 @@ const multer = require("multer")
 const xlsx = require("xlsx")
 const fs = require("fs")
 const { getConnectionLocal } = require("../dbconfig")
-const Ordenes = require("../controller/orden/ordenes")
-const Ordenes_items = require("../controller/orden/ordenes_items")
-const OrdenesHistorial = require("../controller/orden/ordenes_historial")
 const verificarToken = require("../middleware/token")
 const InsertOrder = require("../fuctions/insertOrdenes")
+const Pedidos = require("../controller/orden/ordenes")
+const Pedidos_items = require("../controller/orden/ordenes_items")
+const pedidoHistorial = require("../controller/orden/ordenes_historial")
 
-orden.post("/postOrden", verificarToken, async (req, res) => {
+orden.post("/postPedido", verificarToken, async (req, res) => {
   const data = req.body
   const connection = await getConnectionLocal(data.idEmpresa)
 
@@ -27,7 +27,7 @@ orden.post("/postOrden", verificarToken, async (req, res) => {
     }
 
     // Insertar orden
-    const ordenes = new Ordenes(
+    const ordenes = new Pedidos(
       data.did ?? 0,
       0,
       data.didCliente ?? 0,
@@ -62,7 +62,7 @@ orden.post("/postOrden", verificarToken, async (req, res) => {
       for (const item of data.items) {
         const variation_attribute = JSON.stringify(item.variation_attributes ?? {})
 
-        const ordenes_items = new Ordenes_items(
+        const ordenes_items = new Pedidos_items(
           item.did ?? 0,
           didParaUsar,
           item.codigo ?? 0,
@@ -87,7 +87,7 @@ orden.post("/postOrden", verificarToken, async (req, res) => {
     }
 
     // Insertar historial
-    const ordenes_historial = new OrdenesHistorial(didParaUsar, data.status, data.quien ?? 0, 0, 0, connection)
+    const ordenes_historial = new pedidoHistorial(didParaUsar, data.status, data.quien ?? 0, 0, 0, connection)
 
     await ordenes_historial.insert()
 
@@ -325,14 +325,14 @@ orden.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
 orden.post("/getOrdenes", async (req, res) => {
   const data = req.body
   const connection = await getConnectionLocal(data.idEmpresa)
-  const ordenes = new Ordenes()
+  const pedidos = new Pedidos()
 
   try {
-    const response = await ordenes.getTodasLasOrdenes(connection, data.pagina, data.cantidad, data)
+    const response = await pedidos.getTodasLasOrdenes(connection, data.pagina, data.cantidad, data)
 
     return res.status(200).json({
       estado: true,
-      message: "Órdenes obtenidas correctamente",
+      message: "Pedidos obtenidas correctamente",
       totalRegistros: response.totalRegistros,
       totalPaginas: response.totalPaginas,
       pagina: response.pagina,
@@ -351,16 +351,16 @@ orden.post("/getOrdenes", async (req, res) => {
   }
 })
 
-orden.post("/getOrdenById", async (req, res) => {
+orden.post("/getPedidoById", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
-  const ordenes = new Ordenes();
+  const pedidos = new Pedidos();
   try {
-    const response = await ordenes.getOrdenPorId(connection, data.did);
+    const response = await pedidos.getOrdenPorId(connection, data.did);
     return res.status(200).json({
       estado: true,
 
-      data: response["orden"],
+      data: response["pedido"],
     });
   } catch (error) {
     console.error("Error durante la operación:", error);
@@ -373,7 +373,7 @@ orden.post("/getOrdenById", async (req, res) => {
     connection.end();
   }
 });
-orden.post("/deleteOrden", async (req, res) => {
+orden.post("/deletePedido", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 

@@ -19,7 +19,6 @@ class Usuario {
         app_habilitada = 0,
         codigo_cliente = "",
         telefono = "",
-
         quien = 0,
         superado = 0,
         elim = 0,

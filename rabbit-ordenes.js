@@ -2,10 +2,10 @@ const amqp = require("amqplib");
 const redis = require("redis");
 const axios = require("axios");
 const mysql = require("mysql"); // Para manejar solicitudes HTTP
-const Ordenes = require("./controller/orden/ordenes");
-const Ordenes_items = require("./controller/orden/ordenes_items");
-const OrdenesHistorial = require("./controller/orden/ordenes_historial");
 const { executeQuery } = require("./dbconfig");
+const Pedidos = require("./controller/orden/ordenes");
+const Pedidos_items = require("./controller/orden/ordenes_items");
+const pedidoHistorial = require("./controller/orden/ordenes_historial");
 const RABBITMQ_URL = "amqp://lightdata:QQyfVBKRbw6fBb@158.69.131.226:5672";
 let Aorders = [];
 let sellersStatus = [];
@@ -243,7 +243,7 @@ async function getEstadoOrden(connection, did) {
     return ESTADOS_CACHE[did];
   }
 
-  const query = "SELECT status FROM ordenes WHERE did = ?";
+  const query = "SELECT status FROM pedidos WHERE did = ?";
   const results = await executeQuery(connection, query, [did]);
 
   if (results.length > 0) {
@@ -269,7 +269,7 @@ async function InsertOrder(connection, data, dataredis) {
       didParaUsar = ORDENES_INSERTADAS[keyOrden].did;
       console.log(`Orden encontrada en memoria, did: ${didParaUsar}`);
     } else {
-      const query = "SELECT did FROM ordenes WHERE number = ?";
+      const query = "SELECT did FROM pedidos WHERE number = ?";
       const results = await executeQuery(connection, query, [number]);
 
       if (results.length > 0) {
@@ -308,7 +308,7 @@ async function InsertOrder(connection, data, dataredis) {
         seller_sku: data.order_items[0].item.seller_sku ?? 0,
       };
 
-      const orden = new Ordenes(
+      const pedido = new Pedidos(
         ordenData.did,
         ordenData.didEnvio,
         ordenData.didCliente,
@@ -334,7 +334,7 @@ async function InsertOrder(connection, data, dataredis) {
         connection
       );
 
-      response = await orden.insert(ordenData);
+      response = await pedido.insert(ordenData);
       console.log(response, "response de ordenes");
 
       if (response && response.insertId) {
@@ -362,7 +362,7 @@ async function InsertOrder(connection, data, dataredis) {
         data.order_items[0].item.variation_attributes
       );
 
-      const ordenes_items = new Ordenes_items(
+      const pedidos_items = new Pedidos_items(
         0,
         didParaUsar,
         0,
@@ -381,9 +381,9 @@ async function InsertOrder(connection, data, dataredis) {
         connection
       );
 
-      await ordenes_items.insert();
+      await pedidos_items.insert();
 
-      const ordenes_historial = new OrdenesHistorial(
+      const pedidos_historial = new pedidoHistorial(
         didParaUsar,
         data.status,
         data.quien ?? 0,
@@ -392,7 +392,7 @@ async function InsertOrder(connection, data, dataredis) {
         connection
       );
 
-      await ordenes_historial.insert();
+      await pedidos_historial.insert();
     } else {
       console.log(
         `Estado repetido para orden ${number}, no se inserta ítem ni historial`
