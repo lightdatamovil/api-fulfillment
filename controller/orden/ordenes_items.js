@@ -22,7 +22,7 @@ class Pedidos_items {
         connection = null,
     ) {
         this.did = did;
-        this.didPedido = didOrden;
+        this.didPedido = didPedido;
         this.codigo = codigo;
         this.imagen = imagen;
         this.descripcion = descripcion;
