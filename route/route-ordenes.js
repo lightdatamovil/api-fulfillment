@@ -8,7 +8,7 @@ const verificarToken = require("../middleware/token")
 const InsertOrder = require("../fuctions/insertOrdenes")
 const Pedidos = require("../controller/pedido/pedidos")
 const Pedidos_items = require("../controller/pedido/pedidos_items")
-const pedidoHistorial = require("../controller/pedido/ordenes_historial")
+const pedidoHistorial = require("../controller/pedido/pedidos_historial")
 
 orden.post("/postPedido", verificarToken, async (req, res) => {
   const data = req.body
