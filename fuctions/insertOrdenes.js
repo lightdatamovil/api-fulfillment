@@ -1,6 +1,6 @@
-const Ordenes = require("../controller/orden/ordenes");
-const Ordenes_items = require("../controller/orden/ordenes_items");
-const OrdenesHistorial = require("../controller/orden/ordenes_historial");
+const Ordenes = require("../controller/pedido/pedidos");
+const Ordenes_items = require("../controller/pedido/pedidos_items");
+const OrdenesHistorial = require("../controller/pedido/ordenes_historial");
 const { executeQuery } = require("../dbconfig");
 const ORDENES_INSERTADAS = {}; // Almacena las órdenes insertadas
 const ESTADOS_CACHE = {}; // Almacena los estados de las órdenes

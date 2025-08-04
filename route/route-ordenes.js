@@ -6,9 +6,9 @@ const fs = require("fs")
 const { getConnectionLocal } = require("../dbconfig")
 const verificarToken = require("../middleware/token")
 const InsertOrder = require("../fuctions/insertOrdenes")
-const Pedidos = require("../controller/orden/ordenes")
-const Pedidos_items = require("../controller/orden/ordenes_items")
-const pedidoHistorial = require("../controller/orden/ordenes_historial")
+const Pedidos = require("../controller/pedido/pedidos")
+const Pedidos_items = require("../controller/pedido/pedidos_items")
+const pedidoHistorial = require("../controller/pedido/ordenes_historial")
 
 orden.post("/postPedido", verificarToken, async (req, res) => {
   const data = req.body
