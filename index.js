@@ -31,7 +31,7 @@ app.use("/serviceSellerToken", require("./route/route-seller"));
 app.use("/usuario", require("./route/route-usuario"));
 app.use("/atributo", require("./route/route-atributo"));
 app.use("/stock", require("./route/route-stock"));
-app.use("/orden", require("./route/route-ordenes"));
+app.use("/orden", require("./route/route-pedidos"));
 app.use("/insumo", require("./route/route-insumo"));
 app.use("/publicaciones", require("./route/route-publicaciones"));
 app.get("/", (req, res) => {

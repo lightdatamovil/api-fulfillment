@@ -87,9 +87,9 @@ orden.post("/postPedido", verificarToken, async (req, res) => {
     }
 
     // Insertar historial
-    const ordenes_historial = new pedidoHistorial(didParaUsar, data.status, data.quien ?? 0, 0, 0, connection)
+    const pedidos_historial = new pedidoHistorial(didParaUsar, data.status, data.quien ?? 0, 0, 0, connection)
 
-    await ordenes_historial.insert()
+    await pedidos_historial.insert()
 
     // Éxito
     return res.status(200).json({

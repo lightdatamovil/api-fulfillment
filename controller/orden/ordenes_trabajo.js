@@ -17,7 +17,6 @@ class Orden_Trabajo {
     toJSON() {
         return JSON.stringify(this)
     }
-
     async insert() {
         try {
             if (this.did === null || this.did === "") {
