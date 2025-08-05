@@ -32,6 +32,7 @@ app.use("/usuario", require("./route/route-usuario"));
 app.use("/atributo", require("./route/route-atributo"));
 app.use("/stock", require("./route/route-stock"));
 app.use("/pedido", require("./route/route-pedidos"));
+app.use("/orden", require("./route/route-orden"));
 app.use("/insumo", require("./route/route-insumo"));
 app.use("/publicaciones", require("./route/route-publicaciones"));
 app.get("/", (req, res) => {

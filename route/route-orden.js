@@ -9,7 +9,7 @@ const ordenTrabajoEstado = require("../controller/orden/ordenes_trabajo_pedidos_
 const OrdenTrabajoEstado = require("../controller/orden/ordenes_trabajo_pedidos_estados");
 
 
-producto.post("/postOrdenTrabajo", verificarToken, async (req, res) => {
+producto.post("/postOrdenTrabajo", async (req, res) => {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
 
