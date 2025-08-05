@@ -3,8 +3,8 @@ const { executeQuery } = require("../../dbconfig")
 class Orden_trabajo_pedido {
     constructor(did = "", didOrden = "", did_Pedido_Habbilitado = 0, flex = 0, quien = 0, superado = 0, elim = 0, connection = null) {
         this.did = did
-        this.didOrden = didOrden || ""
-        this.did_Pedido_Habbilitado = did_Pedido_Habbilitado || 0
+        this.did_orden = didOrden || ""
+        this.did_pedido_habbilitado = did_Pedido_Habbilitado || 0
         this.flex = flex || 0
         this.quien = quien || 0
         this.superado = superado || 0

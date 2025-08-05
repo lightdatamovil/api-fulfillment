@@ -64,7 +64,7 @@ producto.post("/postOrdenTrabajo", async (req, res) => {
         connection.end();
     }
 });
-producto.post("/postOrdenTrabajoPedido", verificarToken, async (req, res) => {
+producto.post("/postOrdenTrabajoPedido", async (req, res) => {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
 
