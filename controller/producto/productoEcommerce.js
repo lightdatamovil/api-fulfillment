@@ -1,6 +1,4 @@
-
 const { executeQuery } = require("../../dbconfig")
-
 
 class ProductoEcommerce {
     constructor(did = "", didProducto = 0, didCuenta = 0, flex = 0, variante = "", sku = "", ean = "", url = "", actualizar = 0, quien = 0, superado = 0, elim = 0, connection = null) {
@@ -45,11 +43,11 @@ class ProductoEcommerce {
 
     async checkAndUpdateDidProducto(connection) {
         try {
-            const checkDidProductoQuery = "SELECT id FROM productos_ecommerces WHERE did = ?"
+            const checkDidProductoQuery = "SELECT id FROM productos_ecommerce WHERE did = ?"
             const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
 
             if (results.length > 0) {
-                const updateQuery = "UPDATE productos_ecommerces SET superado = 1 WHERE did = ?"
+                const updateQuery = "UPDATE productos_ecommerce SET superado = 1 WHERE did = ?"
                 await executeQuery(connection, updateQuery, [this.did])
                 return this.createNewRecord(connection)
             } else {
@@ -62,19 +60,19 @@ class ProductoEcommerce {
 
     async createNewRecord(connection) {
         try {
-            const columnsQuery = "DESCRIBE productos_ecommerces"
+            const columnsQuery = "DESCRIBE productos_ecommerce"
             const results = await executeQuery(connection, columnsQuery, [])
 
             const tableColumns = results.map((column) => column.Field)
             const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
 
             const values = filteredColumns.map((column) => this[column])
-            const insertQuery = `INSERT INTO productos_ecommerces (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
+            const insertQuery = `INSERT INTO productos_ecommerce (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
 
             const insertResult = await executeQuery(connection, insertQuery, values)
 
             if (this.did == 0 || this.did == null) {
-                const updateQuery = "UPDATE productos_ecommerces SET did = ? WHERE id = ?"
+                const updateQuery = "UPDATE productos_ecommerce SET did = ? WHERE id = ?"
                 await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
             }
 
@@ -86,7 +84,7 @@ class ProductoEcommerce {
 
     async delete(connection, did) {
         try {
-            const deleteQuery = "UPDATE productos_ecommerces SET elim = 1 WHERE did = ?"
+            const deleteQuery = "UPDATE productos_ecommerce SET elim = 1 WHERE did = ?"
             await executeQuery(connection, deleteQuery, [did])
             return {
                 estado: true,
@@ -107,7 +105,7 @@ class ProductoEcommerce {
 
             if (didsActuales.length > 0) {
                 deleteQuery = `
-        UPDATE productos_ecommerces
+        UPDATE productos_ecommerce
         SET elim = 1
         WHERE didProducto = ? AND did NOT IN (${didsActuales.map(() => "?").join(", ")}) AND elim = 0 and superado = 0
       `
@@ -115,7 +113,7 @@ class ProductoEcommerce {
             } else {
                 // Si el array está vacío, eliminar todos los registros del atributo
                 deleteQuery = `
-        UPDATE productos_ecommerces
+        UPDATE productos_ecommerce
         SET elim = 1
         WHERE didProducto = ? AND elim = 0
       `
@@ -129,7 +127,7 @@ class ProductoEcommerce {
     }
     static async getUsuarios(connection, filtros = {}) {
         try {
-            let baseQuery = "FROM productos_ecommerces WHERE superado = 0 AND elim = 0"
+            let baseQuery = "FROM productos_ecommerce WHERE superado = 0 AND elim = 0"
             const params = []
             const countParams = []
 
@@ -206,7 +204,7 @@ class ProductoEcommerce {
 
     static async getUsuariosById(connection, id) {
         try {
-            const query = "SELECT perfil,nombre,apellido,mail,usuario,habilitado,did, modulo_inicial, app_habilitada, codigo_cliente FROM productos_ecommerces WHERE did = ? AND superado = 0 AND  elim = 0"
+            const query = "SELECT perfil,nombre,apellido,mail,usuario,habilitado,did, modulo_inicial, app_habilitada, codigo_cliente FROM productos_ecommerce WHERE did = ? AND superado = 0 AND  elim = 0"
             const params = [id]
             const results = await executeQuery(connection, query, params)
 
