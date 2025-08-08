@@ -244,7 +244,7 @@ class Pedidos {
 
             for (const row of results) {
                 if (row.codigo) {
-                    orden.items.push({
+                    pedido.items.push({
                         codigo: row.codigo,
                         imagen: row.imagen,
                         descripcion: row.descripcion,
