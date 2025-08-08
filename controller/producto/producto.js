@@ -13,6 +13,9 @@ class ProductO1 {
     esCombo = 0,
     posicion = "",
     cm3 = 0,
+    alto = 0,
+    ancho = 0,
+    profundo = 0,
     quien = 0,
     superado = 0,
     elim = 0,
@@ -29,6 +32,9 @@ class ProductO1 {
     this.esCombo = esCombo;
     this.posicion = posicion;
     this.cm3 = cm3;
+    this.alto = alto;
+    this.ancho = ancho;
+    this.profundo = profundo;
     this.quien = quien || 0;
     this.superado = superado;
     this.elim = elim;
@@ -79,22 +85,22 @@ class ProductO1 {
 
   async createNewRecord(connection) {
     try {
-      const querycheck =
-        "SELECT sku FROM productos WHERE sku = ? and superado = 0 and elim = 0";
-      const resultscheck = await executeQuery(
-        connection,
-        querycheck,
-        [this.sku],
-        true
-      );
-      console.log(resultscheck, "resultscheck");
-
-      if (resultscheck.length > 0) {
-        return {
-          estado: false,
-          message: "El Producto con ese sku ya existe.",
-        };
-      }
+      /*    const querycheck =
+            "SELECT sku FROM productos WHERE sku = ? and superado = 0 and elim = 0";
+          const resultscheck = await executeQuery(
+            connection,
+            querycheck,
+            [this.sku],
+            true
+          );
+          console.log(resultscheck, "resultscheck");
+    
+          if (resultscheck.length > 0) {
+            return {
+              estado: false,
+              message: "El Producto con ese sku ya existe.",
+            };
+          }*/
       const columnsQuery = "DESCRIBE productos";
       const results = await executeQuery(connection, columnsQuery, []);
 
@@ -271,6 +277,9 @@ class ProductO1 {
           p.cm3,
           p.esCombo,
           p.imagen,
+          p.alto,
+          p.ancho,
+          p.profundo,
   
           pv.did as didVariante,
           pv.data AS dataVariante,

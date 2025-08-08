@@ -51,7 +51,7 @@ producto.post("/postOrdenTrabajo", async (req, res) => {
 
         return res.status(200).json({
             estado: true,
-            didOrden: pedidoId,
+            didOrdenTrabajo: pedidoId,
         });
     } catch (error) {
         console.error("Error durante la operación:", error);
@@ -105,7 +105,7 @@ producto.post("/postOrdenTrabajoPedido", async (req, res) => {
 
         return res.status(200).json({
             estado: true,
-            didOrden: pedidoId,
+            didOrdenapedido: pedidoId,
         });
     } catch (error) {
         console.error("Error durante la operación:", error);
@@ -118,7 +118,7 @@ producto.post("/postOrdenTrabajoPedido", async (req, res) => {
         connection.end();
     }
 });
-producto.post("/postOrdenTrabajoPedidoItem", verificarToken, async (req, res) => {
+producto.post("/postOrdenTrabajoPedidoItem", async (req, res) => {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
 
@@ -130,7 +130,7 @@ producto.post("/postOrdenTrabajoPedidoItem", verificarToken, async (req, res) =>
             data.didPedido ?? 0,
             data.sku ?? "",
             data.habilitado ?? 0,
-            data.canitidad ?? 0,
+            data.cantidad ?? 0,
             data.quien,
             data.superado ?? 0,
             data.elim ?? 0,
@@ -162,7 +162,7 @@ producto.post("/postOrdenTrabajoPedidoItem", verificarToken, async (req, res) =>
 
         return res.status(200).json({
             estado: true,
-            didOrden: pedidoId,
+            didOrdenPedidoItem: pedidoId,
         });
     } catch (error) {
         console.error("Error durante la operación:", error);
@@ -175,7 +175,7 @@ producto.post("/postOrdenTrabajoPedidoItem", verificarToken, async (req, res) =>
         connection.end();
     }
 });
-producto.post("/postOrdenTrabajoEstados", verificarToken, async (req, res) => {
+producto.post("/postOrdenTrabajoEstado", async (req, res) => {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
 
@@ -218,7 +218,7 @@ producto.post("/postOrdenTrabajoEstados", verificarToken, async (req, res) => {
 
         return res.status(200).json({
             estado: true,
-            didOrden: pedidoId,
+            didOrdenPedidoEstado: pedidoId,
         });
     } catch (error) {
         console.error("Error durante la operación:", error);

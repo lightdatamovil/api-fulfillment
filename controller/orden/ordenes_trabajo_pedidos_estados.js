@@ -42,12 +42,11 @@ class OrdenTrabajoEstado {
 
     async checkAndUpdateDidProducto(connection) {
         try {
-            const checkDidProductoQuery = "SELECT id FROM ordenes_trabajo_pedido_estados WHERE did = ?"
-            const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
+            const checkDidProductoQuery = "SELECT id FROM ordenes_trabajo_pedido_estados WHERE didOrden = ? AND didPedido = ? AND superado = 0 AND elim = 0"
+            const results = await executeQuery(connection, checkDidProductoQuery, [this.did_orden, this.did_pedido])
 
             if (results.length > 0) {
-                const updateQuery = "UPDATE ordenes_trabajo_pedido_estados SET superado = 1 WHERE did = ?"
-                await executeQuery(connection, updateQuery, [this.did])
+                this.updateState(connection, this.estado, this.did_orden, this.did_pedido)
                 return this.createNewRecord(connection)
             } else {
                 return this.createNewRecord(connection)

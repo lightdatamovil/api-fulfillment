@@ -1,7 +1,6 @@
 const mysql = require("mysql");
 const redis = require("redis");
 const { logYellow, logRed } = require("./fuctions/logsCustom");
-const { createTables } = require("./fuctions/crearTabla");
 const redisClient = redis.createClient({
   socket: {
     host: "192.99.190.137",
@@ -18,8 +17,6 @@ redisClient.on("error", (err) => {
   await redisClient.connect();
   console.log("Redis conectado");
 })();
-let companiesList = {};
-
 
 async function getConnectionLocal(idempresa) {
   try {
@@ -68,9 +65,6 @@ async function getConnectionLocal(idempresa) {
     };
   }
 }
-
-
-
 
 async function executeQuery(connection, query, values, log = false) {
   if (log) {

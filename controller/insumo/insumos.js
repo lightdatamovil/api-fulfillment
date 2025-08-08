@@ -1,14 +1,12 @@
 const { executeQuery } = require("../../dbconfig")
 
 class Insumo {
-    constructor(did = "", nombre = "", didCliente = "", codigo = 0, clientes = "", unidad = 0, habilitado = 0, quien = 0, superado = 0, elim = 0, connection = null) {
+    constructor(did = "", nombre = "", logisticaLD = 0, codigo = "", codigoLD = "", quien = 0, superado = 0, elim = 0, connection = null) {
         this.did = did
-        this.nombre = nombre || ""
-        this.didCliente = didCliente || ""
-        this.codigo = codigo || ""
-        this.clientes = clientes || ""
-        this.unidad = unidad || 0
-        this.habilitado = habilitado
+        this.nombre = nombre
+        this.logisticaLD = logisticaLD
+        this.codigo = codigo
+        this.codigoLD = codigoLD
         this.quien = quien || 0
         this.superado = superado || 0
         this.elim = elim || 0
@@ -41,11 +39,11 @@ class Insumo {
 
     async checkAndUpdateDidProducto(connection) {
         try {
-            const checkDidProductoQuery = "SELECT id FROM insumos WHERE did = ?"
+            const checkDidProductoQuery = "SELECT id FROM logisticas WHERE did = ?"
             const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
 
             if (results.length > 0) {
-                const updateQuery = "UPDATE insumos SET superado = 1 WHERE did = ?"
+                const updateQuery = "UPDATE logisticas SET superado = 1 WHERE did = ?"
                 await executeQuery(connection, updateQuery, [this.did])
                 return this.createNewRecord(connection)
             } else {
@@ -58,27 +56,27 @@ class Insumo {
 
     async createNewRecord(connection) {
         try {
-            const querycheck = "SELECT codigo FROM insumos WHERE codigo = ? and superado = 0 and elim = 0"
+            const querycheck = "SELECT codigo FROM logisticas WHERE codigo = ? and superado = 0 and elim = 0"
             const resultscheck = await executeQuery(this.connection, querycheck, [this.codigo])
             if (resultscheck.length > 0) {
                 return {
                     estado: false,
-                    message: "El codigo del insumo ya existe.",
+                    message: "El codigo de la logistica ya existe.",
                 }
             }
-            const columnsQuery = "DESCRIBE insumos"
+            const columnsQuery = "DESCRIBE logisticas"
             const results = await executeQuery(connection, columnsQuery, [])
 
             const tableColumns = results.map((column) => column.Field)
             const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
 
             const values = filteredColumns.map((column) => this[column])
-            const insertQuery = `INSERT INTO insumos (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
+            const insertQuery = `INSERT INTO logisticas (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
 
             const insertResult = await executeQuery(connection, insertQuery, values)
 
             if (this.did == 0 || this.did == null) {
-                const updateQuery = "UPDATE insumos SET did = ? WHERE id = ?"
+                const updateQuery = "UPDATE logisticas SET did = ? WHERE id = ?"
                 await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
             }
 
@@ -90,12 +88,12 @@ class Insumo {
 
     async delete(connection, did) {
         try {
-            const deleteQuery = "UPDATE insumos SET elim = 1 WHERE did = ? AND superado = 0"
+            const deleteQuery = "UPDATE logisticas SET elim = 1 WHERE did = ? AND superado = 0"
             await executeQuery(connection, deleteQuery, [did])
 
             return {
                 estado: true,
-                message: "Insumo eliminado correctamente.",
+                message: "Logistica eliminado correctamente.",
             }
         } catch (error) {
             throw error

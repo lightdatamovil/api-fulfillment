@@ -99,127 +99,23 @@ class Orden_Trabajo {
         }
     }
 
-    async getAll(connection) {
+    async getOrdenTrabajo(connection) {
         try {
-            const selectQuery = ` SELECT * FROM ordenes_trabajo
-        WHERE   elim = 0 AND superado = 0
-        ORDER BY did DESC
-    `
+            const query = "SELECT * FROM ordenes_trabajo WHERE elim = 0 AND superado = 0"
+            const results = await executeQuery(connection, query, [did])
 
-            const results = await executeQuery(connection, selectQuery, [])
-
-            // Agrupar por atributo
-
-            return results
+            if (results.length > 0) {
+                return results[0]
+            } else {
+                return null
+            }
         } catch (error) {
             throw error
         }
     }
 
-    async getInsumos(connection, filtros = {}) {
-        try {
-            const conditions = ["i.elim = 0", "i.superado = 0"]
-            const values = []
-            // Filtros dinámicos
-            if (filtros.did) {
-                conditions.push("i.did = ?")
-                values.push(filtros.did)
-            }
-            if (filtros.codigo) {
-                conditions.push("i.codigo LIKE ?")
-                values.push(`%${filtros.codigo}%`)
-            }
-            if (filtros.nombre) {
-                conditions.push("i.nombre LIKE ?")
-                values.push(`%${filtros.nombre}%`)
-            }
-            if (filtros.habilitado != "") {
-                conditions.push("i.habilitado = ?")
-                values.push(filtros.habilitado)
-            }
-            if (filtros.didCliente) {
-                conditions.push("i.didCliente = ?")
-                values.push(filtros.didCliente)
-            }
-            if (filtros.clientes) {
-                const clientesArray = filtros.clientes
-                    .split(",")
-                    .map((c) => c.trim())
-                    .filter((c) => c !== "")
 
-                if (clientesArray.length > 0) {
-                    const placeholders = clientesArray.map(() => "?").join(",")
-                    conditions.push(`i.clientes IN (${placeholders})`)
-                    values.push(...clientesArray)
-                }
-            }
 
-            const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""
-            // Paginación (aseguramos que sean números)
-            const pagina = Number(filtros.pagina) || 1
-            const cantidadPorPagina = Number(filtros.cantidad) || 10
-            const offset = (pagina - 1) * cantidadPorPagina
-            // Consulta total
-            const totalQuery = `SELECT COUNT(*) as total FROM insumos i ${whereClause}`
-            const totalResult = await executeQuery(
-                connection,
-                totalQuery,
-                values,
-
-                true
-            )
-            const totalRegistros = totalResult[0].total
-            const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina)
-            // Consulta paginada
-            const dataQuery = `
-        SELECT i.did, i.nombre, i.codigo,  i.habilitado
-        FROM insumos i
-        ${whereClause}
-        ORDER BY i.did DESC
-        LIMIT ? OFFSET ?
-        `
-            const dataValues = [...values, cantidadPorPagina, offset]
-            console.log(dataQuery, dataValues, "dataaa")
-
-            const results = await executeQuery(connection, dataQuery, dataValues)
-            console.log(pagina, "paginaaa")
-            return {
-                data: results,
-                totalRegistros,
-                totalPaginas,
-
-                pagina,
-                cantidad: cantidadPorPagina,
-                insumos: results,
-            }
-        } catch (error) {
-            console.error("Error en getInsumos:", error.message)
-            throw {
-                estado: false,
-                error: -1,
-                message: error.message || error,
-            }
-        }
-    }
-    async getInsumosById(connection, did) {
-        try {
-            const selectQuery = `
-        SELECT * FROM insumos
-        WHERE did = ? AND elim = 0 AND superado = 0
-      `
-            const results = await executeQuery(connection, selectQuery, [did])
-            if (results.length === 0) {
-                return {
-                    estado: false,
-                    message: "No se encontró el insumo con el ID proporcionado.",
-                }
-            }
-
-            return results
-        } catch (error) {
-            throw error
-        }
-    }
 }
 
 module.exports = Orden_Trabajo
