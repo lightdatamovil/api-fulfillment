@@ -19,7 +19,6 @@ orden.post("/postPedido", verificarToken, async (req, res) => {
     const estadoRepetido = await Ordenes.esEstadoRepetido(connection, data.number, data.status)
 
     if (estadoRepetido) {
-      console.log(`Estado repetido para orden ${data.number}, no se inserta ítem ni historial`)
       return res.status(200).json({
         estado: false,
         mensaje: "Estado repetido, no se realizaron cambios",
@@ -54,7 +53,6 @@ orden.post("/postPedido", verificarToken, async (req, res) => {
     )
 
     const response = await ordenes.insert()
-    console.log(response, "response")
     const didParaUsar = response.insertId || data.did
 
     // Insertar ítems
@@ -156,7 +154,6 @@ orden.post("/importExcelOrden", upload.single("file"), async (req, res) => {
         const estadoRepetido = await Ordenes.esEstadoRepetido(connection, row.number, row.status)
 
         if (estadoRepetido) {
-          console.log(`Estado repetido para orden ${row.number}, se omite`)
           connection.end()
           continue
         }
@@ -239,7 +236,6 @@ orden.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
   const estadoRepetido = await Ordenes.esEstadoRepetido(connection, data.numero_venta, "pendiente")
 
   if (estadoRepetido) {
-    console.log(`Estado repetido para orden ${data.number}, no se inserta ítem ni historial`)
     return res.status(200).json({
       estado: false,
       mensaje: "Estado repetido, no se realizaron cambios",
@@ -380,7 +376,6 @@ orden.post("/deletePedido", async (req, res) => {
   try {
     const orden = new Ordenes();
     const response = await orden.delete(connection, data.did);
-    console.log("Respuesta de delete:", response);
     return res.status(200).json({
       estado: response.estado !== undefined ? response.estado : false,
       message: response.message || response,

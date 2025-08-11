@@ -1,5 +1,6 @@
 const axios = require("axios")
-const { redisClient, executeQuery } = require("../../dbconfig")
+const { redisClient } = require("../../dbconfig")
+const { executeQuery } = require("lightdata-tools")
 
 const USER_ID_ML = "746339074"
 
@@ -508,7 +509,6 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
     // Convertir el objeto a un arreglo y devolverlo
     const resultadoFinal = Object.values(publicacionesUnificadas);
 
-    //  console.log("Publicaciones unificadas:", resultadoFinal);
 
     return {
         estado: true,
@@ -638,11 +638,9 @@ async function construirAtributosConDids(connection) {
     }
 
     const atributosInput = respuesta.response.publicaciones
-    console.log(atributosInput)
     //return true
 
     for (const atributo of atributosInput) {
-        console.log(JSON.stringify(atributo))
         const nombreAtributo = atributo.atributo || "Sin atributo" // Asegúrate de que 'titulo' sea correcto
         let didAtributo
 
@@ -719,7 +717,6 @@ async function construirAtributosYProductosConDids(connection) {
     }
 
     const publicacionesInput = respuesta.response.publicaciones
-    console.log(publicacionesInput)
 
     for (const publicacion of publicacionesInput) {
         // Manejo de atributos
@@ -818,7 +815,6 @@ async function construirAtributosYProductosConDids(connection) {
                     habilitado: habilitadoProducto,
                 })
             } else {
-                console.log(`El producto con SKU ${skuProducto} ya existe.`)
             }
         } else {
             console.warn("No se proporcionó SKU para el producto, no se insertará.")

@@ -1,5 +1,4 @@
-const { executeQuery } = require('../../dbconfig');
-const { logYellow, logBlue } = require('../../fuctions/logsCustom');
+const { executeQuery } = require("lightdata-tools");
 
 class pedidoHistorial {
   constructor(
@@ -53,103 +52,84 @@ class pedidoHistorial {
   }
 
   async checkAndUpdateDidEnvio(connection) {
-    try {
-      const checkDidEnvioQuery = 'SELECT id FROM  pedidos_historial WHERE didOrden =?';
+    const checkDidEnvioQuery = 'SELECT id FROM  pedidos_historial WHERE didOrden =?';
 
 
-      const results = await executeQuery(connection, checkDidEnvioQuery, [this.didOrden]);
-      console.log(results.length, "results");
+    const results = await executeQuery(connection, checkDidEnvioQuery, [this.didOrden]);
 
 
-      if (results.length > 0) {
+    if (results.length > 0) {
 
-        console.log("GOLA");
+      const updateQuery = 'UPDATE  pedidos_historial SET superado = 1 WHERE didOrden = ?';
+      await executeQuery(connection, updateQuery, [this.didOrden]);
+      const updateQuery2 = 'UPDATE  pedidos SET status= ? WHERE did = ? ';
+      await executeQuery(connection, updateQuery2, [this.estado, this.didOrden]);
 
-        const updateQuery = 'UPDATE  pedidos_historial SET superado = 1 WHERE didOrden = ?';
-        await executeQuery(connection, updateQuery, [this.didOrden]);
-        const updateQuery2 = 'UPDATE  pedidos SET status= ? WHERE did = ? ';
-        await executeQuery(connection, updateQuery2, [this.estado, this.didOrden]);
-
-        // Crear un nuevo registro con el mismo `didEnvio`
-        return this.createNewRecord(connection);
-      } else {
-        // Si `didEnvio` no existe, crear un nuevo registro directamente
-        return this.createNewRecord(connection);
-      }
-    } catch (error) {
-      throw error;
+      // Crear un nuevo registro con el mismo `didEnvio`
+      return this.createNewRecord(connection);
+    } else {
+      // Si `didEnvio` no existe, crear un nuevo registro directamente
+      return this.createNewRecord(connection);
     }
   }
 
   async createNewRecord(connection) {
-    try {
-      const columnsQuery = 'DESCRIBE  pedidos_historial';
+    const columnsQuery = 'DESCRIBE  pedidos_historial';
 
 
 
-      const results = await executeQuery(connection, columnsQuery, []);
+    const results = await executeQuery(connection, columnsQuery, []);
 
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-      const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO  pedidos_historial (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+    const values = filteredColumns.map((column) => this[column]);
+    const insertQuery = `INSERT INTO  pedidos_historial (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
-      const insertResult = await executeQuery(connection, insertQuery, values);
-      const insertId = insertResult.insertId;
+    const insertResult = await executeQuery(connection, insertQuery, values);
+    const insertId = insertResult.insertId;
 
 
 
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
-    }
+    return { insertId: insertResult.insertId };
   }
 
 
 
   async eliminar(connection, did) {
-    try {
-      const deleteQuery = 'UPDATE pedidos_historial set elim = 1 WHERE did = ?';
-      await executeQuery(connection, deleteQuery, [did]);
-    } catch (error) {
-      throw error;
-    }
+    const deleteQuery = 'UPDATE pedidos_historial set elim = 1 WHERE did = ?';
+    await executeQuery(connection, deleteQuery, [did]);
 
   }
 
   async getAll(connection, page = 1, limit = 20) {
-    try {
-      const offset = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-      // Consulta principal con paginado
-      const selectQuery = `
+    // Consulta principal con paginado
+    const selectQuery = `
         SELECT * FROM fulfillment_insumos 
         WHERE elim = 0 AND superado = 0 
         LIMIT ? OFFSET ?
       `;
-      const results = await executeQuery(connection, selectQuery, [limit, offset]);
+    const results = await executeQuery(connection, selectQuery, [limit, offset]);
 
-      // Conteo total para paginación
-      const countQuery = `
+    // Conteo total para paginación
+    const countQuery = `
         SELECT COUNT(*) AS total FROM fulfillment_insumos 
         WHERE elim = 0 AND superado = 0
       `;
-      const countResult = await executeQuery(connection, countQuery);
-      const total = countResult[0].total;
+    const countResult = await executeQuery(connection, countQuery);
+    const total = countResult[0].total;
 
-      const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limit);
 
-      return {
-        page,
-        limit,
-        total,
-        totalPages,
-        items: results
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      page,
+      limit,
+      total,
+      totalPages,
+      items: results
+    };
   }
 
 }

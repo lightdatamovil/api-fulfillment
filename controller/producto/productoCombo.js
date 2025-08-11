@@ -1,4 +1,4 @@
-const { executeQuery } = require("../../dbconfig");
+const { executeQuery } = require("lightdata-tools");
 
 class ProductoCombo {
   constructor(
@@ -49,135 +49,114 @@ class ProductoCombo {
   }
 
   async checkAndUpdateDidProductoCombo(connection) {
-    try {
-      const checkDidProductoComboQuery =
-        "SELECT did FROM productos_combos WHERE didProducto = ? and didProductoCombo = ? AND superado = 0 AND elim = 0";
-      const results = await executeQuery(
-        connection,
-        checkDidProductoComboQuery,
-        [this.didProducto, this.didProductoCombo],
-        true
-      );
-      console.log(results, "dasdsadd");
+    const checkDidProductoComboQuery =
+      "SELECT did FROM productos_combos WHERE didProducto = ? and didProductoCombo = ? AND superado = 0 AND elim = 0";
+    const results = await executeQuery(
+      connection,
+      checkDidProductoComboQuery,
+      [this.didProducto, this.didProductoCombo],
+      true
+    );
 
-      if (results.length > 0) {
-        const updateQuery =
-          "UPDATE productos_combos SET superado = 1 WHERE did = ?";
-        await executeQuery(connection, updateQuery, [results[0].did]);
+    if (results.length > 0) {
+      const updateQuery =
+        "UPDATE productos_combos SET superado = 1 WHERE did = ?";
+      await executeQuery(connection, updateQuery, [results[0].did]);
 
-        return this.createNewRecord2(connection, [results[0].did]);
-      } else {
-        return this.createNewRecord(connection);
-      }
-    } catch (error) {
-      throw error;
+      return this.createNewRecord2(connection, [results[0].did]);
+    } else {
+      return this.createNewRecord(connection);
     }
   }
 
   async createNewRecord(connection) {
-    try {
-      const columnsQuery = "DESCRIBE productos_combos";
-      const results = await executeQuery(connection, columnsQuery, []);
+    const columnsQuery = "DESCRIBE productos_combos";
+    const results = await executeQuery(connection, columnsQuery, []);
 
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter(
-        (column) => this[column] !== undefined
-      );
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter(
+      (column) => this[column] !== undefined
+    );
 
-      const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO productos_combos (${filteredColumns.join(
-        ", "
-      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+    const values = filteredColumns.map((column) => this[column]);
+    const insertQuery = `INSERT INTO productos_combos (${filteredColumns.join(
+      ", "
+    )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
 
-      const insertResult = await executeQuery(connection, insertQuery, values);
+    const insertResult = await executeQuery(connection, insertQuery, values);
 
-      if (this.did == 0 || this.did == null) {
-        const updateQuery = "UPDATE productos_combos SET did = ? WHERE id = ?";
-        await executeQuery(connection, updateQuery, [
-          insertResult.insertId,
-          insertResult.insertId,
-        ]);
-      }
-
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
+    if (this.did == 0 || this.did == null) {
+      const updateQuery = "UPDATE productos_combos SET did = ? WHERE id = ?";
+      await executeQuery(connection, updateQuery, [
+        insertResult.insertId,
+        insertResult.insertId,
+      ]);
     }
+
+    return { insertId: insertResult.insertId };
   }
 
   async createNewRecord2(connection, did) {
-    try {
-      const columnsQuery = "DESCRIBE productos_combos";
-      const results = await executeQuery(connection, columnsQuery, []);
+    const columnsQuery = "DESCRIBE productos_combos";
+    const results = await executeQuery(connection, columnsQuery, []);
 
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter(
-        (column) => this[column] !== undefined
-      );
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter(
+      (column) => this[column] !== undefined
+    );
 
-      const values = filteredColumns.map((column) => {
-        const val = this[column];
-        if (typeof val === "object" && val !== null) {
-          return JSON.stringify(val);
-        }
-        return val;
-      });
+    const values = filteredColumns.map((column) => {
+      const val = this[column];
+      if (typeof val === "object" && val !== null) {
+        return JSON.stringify(val);
+      }
+      return val;
+    });
 
-      const insertQuery = `INSERT INTO productos_combos (${filteredColumns.join(
-        ", "
-      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
-      const insertResult = await executeQuery(connection, insertQuery, values);
+    const insertQuery = `INSERT INTO productos_combos (${filteredColumns.join(
+      ", "
+    )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+    const insertResult = await executeQuery(connection, insertQuery, values);
 
-      const updateQuery = "UPDATE productos_combos SET did = ? WHERE id = ?";
-      await executeQuery(connection, updateQuery, [did, insertResult.insertId]);
+    const updateQuery = "UPDATE productos_combos SET did = ? WHERE id = ?";
+    await executeQuery(connection, updateQuery, [did, insertResult.insertId]);
 
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
-    }
+    return { insertId: insertResult.insertId };
   }
 
   async delete() {
-    try {
-      const deleteQuery = "UPDATE productos_combos SET elim = 1 WHERE did = ?";
-      await executeQuery(this.connection, deleteQuery, [this.did]);
-    } catch (error) {
-      throw error;
-    }
+    const deleteQuery = "UPDATE productos_combos SET elim = 1 WHERE did = ?";
+    await executeQuery(this.connection, deleteQuery, [this.did]);
   }
 
   async deleteMissing(connection, didAtributo, didsActuales = []) {
-    try {
-      if (!Array.isArray(didsActuales)) {
-        didsActuales = [];
-      }
+    if (!Array.isArray(didsActuales)) {
+      didsActuales = [];
+    }
 
-      let deleteQuery = "";
-      let params = [];
+    let deleteQuery = "";
+    let params = [];
 
-      if (didsActuales.length > 0) {
-        deleteQuery = `
+    if (didsActuales.length > 0) {
+      deleteQuery = `
         UPDATE productos_combos
         SET elim = 1
         WHERE didProducto = ? AND did NOT IN (${didsActuales
-            .map(() => "?")
-            .join(", ")}) AND elim = 0
+          .map(() => "?")
+          .join(", ")}) AND elim = 0
       `;
-        params = [didAtributo, ...didsActuales];
-      } else {
-        // Si el array está vacío, eliminar todos los registros del atributo
-        deleteQuery = `
+      params = [didAtributo, ...didsActuales];
+    } else {
+      // Si el array está vacío, eliminar todos los registros del atributo
+      deleteQuery = `
         UPDATE productos_combos
         SET elim = 1
         WHERE didProducto = ? AND elim = 0
       `;
-        params = [didAtributo];
-      }
-
-      await executeQuery(connection, deleteQuery, params);
-    } catch (error) {
-      throw error;
+      params = [didAtributo];
     }
+
+    await executeQuery(connection, deleteQuery, params);
   }
 }
 

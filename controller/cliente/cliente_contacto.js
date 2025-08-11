@@ -1,4 +1,4 @@
-const { executeQuery } = require("../../dbconfig");
+const { executeQuery } = require("lightdata-tools");
 
 class Clente_contacto {
   constructor(
@@ -46,91 +46,77 @@ class Clente_contacto {
   }
 
   async checkAndUpdateDidProducto(connection) {
-    try {
-      const checkQuery = "SELECT id FROM clientes_contactos WHERE did = ?";
-      const results = await executeQuery(connection, checkQuery, [this.did]);
+    const checkQuery = "SELECT id FROM clientes_contactos WHERE did = ?";
+    const results = await executeQuery(connection, checkQuery, [this.did]);
+    if (results.length > 0) {
+      const updateQuery =
+        "UPDATE clientes_contactos SET superado = 1 WHERE did = ?";
+      await executeQuery(connection, updateQuery, [this.did]);
+      const querydel =
+        "select * from clientes_contactos where didCliente = ? and superado = 0 and elim = 0";
+
+      const results = await executeQuery(
+        connection,
+        querydel,
+        [this.didCliente],
+        true
+      );
+
       if (results.length > 0) {
-        const updateQuery =
-          "UPDATE clientes_contactos SET superado = 1 WHERE did = ?";
-        await executeQuery(connection, updateQuery, [this.did]);
-        const querydel =
-          "select * from clientes_contactos where didCliente = ? and superado = 0 and elim = 0";
-
-        const results = await executeQuery(
-          connection,
-          querydel,
-          [this.didCliente],
-          true
-        );
-        console.log("RESULTS:", results);
-
-        if (results.length > 0) {
-          for (const row of results) {
-            await this.delete(connection, row.did);
-          }
+        for (const row of results) {
+          await this.delete(connection, row.did);
         }
-
-        return this.createNewRecord(connection);
-      } else {
-        return this.createNewRecord(connection);
       }
-    } catch (error) {
-      throw error;
+
+      return this.createNewRecord(connection);
+    } else {
+      return this.createNewRecord(connection);
     }
   }
 
   async createNewRecord(connection) {
-    try {
-      const columnsQuery = "DESCRIBE clientes_contactos";
-      const results = await executeQuery(connection, columnsQuery, []);
+    const columnsQuery = "DESCRIBE clientes_contactos";
+    const results = await executeQuery(connection, columnsQuery, []);
 
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter(
-        (column) => this[column] !== undefined
-      );
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter(
+      (column) => this[column] !== undefined
+    );
 
-      const values = filteredColumns.map((column) => this[column]);
+    const values = filteredColumns.map((column) => this[column]);
 
-      const insertQuery = `INSERT INTO clientes_contactos (${filteredColumns.join(
-        ", "
-      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+    const insertQuery = `INSERT INTO clientes_contactos (${filteredColumns.join(
+      ", "
+    )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
 
-      const insertResult = await executeQuery(connection, insertQuery, values);
+    const insertResult = await executeQuery(connection, insertQuery, values);
 
-      if (this.did == 0 || this.did == null) {
-        const updateQuery =
-          "UPDATE clientes_contactos SET did = ? WHERE id = ?";
-        await executeQuery(connection, updateQuery, [
-          insertResult.insertId,
-          insertResult.insertId,
-        ]);
-      }
-
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
+    if (this.did == 0 || this.did == null) {
+      const updateQuery =
+        "UPDATE clientes_contactos SET did = ? WHERE id = ?";
+      await executeQuery(connection, updateQuery, [
+        insertResult.insertId,
+        insertResult.insertId,
+      ]);
     }
+
+    return { insertId: insertResult.insertId };
   }
 
   async delete(connection, did) {
-    try {
-      const deleteQuery =
-        "UPDATE clientes_contactos SET elim = 1 WHERE did = ?";
-      await executeQuery(connection, deleteQuery, [did]);
-      return {
-        estado: true,
-        message: "Cliente cuenta eliminado correctamente.",
-      };
-    } catch (error) {
-      throw error;
-    }
+    const deleteQuery =
+      "UPDATE clientes_contactos SET elim = 1 WHERE did = ?";
+    await executeQuery(connection, deleteQuery, [did]);
+    return {
+      estado: true,
+      message: "Cliente cuenta eliminado correctamente.",
+    };
   }
   async deleteMissing(connection, didCliente, incomingDids = []) {
-    try {
-      const placeholders = incomingDids.length
-        ? incomingDids.map(() => "?").join(", ")
-        : "NULL";
-      const deleteQuery = `
+    const placeholders = incomingDids.length
+      ? incomingDids.map(() => "?").join(", ")
+      : "NULL";
+    const deleteQuery = `
       UPDATE clientes_contactos 
       SET elim = 1 
       WHERE didCliente = ? 
@@ -138,11 +124,8 @@ class Clente_contacto {
       ${incomingDids.length > 0 ? `AND did NOT IN (${placeholders})` : ""}
     `;
 
-      const params = [didCliente, ...incomingDids];
-      await executeQuery(connection, deleteQuery, params);
-    } catch (error) {
-      throw error;
-    }
+    const params = [didCliente, ...incomingDids];
+    await executeQuery(connection, deleteQuery, params);
   }
 }
 

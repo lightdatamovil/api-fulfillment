@@ -1,4 +1,4 @@
-const { executeQuery } = require("../../dbconfig");
+const { executeQuery } = require("lightdata-tools");
 
 class Cliente_cuenta {
   constructor(
@@ -68,85 +68,71 @@ class Cliente_cuenta {
   }
 
   async checkAndUpdateDidProducto(connection) {
-    try {
-      const checkQuery = "SELECT id FROM clientes_cuentas WHERE did = ?";
-      const results = await executeQuery(connection, checkQuery, [this.did]);
+    const checkQuery = "SELECT id FROM clientes_cuentas WHERE did = ?";
+    const results = await executeQuery(connection, checkQuery, [this.did]);
 
-      if (results.length > 0) {
-        const updateQuery =
-          "UPDATE clientes_cuentas SET superado = 1 WHERE did = ?";
-        await executeQuery(connection, updateQuery, [this.did]);
-        return this.createNewRecord(connection);
-      } else {
-        return this.createNewRecord(connection);
-      }
-    } catch (error) {
-      throw error;
+    if (results.length > 0) {
+      const updateQuery =
+        "UPDATE clientes_cuentas SET superado = 1 WHERE did = ?";
+      await executeQuery(connection, updateQuery, [this.did]);
+      return this.createNewRecord(connection);
+    } else {
+      return this.createNewRecord(connection);
     }
   }
 
   async createNewRecord(connection) {
-    try {
-      const querycheck =
-        "SELECT did FROM clientes WHERE did = ? and elim = 0 and superado = 0";
-      const result = await executeQuery(connection, querycheck, [
-        this.didCliente,
-      ]);
-      console.log(result, "bienvenido");
+    const querycheck =
+      "SELECT did FROM clientes WHERE did = ? and elim = 0 and superado = 0";
+    const result = await executeQuery(connection, querycheck, [
+      this.didCliente,
+    ]);
 
-      if (!Array.isArray(result) || result.length === 0) {
-        return "El cliente no existe";
-      }
-
-      const columnsQuery = "DESCRIBE clientes_cuentas";
-      const results = await executeQuery(connection, columnsQuery, []);
-
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter(
-        (column) => this[column] !== undefined
-      );
-
-      const values = filteredColumns.map((column) => this[column]);
-
-      const insertQuery = `INSERT INTO clientes_cuentas (${filteredColumns.join(
-        ", "
-      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
-
-      const insertResult = await executeQuery(connection, insertQuery, values);
-
-      if (this.did == 0 || this.did == null) {
-        const updateQuery = "UPDATE clientes_cuentas SET did = ? WHERE id = ?";
-        await executeQuery(connection, updateQuery, [
-          insertResult.insertId,
-          insertResult.insertId,
-        ]);
-      }
-
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
+    if (!Array.isArray(result) || result.length === 0) {
+      return "El cliente no existe";
     }
+
+    const columnsQuery = "DESCRIBE clientes_cuentas";
+    const results = await executeQuery(connection, columnsQuery, []);
+
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter(
+      (column) => this[column] !== undefined
+    );
+
+    const values = filteredColumns.map((column) => this[column]);
+
+    const insertQuery = `INSERT INTO clientes_cuentas (${filteredColumns.join(
+      ", "
+    )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+
+    const insertResult = await executeQuery(connection, insertQuery, values);
+
+    if (this.did == 0 || this.did == null) {
+      const updateQuery = "UPDATE clientes_cuentas SET did = ? WHERE id = ?";
+      await executeQuery(connection, updateQuery, [
+        insertResult.insertId,
+        insertResult.insertId,
+      ]);
+    }
+
+    return { insertId: insertResult.insertId };
   }
 
   async delete(connection, did) {
-    try {
-      const deleteQuery = "UPDATE clientes_cuentas SET elim = 1 WHERE did = ?";
-      await executeQuery(connection, deleteQuery, [did]);
-      return {
-        estado: true,
-        message: "Cliente cuenta eliminado correctamente.",
-      };
-    } catch (error) {
-      throw error;
-    }
+    const deleteQuery = "UPDATE clientes_cuentas SET elim = 1 WHERE did = ?";
+    await executeQuery(connection, deleteQuery, [did]);
+    return {
+      estado: true,
+      message: "Cliente cuenta eliminado correctamente.",
+    };
   }
   async deleteMissingFlex(connection, didCliente, incomingFlexIds = []) {
-    try {
-      const placeholders = incomingFlexIds.length
-        ? incomingFlexIds.map(() => "?").join(", ")
-        : "NULL";
+    const placeholders = incomingFlexIds.length
+      ? incomingFlexIds.map(() => "?").join(", ")
+      : "NULL";
 
-      const deleteQuery = `
+    const deleteQuery = `
         UPDATE clientes_cuentas 
         SET elim = 1 
         WHERE didCliente = ? 
@@ -154,11 +140,8 @@ class Cliente_cuenta {
         ${incomingFlexIds.length > 0 ? `AND flex NOT IN (${placeholders})` : ""}
       `;
 
-      const params = [didCliente, ...incomingFlexIds];
-      await executeQuery(connection, deleteQuery, params);
-    } catch (error) {
-      throw error;
-    }
+    const params = [didCliente, ...incomingFlexIds];
+    await executeQuery(connection, deleteQuery, params);
   }
 
   async getClientes(connection, filtros = {}) {

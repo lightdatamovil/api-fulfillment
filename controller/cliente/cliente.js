@@ -1,5 +1,5 @@
-const { executeQuery } = require("../../dbconfig");
-const { logYellow } = require("../../fuctions/logsCustom");
+const { executeQuery } = require("lightdata-tools");
+
 function encodeArr(data) {
   const json = JSON.stringify(data); // Serializa el objeto
   const base64 = Buffer.from(json).toString('base64'); // Lo codifica en base64
@@ -66,77 +66,65 @@ class Cliente {
   }
 
   async checkAndUpdateDidProducto(connection) {
-    try {
-      const checkDidProductoQuery = "SELECT id FROM clientes WHERE did = ?";
-      const results = await executeQuery(connection, checkDidProductoQuery, [
-        this.did,
-      ]);
+    const checkDidProductoQuery = "SELECT id FROM clientes WHERE did = ?";
+    const results = await executeQuery(connection, checkDidProductoQuery, [
+      this.did,
+    ]);
 
-      if (results.length > 0) {
-        const updateQuery = "UPDATE clientes SET superado = 1 WHERE did = ?";
-        await executeQuery(connection, updateQuery, [this.did]);
-        return this.createNewRecord(connection);
-      } else {
-        return this.createNewRecord(connection);
-      }
-    } catch (error) {
-      throw error;
+    if (results.length > 0) {
+      const updateQuery = "UPDATE clientes SET superado = 1 WHERE did = ?";
+      await executeQuery(connection, updateQuery, [this.did]);
+      return this.createNewRecord(connection);
+    } else {
+      return this.createNewRecord(connection);
     }
   }
 
   async createNewRecord(connection) {
-    try {
-      const querycheck =
-        "SELECT nombre_fantasia FROM clientes WHERE nombre_fantasia = ? and superado = 0 and elim = 0";
-      const resultscheck = await executeQuery(this.connection, querycheck, [
-        this.nombre_fantasia,
-      ]);
-      if (resultscheck.length > 0) {
-        return {
-          estado: false,
-          message: "El cliente ya existe.",
-        };
-      }
-      const columnsQuery = "DESCRIBE clientes";
-      const results = await executeQuery(connection, columnsQuery, []);
-
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter(
-        (column) => this[column] !== undefined
-      );
-
-      const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO clientes (${filteredColumns.join(
-        ", "
-      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
-
-      const insertResult = await executeQuery(connection, insertQuery, values);
-
-      if (this.did == 0 || this.did == null) {
-        const updateQuery = "UPDATE clientes SET did = ? WHERE id = ?";
-        await executeQuery(connection, updateQuery, [
-          insertResult.insertId,
-          insertResult.insertId,
-        ]);
-      }
-
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
+    const querycheck =
+      "SELECT nombre_fantasia FROM clientes WHERE nombre_fantasia = ? and superado = 0 and elim = 0";
+    const resultscheck = await executeQuery(this.connection, querycheck, [
+      this.nombre_fantasia,
+    ]);
+    if (resultscheck.length > 0) {
+      return {
+        estado: false,
+        message: "El cliente ya existe.",
+      };
     }
+    const columnsQuery = "DESCRIBE clientes";
+    const results = await executeQuery(connection, columnsQuery, []);
+
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter(
+      (column) => this[column] !== undefined
+    );
+
+    const values = filteredColumns.map((column) => this[column]);
+    const insertQuery = `INSERT INTO clientes (${filteredColumns.join(
+      ", "
+    )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+
+    const insertResult = await executeQuery(connection, insertQuery, values);
+
+    if (this.did == 0 || this.did == null) {
+      const updateQuery = "UPDATE clientes SET did = ? WHERE id = ?";
+      await executeQuery(connection, updateQuery, [
+        insertResult.insertId,
+        insertResult.insertId,
+      ]);
+    }
+
+    return { insertId: insertResult.insertId };
   }
 
   async delete(connection, did) {
-    try {
-      const deleteQuery = "UPDATE clientes SET elim = 1 WHERE did = ?";
-      await executeQuery(connection, deleteQuery, [did]);
-      return {
-        estado: true,
-        message: "Producto eliminado correctamente.",
-      };
-    } catch (error) {
-      throw error;
-    }
+    const deleteQuery = "UPDATE clientes SET elim = 1 WHERE did = ?";
+    await executeQuery(connection, deleteQuery, [did]);
+    return {
+      estado: true,
+      message: "Producto eliminado correctamente.",
+    };
   }
   async getClientes(connection, filtros) {
     try {
@@ -396,7 +384,6 @@ class Cliente {
         pais
       };
       const resultado = encodeArr(data)
-      console.log(resultado, "data");
 
       // Agregar el token generado a la respuesta
 

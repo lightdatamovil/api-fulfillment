@@ -1,5 +1,4 @@
-const e = require("cors");
-const { executeQuery } = require("../../dbconfig");
+const { executeQuery } = require("lightdata-tools");
 
 class Atributo_valor {
   constructor(
@@ -50,140 +49,120 @@ class Atributo_valor {
   }
 
   async checkAndUpdateDidProducto(connection) {
-    try {
-      const checkDidProductoQuery =
-        "SELECT id FROM atributos_valores WHERE did = ?";
-      const results = await executeQuery(connection, checkDidProductoQuery, [
-        this.did,
+    const checkDidProductoQuery =
+      "SELECT id FROM atributos_valores WHERE did = ?";
+    const results = await executeQuery(connection, checkDidProductoQuery, [
+      this.did,
+    ]);
+
+    if (results.length > 0) {
+      const updateQuery =
+        "UPDATE atributos_valores SET superado = 1 WHERE did = ?";
+
+      await executeQuery(connection, updateQuery, [this.did]);
+
+      const querydel =
+        "select * from atributos_valores where didAtributo  = ? and superado = 0 and elim = 0";
+
+      const results = await executeQuery(connection, querydel, [
+        this.didAtributo,
       ]);
 
       if (results.length > 0) {
-        const updateQuery =
-          "UPDATE atributos_valores SET superado = 1 WHERE did = ?";
-
-        await executeQuery(connection, updateQuery, [this.did]);
-
-        const querydel =
-          "select * from atributos_valores where didAtributo  = ? and superado = 0 and elim = 0";
-
-        const results = await executeQuery(connection, querydel, [
-          this.didAtributo,
-        ]);
-
-        if (results.length > 0) {
-          for (const row of results) {
-            await this.delete(connection, row.did);
-          }
+        for (const row of results) {
+          await this.delete(connection, row.did);
         }
-        return this.createNewRecord(connection);
-      } else {
-        return this.createNewRecord(connection);
       }
-    } catch (error) {
-      throw error;
+      return this.createNewRecord(connection);
+    } else {
+      return this.createNewRecord(connection);
     }
   }
 
   async createNewRecord(connection) {
-    try {
-      const querycheck =
-        "SELECT codigo FROM atributos_valores WHERE codigo = ? and superado = 0 and elim = 0";
-      const resultscheck = await executeQuery(this.connection, querycheck, [
-        this.codigo,
-      ]);
-      console.log("resultscheck", resultscheck);
+    const querycheck =
+      "SELECT codigo FROM atributos_valores WHERE codigo = ? and superado = 0 and elim = 0";
+    const resultscheck = await executeQuery(this.connection, querycheck, [
+      this.codigo,
+    ]);
 
-      if (resultscheck.length > 0) {
-        return {
-          estado: false,
-          message: "El codigo del atributo valor ya existe.",
-        };
-      }
-      const columnsQuery = "DESCRIBE atributos_valores";
-      const results = await executeQuery(connection, columnsQuery, []);
-
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter(
-        (column) => this[column] !== undefined
-      );
-
-      const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO atributos_valores (${filteredColumns.join(
-        ", "
-      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
-
-      const insertResult = await executeQuery(connection, insertQuery, values);
-
-      if (this.did == 0 || this.did == null) {
-        const updateQuery = "UPDATE atributos_valores SET did = ? WHERE id = ?";
-        await executeQuery(connection, updateQuery, [
-          insertResult.insertId,
-          insertResult.insertId,
-        ]);
-      }
-
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
+    if (resultscheck.length > 0) {
+      return {
+        estado: false,
+        message: "El codigo del atributo valor ya existe.",
+      };
     }
+    const columnsQuery = "DESCRIBE atributos_valores";
+    const results = await executeQuery(connection, columnsQuery, []);
+
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter(
+      (column) => this[column] !== undefined
+    );
+
+    const values = filteredColumns.map((column) => this[column]);
+    const insertQuery = `INSERT INTO atributos_valores (${filteredColumns.join(
+      ", "
+    )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+
+    const insertResult = await executeQuery(connection, insertQuery, values);
+
+    if (this.did == 0 || this.did == null) {
+      const updateQuery = "UPDATE atributos_valores SET did = ? WHERE id = ?";
+      await executeQuery(connection, updateQuery, [
+        insertResult.insertId,
+        insertResult.insertId,
+      ]);
+    }
+
+    return { insertId: insertResult.insertId };
   }
 
   async delete(connection, did) {
-    try {
-      const deleteQuery = "UPDATE atributos_valores SET elim = 1 WHERE did = ?";
-      await executeQuery(connection, deleteQuery, [did]);
-      return {
-        estado: true,
-        message: "atributo eliminado correctamente.",
-      };
-    } catch (error) {
-      throw error;
-    }
+    const deleteQuery = "UPDATE atributos_valores SET elim = 1 WHERE did = ?";
+    await executeQuery(connection, deleteQuery, [did]);
+    return {
+      estado: true,
+      message: "atributo eliminado correctamente.",
+    };
   }
 
   async getAll(connection) {
-    try {
-      const selectQuery =
-        "SELECT * FROM atributos_valores WHERE elim = 0 and superado = 0 order by did asc";
-      const results = await executeQuery(connection, selectQuery, []);
-      return results;
-    } catch (error) {
-      throw error;
-    }
+    const selectQuery =
+      "SELECT * FROM atributos_valores WHERE elim = 0 and superado = 0 order by did asc";
+    const results = await executeQuery(connection, selectQuery, []);
+    return results;
+
   }
 
   async deleteMissing(connection, didAtributo, didsActuales = []) {
-    try {
-      if (!Array.isArray(didsActuales)) {
-        didsActuales = [];
-      }
+    if (!Array.isArray(didsActuales)) {
+      didsActuales = [];
+    }
 
-      let deleteQuery = "";
-      let params = [];
+    let deleteQuery = "";
+    let params = [];
 
-      if (didsActuales.length > 0) {
-        deleteQuery = `
+    if (didsActuales.length > 0) {
+      deleteQuery = `
         UPDATE atributos_valores
         SET elim = 1
         WHERE didAtributo = ? AND did NOT IN (${didsActuales
-            .map(() => "?")
-            .join(", ")}) AND elim = 0
+          .map(() => "?")
+          .join(", ")}) AND elim = 0
       `;
-        params = [didAtributo, ...didsActuales];
-      } else {
-        // Si el array está vacío, eliminar todos los registros del atributo
-        deleteQuery = `
+      params = [didAtributo, ...didsActuales];
+    } else {
+      // Si el array está vacío, eliminar todos los registros del atributo
+      deleteQuery = `
         UPDATE atributos_valores
         SET elim = 1
         WHERE didAtributo = ? AND elim = 0
       `;
-        params = [didAtributo];
-      }
-
-      await executeQuery(connection, deleteQuery, params);
-    } catch (error) {
-      throw error;
+      params = [didAtributo];
     }
+
+    await executeQuery(connection, deleteQuery, params);
   }
 }
 

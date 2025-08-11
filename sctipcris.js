@@ -31,7 +31,6 @@ async function getTokenRedis() {
     }
 
     const data = await redisClient.hGetAll("token");
-    // console.log(data);
     Atokens = data; // Asegúrate de que esto sea lo que necesitas
   } catch (error) {
     console.error("Error al obtener tokens de Redis:", error);
@@ -166,7 +165,6 @@ async function run() {
   // Mostrar por grupo
   for (const key of Object.keys(agrupados)) {
     const grupo = agrupados[key];
-    console.log(`\n📦 ${grupo.titulo}`);
     console.table(grupo.publicaciones.map(pub => ({
       Canal: pub.canal,
       Material: pub.material,

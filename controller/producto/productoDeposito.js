@@ -1,4 +1,4 @@
-const { executeQuery } = require('../../dbconfig');
+const { executeQuery } = require("lightdata-tools");
 
 class ProductoDeposito {
   constructor(
@@ -47,91 +47,69 @@ class ProductoDeposito {
   }
 
   async checkAndUpdateDidProductoDeposito(connection) {
-    try {
+
+    const checkDidProductoDepositoQuery = 'SELECT did,habilitado FROM productos_depositos WHERE didDeposito = ? AND didProducto = ? AND elim = 0 AND superado = 0';
+    const results = await executeQuery(connection, checkDidProductoDepositoQuery, [this.didDeposito, this.didProducto], true);
+
+    if (results.length > 0) {
 
 
-      const checkDidProductoDepositoQuery = 'SELECT did,habilitado FROM productos_depositos WHERE didDeposito = ? AND didProducto = ? AND elim = 0 AND superado = 0';
-      const results = await executeQuery(connection, checkDidProductoDepositoQuery, [this.didDeposito, this.didProducto], true);
+      const updateQuery = 'UPDATE productos_depositos SET superado = 1 WHERE didDeposito = ? AND didProducto = ?';
+      await executeQuery(connection, updateQuery, [this.did, this.didProducto]);
 
 
+      return this.createNewRecord2(connection, results[0].did);
+    } else {
+      return this.createNewRecord(connection);
 
-
-
-
-      if (results.length > 0) {
-
-
-        const updateQuery = 'UPDATE productos_depositos SET superado = 1 WHERE didDeposito = ? AND didProducto = ?';
-        await executeQuery(connection, updateQuery, [this.did, this.didProducto]);
-
-
-        return this.createNewRecord2(connection, results[0].did);
-      } else {
-        return this.createNewRecord(connection);
-
-      }
-
-    } catch (error) {
-      throw error;
     }
+
   }
 
   async createNewRecord(connection) {
-    try {
-      const columnsQuery = 'DESCRIBE productos_depositos';
-      const results = await executeQuery(connection, columnsQuery, []);
+    const columnsQuery = 'DESCRIBE productos_depositos';
+    const results = await executeQuery(connection, columnsQuery, []);
 
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-      const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO productos_depositos (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+    const values = filteredColumns.map((column) => this[column]);
+    const insertQuery = `INSERT INTO productos_depositos (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
-      const insertResult = await executeQuery(connection, insertQuery, values);
+    const insertResult = await executeQuery(connection, insertQuery, values);
 
-      if (this.did == 0 || this.did == null) {
-        const updateQuery = 'UPDATE productos_depositos SET did = ? WHERE id = ?';
-        await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
-      }
-
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
+    if (this.did == 0 || this.did == null) {
+      const updateQuery = 'UPDATE productos_depositos SET did = ? WHERE id = ?';
+      await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
     }
+
+    return { insertId: insertResult.insertId };
   }
   async createNewRecord2(connection, did2) {
-    try {
-      const columnsQuery = 'DESCRIBE productos_depositos';
-      const results = await executeQuery(connection, columnsQuery, []);
+    const columnsQuery = 'DESCRIBE productos_depositos';
+    const results = await executeQuery(connection, columnsQuery, []);
 
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-      const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO productos_depositos (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+    const values = filteredColumns.map((column) => this[column]);
+    const insertQuery = `INSERT INTO productos_depositos (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
-      const insertResult = await executeQuery(connection, insertQuery, values);
-
+    const insertResult = await executeQuery(connection, insertQuery, values);
 
 
 
-      const updateQuery = 'UPDATE productos_depositos SET did = ? WHERE id = ?';
-      await executeQuery(connection, updateQuery, [did2, insertResult.insertId]);
+
+    const updateQuery = 'UPDATE productos_depositos SET did = ? WHERE id = ?';
+    await executeQuery(connection, updateQuery, [did2, insertResult.insertId]);
 
 
-      return { success: true, insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
-    }
+    return { success: true, insertId: insertResult.insertId };
   }
 
   async delete() {
-    try {
-      const deleteQuery = 'UPDATE productos_depositos SET elim = 1 WHERE did = ?';
-      await executeQuery(this.connection, deleteQuery, [this.did]);
-    } catch (error) {
-      throw error;
-    }
+    const deleteQuery = 'UPDATE productos_depositos SET elim = 1 WHERE did = ?';
+    await executeQuery(this.connection, deleteQuery, [this.did]);
   }
 }
 

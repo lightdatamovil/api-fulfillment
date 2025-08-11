@@ -15,13 +15,10 @@ redisClient.on("error", (err) => {
 
 (async () => {
   await redisClient.connect();
-  console.log("Redis conectado");
 })();
 
 async function getConnectionLocal(idempresa) {
   try {
-    console.log("idempresa recibido:", idempresa);
-
     if (typeof idempresa !== "string" && typeof idempresa !== "number") {
       throw new Error(
         `idempresa debe ser un string o un número, pero es: ${typeof idempresa}`

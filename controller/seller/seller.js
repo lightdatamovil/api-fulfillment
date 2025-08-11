@@ -13,7 +13,6 @@ async function saveSellerRedis(seller, data) {
         // Conectar a Redis si no está conectado
         if (!redisClient.isOpen) {
             await redisClient.connect();
-            console.log('Redis conectado');
         }
 
         // Comprobamos el valor de "operador" en data
@@ -22,8 +21,8 @@ async function saveSellerRedis(seller, data) {
         if (operador === 'add') {
             // Convertimos data a JSON (si no lo está)
             const jsonData = JSON.stringify(data.data);
-           
-            
+
+
 
             // Guardar seller en el set (para evitar duplicados)
             await redisClient.sAdd(keySellers, seller);
@@ -31,7 +30,7 @@ async function saveSellerRedis(seller, data) {
             // Guardar la data del seller en un hash
             await redisClient.hSet(keySellersData, seller, jsonData);
 
-          return `Seller ${seller} guardado en Redis`;
+            return `Seller ${seller} guardado en Redis`;
 
         } else if (operador === 'remove') {
             // Eliminar el seller del set
@@ -40,7 +39,7 @@ async function saveSellerRedis(seller, data) {
             // Eliminar la data del seller en el hash
             await redisClient.hDel(keySellersData, seller);
 
-        return `Seller ${seller} eliminado de Redis`;
+            return `Seller ${seller} eliminado de Redis`;
 
         } else {
             throw new Error('El operador debe ser "add" o "remove"');

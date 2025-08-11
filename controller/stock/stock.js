@@ -1,4 +1,3 @@
-const { executeQuery } = require('../../dbconfig');
 const StockConsolidado = require('./stock_consolidado');
 
 class Stock {
@@ -113,26 +112,18 @@ class Stock {
     }
 
     async updateExistingRecord(connection) {
-        try {
-            const updateQuery = 'UPDATE stock SET cantidad = ?, quien = ?, superado = ?, elim = ? WHERE did = ?';
-            await executeQuery(connection, updateQuery, [this.cantidad, this.quien, this.superado, this.elim, this.did]);
-            return { estado: true, message: "Stock actualizado correctamente." };
-        } catch (error) {
-            throw error;
-        }
+        const updateQuery = 'UPDATE stock SET cantidad = ?, quien = ?, superado = ?, elim = ? WHERE did = ?';
+        await executeQuery(connection, updateQuery, [this.cantidad, this.quien, this.superado, this.elim, this.did]);
+        return { estado: true, message: "Stock actualizado correctamente." };
     }
 
     async delete(connection, did) {
-        try {
-            const deleteQuery = 'UPDATE stock SET elim = 1 WHERE did = ?';
-            await executeQuery(connection, deleteQuery, [did]);
-            return {
-                estado: true,
-                message: "Stock eliminado correctamente."
-            };
-        } catch (error) {
-            throw error;
-        }
+        const deleteQuery = 'UPDATE stock SET elim = 1 WHERE did = ?';
+        await executeQuery(connection, deleteQuery, [did]);
+        return {
+            estado: true,
+            message: "Stock eliminado correctamente."
+        };
     }
 }
 

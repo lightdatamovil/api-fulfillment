@@ -7,8 +7,6 @@ const { cargarEmpresasMap } = require("./fuctions/empresaMap");
 global.empresasCodigos = {};
 cargarEmpresasMap();
 
-// Variable local para empresas de Redis
-let empresasDB = null;
 
 
 const app = express();
@@ -49,11 +47,9 @@ const PORT = 13000;
 
 
     app.listen(PORT, () => {
-      console.log(`Servidor escuchando en http://localhost:${PORT}`);
     });
 
     process.on("SIGINT", async () => {
-      console.log("Cerrando servidor...");
 
       process.exit();
     });

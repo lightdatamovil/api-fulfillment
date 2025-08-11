@@ -1,7 +1,6 @@
 const express = require("express");
 const atributo = express.Router();
 const {
-  redisClient,
   getConnectionLocal,
 } = require("../dbconfig");
 const Atributo = require("../controller/atributo/atributos");
@@ -12,7 +11,6 @@ atributo.post("/postAtributo", verificarToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
-    console.log("data", data);
 
     const atributo = new Atributo(
       data.did ?? 0,
@@ -83,7 +81,6 @@ atributo.post("/deleteAtributo", verificarToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = await getConnectionLocal(data.idEmpresa);
-    console.log("data", data);
 
     const atributo = new Atributo();
     const response = await atributo.delete(connection, data.did);
@@ -128,8 +125,6 @@ atributo.post("/getAtributos", verificarToken, async (req, res) => {
     const connection = await getConnectionLocal(data.idEmpresa);
     const atributo = new Atributo();
     const response = await atributo.getAtributos(connection, data);
-
-    console.log("response", response);
 
     return res.status(200).json({
       estado: true,

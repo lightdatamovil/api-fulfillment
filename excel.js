@@ -39,5 +39,3 @@ const resultado = parseExcelToDidEmpresaPassword(filePath);
 const jsonString = resultado.map((obj) => JSON.stringify(obj)).join(",\n");
 
 fs.writeFileSync("resultado.json", "[\n" + jsonString + "\n]", "utf-8");
-
-console.log("Archivo resultado.json creado con éxito.");

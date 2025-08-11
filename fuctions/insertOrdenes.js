@@ -1,5 +1,5 @@
+const { executeQuery } = require("lightdata-tools");
 
-const { executeQuery } = require("../dbconfig");
 const ORDENES_INSERTADAS = {}; // Almacena las órdenes insertadas
 const ESTADOS_CACHE = {}; // Almacena los estados de las órdenes
 
@@ -38,7 +38,6 @@ async function InsertOrder(connection, data) {
     if (results.length > 0) {
       didParaUsar = results[0].did;
       ORDENES_INSERTADAS[keyOrden] = { did: didParaUsar }; // Guardar en la caché
-      console.log(`Orden encontrada en BD, did: ${didParaUsar}`);
     } else {
       nuevaOrden = true;
     }
@@ -97,14 +96,11 @@ async function InsertOrder(connection, data) {
       );
 
       response = await orden.insert(ordenData);
-      console.log(response, "response de ordenes");
 
       if (response && response.insertId) {
         didParaUsar = response.insertId;
         ORDENES_INSERTADAS[keyOrden] = { did: didParaUsar }; // Actualizar en la caché
-        console.log(`Orden insertada nueva, did: ${didParaUsar}`);
       } else {
-        console.log(`Error al insertar orden, no se obtuvo insertId`);
         return { insertId: 0 };
       }
     }
@@ -156,9 +152,6 @@ async function InsertOrder(connection, data) {
 
       await ordenes_historial.insert();
     } else {
-      console.log(
-        `Estado repetido para orden ${number}, no se inserta ítem ni historial`
-      );
     }
 
     return {

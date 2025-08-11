@@ -23,7 +23,6 @@ redisClient.on("error", (err) => {
 });
 async function getConnectionLocal(idempresa) {
   try {
-    ///  console.log("idempresa recibido:", idempresa);
 
     if (typeof idempresa !== "string" && typeof idempresa !== "number") {
       throw new Error(
@@ -45,7 +44,6 @@ async function getConnectionLocal(idempresa) {
 
     // Crear la base de datos si no existe
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
-    //  console.log(`✅ Base de datos "${dbName}" verificada/creada.`);
 
     // Cerrar conexión temporal
     await connection.end();
@@ -126,7 +124,6 @@ async function listenToChannel(channelName) {
     if (channel) {
       try {
         await channel.close();
-        console.log("Canal anterior cerrado correctamente.");
       } catch (e) {
         console.warn("No se pudo cerrar el canal anterior:", e.message);
       }
@@ -134,7 +131,6 @@ async function listenToChannel(channelName) {
     if (connection) {
       try {
         await connection.close();
-        console.log("Conexión anterior cerrada correctamente.");
       } catch (e) {
         console.warn("No se pudo cerrar la conexión anterior:", e.message);
       }
@@ -144,8 +140,6 @@ async function listenToChannel(channelName) {
       connection = await amqp.connect(RABBITMQ_URL);
       channel = await connection.createChannel();
       await channel.assertQueue(channelName, { durable: true });
-
-      console.log(`✅ Escuchando mensajes en el canal: ${channelName}`);
 
       channel.consume(
         channelName,
@@ -159,16 +153,13 @@ async function listenToChannel(channelName) {
 
               // Lista de sellers permitidos
               const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
-              console.log(`🔍 Verificando seller_id: ${seller_id}`);
 
 
               if (!sellersPermitidos.includes(seller_id)) {
-                //  console.log(`⛔ Seller ${seller_id} no está permitido. Mensaje descartado.`);
                 channel.ack(msg); // marcar como procesado para no reintentar
                 return;
               }
 
-              console.log(`📥 Mensaje recibido:`, datain);
               const token = await getTokenForSeller(seller_id);
 
               async function getdataSeller(seller_id) {
@@ -183,7 +174,6 @@ async function listenToChannel(channelName) {
               }
 
               const dataredis = await getdataSeller(seller_id);
-              console.log(`Datos del vendedor ${seller_id}:`, dataredis);
 
               const connLocal = await getConnectionLocal(dataredis.idempresa);
 
@@ -233,7 +223,6 @@ const ESTADOS_CACHE = {};
 
 // Vaciar caché cada 2 semanas
 setInterval(() => {
-  console.log("Vaciando caché de estados...");
   Object.keys(ESTADOS_CACHE).forEach((key) => delete ESTADOS_CACHE[key]);
 }, 1000 * 60 * 60 * 24 * 14);
 
@@ -267,7 +256,6 @@ async function InsertOrder(connection, data, dataredis) {
   try {
     if (ORDENES_INSERTADAS[keyOrden]) {
       didParaUsar = ORDENES_INSERTADAS[keyOrden].did;
-      console.log(`Orden encontrada en memoria, did: ${didParaUsar}`);
     } else {
       const query = "SELECT did FROM pedidos WHERE number = ?";
       const results = await executeQuery(connection, query, [number]);
@@ -275,7 +263,6 @@ async function InsertOrder(connection, data, dataredis) {
       if (results.length > 0) {
         didParaUsar = results[0].did;
         ORDENES_INSERTADAS[keyOrden] = { did: didParaUsar };
-        console.log(`Orden encontrada en BD, did: ${didParaUsar}`);
       } else {
         nuevaOrden = true;
       }
@@ -335,14 +322,11 @@ async function InsertOrder(connection, data, dataredis) {
       );
 
       response = await pedido.insert(ordenData);
-      console.log(response, "response de ordenes");
 
       if (response && response.insertId) {
         didParaUsar = response.insertId;
         ORDENES_INSERTADAS[keyOrden] = { did: didParaUsar };
-        console.log(`Orden insertada nueva, did: ${didParaUsar}`);
       } else {
-        console.log(`Error al insertar orden, no se obtuvo insertId`);
         return { insertId: 0 };
       }
     }
@@ -394,9 +378,6 @@ async function InsertOrder(connection, data, dataredis) {
 
       await pedidos_historial.insert();
     } else {
-      console.log(
-        `Estado repetido para orden ${number}, no se inserta ítem ni historial`
-      );
     }
 
     return { insertId: didParaUsar };

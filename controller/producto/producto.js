@@ -1,4 +1,5 @@
-const { executeQuery } = require("../../dbconfig")
+const { executeQuery } = require("lightdata-tools")
+
 class ProductO1 {
   constructor(did = "", didCliente = 0, sku = "", titulo = "", ean = "", descripcion = "", imagen = "", habilitado = 0, esCombo = 0, posicion = "", cm3 = 0, alto = 0, ancho = 0, profundo = 0, quien = 0, superado = 0, elim = 0, connection = null) {
     this.did = did
@@ -45,105 +46,67 @@ class ProductO1 {
   }
 
   async checkAndUpdateDidProducto(connection) {
-    try {
-      const checkDidProductoQuery = "SELECT id FROM productos WHERE did = ?"
-      const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
+    const checkDidProductoQuery = "SELECT id FROM productos WHERE did = ?"
+    const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
 
-      if (results.length > 0) {
-        const updateQuery = "UPDATE productos SET superado = 1 WHERE did = ?"
-        await executeQuery(connection, updateQuery, [this.did])
-        return this.createNewRecord(connection)
-      } else {
-        return this.createNewRecord(connection)
-      }
-    } catch (error) {
-      throw error
+    if (results.length > 0) {
+      const updateQuery = "UPDATE productos SET superado = 1 WHERE did = ?"
+      await executeQuery(connection, updateQuery, [this.did])
+      return this.createNewRecord(connection)
+    } else {
+      return this.createNewRecord(connection)
     }
   }
 
   async createNewRecord(connection) {
-    try {
-      /*    const querycheck =
-      "SELECT sku FROM productos WHERE sku = ? and superado = 0 and elim = 0";
-    const resultscheck = await executeQuery(
-      connection,
-      querycheck,
-      [this.sku],
-      true
-    );
-    console.log(resultscheck, "resultscheck");
- 
-    if (resultscheck.length > 0) {
-      return {
-        estado: false,
-        message: "El Producto con ese sku ya existe.",
-      };
-    }*/
-      const columnsQuery = "DESCRIBE productos"
-      const results = await executeQuery(connection, columnsQuery, [])
+    const columnsQuery = "DESCRIBE productos"
+    const results = await executeQuery(connection, columnsQuery, [])
 
-      const tableColumns = results.map((column) => column.Field)
-      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
+    const tableColumns = results.map((column) => column.Field)
+    const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
 
-      const values = filteredColumns.map((column) => this[column])
-      const insertQuery = `INSERT INTO productos (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
+    const values = filteredColumns.map((column) => this[column])
+    const insertQuery = `INSERT INTO productos (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
 
-      const insertResult = await executeQuery(connection, insertQuery, values)
+    const insertResult = await executeQuery(connection, insertQuery, values)
 
-      if (this.did == 0 || this.did == null) {
-        const updateQuery = "UPDATE productos SET did = ? WHERE id = ?"
-        await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
-      }
-
-      return { insertId: insertResult.insertId }
-    } catch (error) {
-      throw error
+    if (this.did == 0 || this.did == null) {
+      const updateQuery = "UPDATE productos SET did = ? WHERE id = ?"
+      await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
     }
+
+    return { insertId: insertResult.insertId }
   }
   async checkDelete(did, connection) {
-    try {
-      const checkDeleteQuery = "SELECT did FROM productos_combos WHERE did = ? AND superado = 0 AND elim = 0"
-      const results = await executeQuery(connection, checkDeleteQuery, [did])
+    const checkDeleteQuery = "SELECT did FROM productos_combos WHERE did = ? AND superado = 0 AND elim = 0"
+    const results = await executeQuery(connection, checkDeleteQuery, [did])
 
-      return results.length > 0
-    } catch (error) {
-      throw error
-    }
+    return results.length > 0
   }
 
   async delete(connection, did) {
-    try {
-      const existsInCombo = await this.checkDelete(did, connection)
-      console.log(existsInCombo, "existsInCombo")
+    const existsInCombo = await this.checkDelete(did, connection)
 
-      if (existsInCombo == true) {
-        console.log("llegamos")
+    if (existsInCombo == true) {
 
-        // Si existe en combos, devuelve un mensaje de advertencia
-        return "Existe un combo con este producto "
-      } else {
-        // Si no existe en combos, procede a eliminar
-        const deleteQuery = "UPDATE productos SET elim = 1 WHERE did = ?"
-        await executeQuery(connection, deleteQuery, [did])
-        return {
-          estado: true,
-          message: "Producto eliminado correctamente.",
-        }
-      }
-    } catch (error) {
-      throw error
-    }
-  }
-  async forzarDelete(connection, did) {
-    try {
+      // Si existe en combos, devuelve un mensaje de advertencia
+      return "Existe un combo con este producto "
+    } else {
+      // Si no existe en combos, procede a eliminar
       const deleteQuery = "UPDATE productos SET elim = 1 WHERE did = ?"
       await executeQuery(connection, deleteQuery, [did])
       return {
         estado: true,
         message: "Producto eliminado correctamente.",
       }
-    } catch (error) {
-      throw error
+    }
+  }
+  async forzarDelete(connection, did) {
+    const deleteQuery = "UPDATE productos SET elim = 1 WHERE did = ?"
+    await executeQuery(connection, deleteQuery, [did])
+    return {
+      estado: true,
+      message: "Producto eliminado correctamente.",
     }
   }
   async traerProductos(connection, data = {}) {
@@ -343,7 +306,6 @@ class ProductO1 {
           })
         }
       }
-      console.log(producto, "producto")
 
       return producto
     } catch (error) {
@@ -380,51 +342,47 @@ class ProductO1 {
   }
 
   async filtro(connection, data) {
-    try {
-      let condiciones = ["p.elim = 0", "p.superado = 0"]
-      let valores = []
-      let joins = ""
+    let condiciones = ["p.elim = 0", "p.superado = 0"]
+    let valores = []
+    let joins = ""
 
-      if (data.flex !== undefined) {
-        joins += "INNER JOIN productos_ecommerce pe ON pe.didProducto = p.did"
-        condiciones.push("pe.flex = ?")
-        valores.push(data.flex)
-      }
+    if (data.flex !== undefined) {
+      joins += "INNER JOIN productos_ecommerce pe ON pe.didProducto = p.did"
+      condiciones.push("pe.flex = ?")
+      valores.push(data.flex)
+    }
 
-      if (data.habilitado !== undefined) {
-        condiciones.push("p.habilitado = ?")
-        valores.push(data.habilitado)
-      }
+    if (data.habilitado !== undefined) {
+      condiciones.push("p.habilitado = ?")
+      valores.push(data.habilitado)
+    }
 
-      if (data.esCombo !== undefined) {
-        condiciones.push("p.esCombo = ?")
-        valores.push(data.esCombo)
-      }
+    if (data.esCombo !== undefined) {
+      condiciones.push("p.esCombo = ?")
+      valores.push(data.esCombo)
+    }
 
-      if (data.cliente !== undefined) {
-        condiciones.push("p.didCliente = ?")
-        valores.push(data.cliente)
-      }
+    if (data.cliente !== undefined) {
+      condiciones.push("p.didCliente = ?")
+      valores.push(data.cliente)
+    }
 
-      if (data.sku !== undefined && data.sku.trim() !== "") {
-        condiciones.push("p.sku LIKE ?")
-        valores.push(`%${data.sku}%`)
-      }
+    if (data.sku !== undefined && data.sku.trim() !== "") {
+      condiciones.push("p.sku LIKE ?")
+      valores.push(`%${data.sku}%`)
+    }
 
-      const whereClause = condiciones.length > 0 ? `WHERE ${condiciones.join(" AND ")}` : ""
-      const filtroQuery = `
+    const whereClause = condiciones.length > 0 ? `WHERE ${condiciones.join(" AND ")}` : ""
+    const filtroQuery = `
       SELECT p.* 
       FROM productos AS p 
       ${joins}
       ${whereClause}
     `
 
-      const results = await executeQuery(connection, filtroQuery, valores)
+    const results = await executeQuery(connection, filtroQuery, valores)
 
-      return results
-    } catch (error) {
-      throw error
-    }
+    return results
   }
 }
 

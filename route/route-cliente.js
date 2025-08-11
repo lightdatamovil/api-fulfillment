@@ -4,7 +4,7 @@ const ClienteDireccion = require("../controller/cliente/cliente_direccion");
 const Cliente_cuenta = require("../controller/cliente/cliente-cuenta");
 const express = require("express");
 const cliente = express.Router();
-const { getConnectionLocal, } = require("../dbconfig");
+const { getConnectionLocal } = require("../dbconfig");
 const verificarToken = require("../middleware/token");
 
 cliente.post("/postCliente", async (req, res) => {
@@ -85,7 +85,6 @@ cliente.post("/postCliente", async (req, res) => {
         await contacto.insert();
       }
     }
-    console.log("data.cuenta", data.cuentas);
 
     // ------------------------------
     // ✅ CLIENTE CUENTA
@@ -207,7 +206,6 @@ cliente.post("/deleteCliente", verificarToken, async (req, res) => {
   try {
     const cliente = new Cliente();
     const response = await cliente.delete(connection, data.did);
-    console.log("Respuesta de delete:", response);
     return res.status(200).json({
       estado: response.estado !== undefined ? response.estado : false,
       message: response.message || response,

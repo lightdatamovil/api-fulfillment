@@ -1,4 +1,4 @@
-const { executeQuery } = require("../../dbconfig")
+const { executeQuery } = require("lightdata-tools")
 
 class ProductoVariantes {
     constructor(
@@ -43,77 +43,65 @@ class ProductoVariantes {
     }
 
     async checkAndUpdateDidProducto(connection) {
-        try {
-            const checkDidProductoQuery = "SELECT id FROM productos_variantes WHERE did = ?"
-            const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
+        const checkDidProductoQuery = "SELECT id FROM productos_variantes WHERE did = ?"
+        const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
 
-            if (results.length > 0) {
-                const updateQuery = "UPDATE productos_variantes SET superado = 1 WHERE did = ?"
-                await executeQuery(connection, updateQuery, [this.did])
-                return this.createNewRecord(connection)
-            } else {
-                return this.createNewRecord(connection)
-            }
-        } catch (error) {
-            throw error
+        if (results.length > 0) {
+            const updateQuery = "UPDATE productos_variantes SET superado = 1 WHERE did = ?"
+            await executeQuery(connection, updateQuery, [this.did])
+            return this.createNewRecord(connection)
+        } else {
+            return this.createNewRecord(connection)
         }
     }
 
     async createNewRecord(connection) {
-        try {
-            const columnsQuery = "DESCRIBE productos_variantes"
-            const results = await executeQuery(connection, columnsQuery, [])
+        const columnsQuery = "DESCRIBE productos_variantes"
+        const results = await executeQuery(connection, columnsQuery, [])
 
-            const tableColumns = results.map((column) => column.Field)
-            const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
+        const tableColumns = results.map((column) => column.Field)
+        const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
 
-            const values = filteredColumns.map((column) => this[column])
-            const insertQuery = `INSERT INTO productos_variantes (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
+        const values = filteredColumns.map((column) => this[column])
+        const insertQuery = `INSERT INTO productos_variantes (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
 
-            const insertResult = await executeQuery(connection, insertQuery, values)
+        const insertResult = await executeQuery(connection, insertQuery, values)
 
-            if (this.did == 0 || this.did == null) {
-                const updateQuery = "UPDATE productos_variantes SET did = ? WHERE id = ?"
-                await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
-            }
-
-            return { insertId: insertResult.insertId }
-        } catch (error) {
-            throw error
+        if (this.did == 0 || this.did == null) {
+            const updateQuery = "UPDATE productos_variantes SET did = ? WHERE id = ?"
+            await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
         }
+
+        return { insertId: insertResult.insertId }
     }
 
 
     async deleteMissing(connection, didAtributo, didsActuales = []) {
-        try {
-            if (!Array.isArray(didsActuales)) {
-                didsActuales = []
-            }
+        if (!Array.isArray(didsActuales)) {
+            didsActuales = []
+        }
 
-            let deleteQuery = ""
-            let params = []
+        let deleteQuery = ""
+        let params = []
 
-            if (didsActuales.length > 0) {
-                deleteQuery = `
+        if (didsActuales.length > 0) {
+            deleteQuery = `
         UPDATE productos_variantes
         SET elim = 1
         WHERE didProducto = ? AND did NOT IN (${didsActuales.map(() => "?").join(", ")}) AND elim = 0
       `
-                params = [didAtributo, ...didsActuales]
-            } else {
-                // Si el array está vacío, eliminar todos los registros del atributo
-                deleteQuery = `
+            params = [didAtributo, ...didsActuales]
+        } else {
+            // Si el array está vacío, eliminar todos los registros del atributo
+            deleteQuery = `
         UPDATE productos_variantes
         SET elim = 1
         WHERE didProducto = ? AND elim = 0
       `
-                params = [didAtributo]
-            }
-
-            await executeQuery(connection, deleteQuery, params)
-        } catch (error) {
-            throw error
+            params = [didAtributo]
         }
+
+        await executeQuery(connection, deleteQuery, params)
     }
 
 }

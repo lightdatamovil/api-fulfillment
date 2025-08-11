@@ -1,5 +1,4 @@
 const crypto = require("crypto")
-const { executeQuery } = require("../../dbconfig")
 const jwt = require("jsonwebtoken")
 const JWT_SECRET = "tu_clave_secreta"
 
@@ -71,82 +70,68 @@ class Usuario {
     }
 
     async checkAndUpdateDidProducto(connection) {
-        try {
-            const checkDidProductoQuery = "SELECT id, pass FROM usuarios WHERE did = ?  and superado = 0 AND elim = 0"
-            const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
+        const checkDidProductoQuery = "SELECT id, pass FROM usuarios WHERE did = ?  and superado = 0 AND elim = 0"
+        const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
 
-            if (results.length > 0) {
-                if (!this.pass || this.pass.trim() == "") {
-                    this.pass = results[0].pass
-                    console.log(this.pass)
-                } else {
-                    console.log("entramosss")
+        if (results.length > 0) {
+            if (!this.pass || this.pass.trim() == "") {
+                this.pass = results[0].pass
+            } else {
 
-                    const hash = crypto.createHash("sha256").update(this.pass).digest("hex")
-                    this.pass = hash
-                }
-
-                const queryUpdate = "UPDATE usuarios SET superado = 1 WHERE did = ?"
-                await executeQuery(connection, queryUpdate, [this.did])
-                return this.createNewRecord(connection)
+                const hash = crypto.createHash("sha256").update(this.pass).digest("hex")
+                this.pass = hash
             }
-            return {
-                estado: false,
-                mensaje: "El usuario no existe",
-            }
-        } catch (error) {
-            throw error
+
+            const queryUpdate = "UPDATE usuarios SET superado = 1 WHERE did = ?"
+            await executeQuery(connection, queryUpdate, [this.did])
+            return this.createNewRecord(connection)
+        }
+        return {
+            estado: false,
+            mensaje: "El usuario no existe",
         }
     }
 
     async createNewRecord(connection) {
-        try {
-            // Validar que no exista usuario duplicado
-            const querycheck = "SELECT usuario FROM usuarios WHERE usuario = ? AND superado = 0 AND elim = 0"
-            const resultscheck = await executeQuery(connection, querycheck, [this.usuario])
+        // Validar que no exista usuario duplicado
+        const querycheck = "SELECT usuario FROM usuarios WHERE usuario = ? AND superado = 0 AND elim = 0"
+        const resultscheck = await executeQuery(connection, querycheck, [this.usuario])
 
-            if (resultscheck.length > 0) {
-                return {
-                    estado: false,
-                    message: "El usuario ya existe.",
-                }
+        if (resultscheck.length > 0) {
+            return {
+                estado: false,
+                message: "El usuario ya existe.",
             }
-
-            // Obtener columnas de la tabla
-            const columnsQuery = "DESCRIBE usuarios"
-            const results = await executeQuery(connection, columnsQuery, [])
-
-            const tableColumns = results.map((column) => column.Field)
-            const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
-
-            // Preparamos los valores para insertar
-            const values = filteredColumns.map((column) => this[column])
-            const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
-
-            const insertResult = await executeQuery(connection, insertQuery, values)
-
-            // Si el did está vacío o 0, actualizamos para que coincida con el id insertado
-            if (this.did == 0 || this.did == null || this.did === "") {
-                const updateQuery = "UPDATE usuarios SET did = ? WHERE id = ?"
-                await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
-            }
-
-            return { insertId: insertResult.insertId }
-        } catch (error) {
-            throw error
         }
+
+        // Obtener columnas de la tabla
+        const columnsQuery = "DESCRIBE usuarios"
+        const results = await executeQuery(connection, columnsQuery, [])
+
+        const tableColumns = results.map((column) => column.Field)
+        const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
+
+        // Preparamos los valores para insertar
+        const values = filteredColumns.map((column) => this[column])
+        const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
+
+        const insertResult = await executeQuery(connection, insertQuery, values)
+
+        // Si el did está vacío o 0, actualizamos para que coincida con el id insertado
+        if (this.did == 0 || this.did == null || this.did === "") {
+            const updateQuery = "UPDATE usuarios SET did = ? WHERE id = ?"
+            await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
+        }
+
+        return { insertId: insertResult.insertId }
     }
 
     async delete(connection, did) {
-        try {
-            const deleteQuery = "UPDATE usuarios SET elim = 1 WHERE did = ?"
-            await executeQuery(connection, deleteQuery, [did])
-            return {
-                estado: true,
-                message: "Producto eliminado correctamente.",
-            }
-        } catch (error) {
-            throw error
+        const deleteQuery = "UPDATE usuarios SET elim = 1 WHERE did = ?"
+        await executeQuery(connection, deleteQuery, [did])
+        return {
+            estado: true,
+            message: "Producto eliminado correctamente.",
         }
     }
 
@@ -185,7 +170,6 @@ class Usuario {
                 countParams.push(`%${filtros.usuario}%`)
             }
             if (filtros.habilitado != "") {
-                console.log(filtros.habilitado, "dsadsadas")
 
                 baseQuery += " AND habilitado = ?"
                 params.push(filtros.habilitado)

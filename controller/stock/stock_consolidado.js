@@ -1,4 +1,3 @@
-const { executeQuery } = require('../../dbconfig');
 
 class StockConsolidado {
     constructor(
@@ -42,24 +41,20 @@ class StockConsolidado {
     }
 
     async createNewRecord(connection) {
-        try {
-            const columnsQuery = 'DESCRIBE stock_consolidado';
-            const results = await executeQuery(connection, columnsQuery, []);
+        const columnsQuery = 'DESCRIBE stock_consolidado';
+        const results = await executeQuery(connection, columnsQuery, []);
 
-            const tableColumns = results.map((column) => column.Field);
-            const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+        const tableColumns = results.map((column) => column.Field);
+        const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-            const values = filteredColumns.map((column) => this[column]);
-            const insertQuery = `INSERT INTO stock_consolidado (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+        const values = filteredColumns.map((column) => this[column]);
+        const insertQuery = `INSERT INTO stock_consolidado (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
 
-            const insertResult = await executeQuery(connection, insertQuery, values);
-            const updateQuery = 'UPDATE stock_consolidado SET did = ? WHERE id = ?';
-            await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
-            return { insertId: insertResult.insertId };
-        } catch (error) {
-            throw error;
-        }
+        const insertResult = await executeQuery(connection, insertQuery, values);
+        const updateQuery = 'UPDATE stock_consolidado SET did = ? WHERE id = ?';
+        await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
+        return { insertId: insertResult.insertId };
     }
 
 

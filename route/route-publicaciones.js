@@ -8,7 +8,6 @@ publicaciones.post("/publicacionesML", async (req, res) => {
     try {
         // const data = req.body;
         //   const connection = await getConnectionLocal(data.idEmpresa);
-        //console.log("data", data);
 
 
         const publicaciones = await getPublicacionesMLSimplificado();
@@ -30,7 +29,6 @@ publicaciones.post("/publicacionesTN", async (req, res) => {
     try {
         // const data = req.body;
         //   const connection = await getConnectionLocal(data.idEmpresa);
-        //console.log("data", data);
 
 
         const publicaciones = await getPublicacionesTNSimplificado();
@@ -53,7 +51,6 @@ publicaciones.post("/juntar", async (req, res) => {
     try {
         // const data = req.body;
         //   const connection = await getConnectionLocal(data.idEmpresa);
-        //console.log("data", data);
 
 
         const publicaciones = await getPublicacionesUnificadas();
@@ -100,7 +97,6 @@ publicaciones.post("/getProductosImportados", async (req, res) => {
     try {
         const data = req.body;
         const connection = await getConnectionLocal(data.idEmpresa);
-        //  console.log("data", data);
 
 
         const publicaciones = await construirAtributosDesdePublicaciones(connection);

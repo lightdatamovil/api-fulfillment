@@ -1,4 +1,4 @@
-const { executeQuery } = require("../../dbconfig")
+const { executeQuery } = require("lightdata-tools")
 
 class Insumo {
     constructor(did = "", nombre = "", logisticaLD = 0, codigo = "", codigoLD = "", quien = 0, superado = 0, elim = 0, connection = null) {
@@ -38,83 +38,67 @@ class Insumo {
     }
 
     async checkAndUpdateDidProducto(connection) {
-        try {
-            const checkDidProductoQuery = "SELECT id FROM logisticas WHERE did = ?"
-            const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
+        const checkDidProductoQuery = "SELECT id FROM logisticas WHERE did = ?"
+        const results = await executeQuery(connection, checkDidProductoQuery, [this.did])
 
-            if (results.length > 0) {
-                const updateQuery = "UPDATE logisticas SET superado = 1 WHERE did = ?"
-                await executeQuery(connection, updateQuery, [this.did])
-                return this.createNewRecord(connection)
-            } else {
-                return this.createNewRecord(connection)
-            }
-        } catch (error) {
-            throw error
+        if (results.length > 0) {
+            const updateQuery = "UPDATE logisticas SET superado = 1 WHERE did = ?"
+            await executeQuery(connection, updateQuery, [this.did])
+            return this.createNewRecord(connection)
+        } else {
+            return this.createNewRecord(connection)
         }
     }
 
     async createNewRecord(connection) {
-        try {
-            const querycheck = "SELECT codigo FROM logisticas WHERE codigo = ? and superado = 0 and elim = 0"
-            const resultscheck = await executeQuery(this.connection, querycheck, [this.codigo])
-            if (resultscheck.length > 0) {
-                return {
-                    estado: false,
-                    message: "El codigo de la logistica ya existe.",
-                }
+        const querycheck = "SELECT codigo FROM logisticas WHERE codigo = ? and superado = 0 and elim = 0"
+        const resultscheck = await executeQuery(this.connection, querycheck, [this.codigo])
+        if (resultscheck.length > 0) {
+            return {
+                estado: false,
+                message: "El codigo de la logistica ya existe.",
             }
-            const columnsQuery = "DESCRIBE logisticas"
-            const results = await executeQuery(connection, columnsQuery, [])
-
-            const tableColumns = results.map((column) => column.Field)
-            const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
-
-            const values = filteredColumns.map((column) => this[column])
-            const insertQuery = `INSERT INTO logisticas (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
-
-            const insertResult = await executeQuery(connection, insertQuery, values)
-
-            if (this.did == 0 || this.did == null) {
-                const updateQuery = "UPDATE logisticas SET did = ? WHERE id = ?"
-                await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
-            }
-
-            return { insertId: insertResult.insertId }
-        } catch (error) {
-            throw error
         }
+        const columnsQuery = "DESCRIBE logisticas"
+        const results = await executeQuery(connection, columnsQuery, [])
+
+        const tableColumns = results.map((column) => column.Field)
+        const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
+
+        const values = filteredColumns.map((column) => this[column])
+        const insertQuery = `INSERT INTO logisticas (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
+
+        const insertResult = await executeQuery(connection, insertQuery, values)
+
+        if (this.did == 0 || this.did == null) {
+            const updateQuery = "UPDATE logisticas SET did = ? WHERE id = ?"
+            await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
+        }
+
+        return { insertId: insertResult.insertId }
     }
 
     async delete(connection, did) {
-        try {
-            const deleteQuery = "UPDATE logisticas SET elim = 1 WHERE did = ? AND superado = 0"
-            await executeQuery(connection, deleteQuery, [did])
+        const deleteQuery = "UPDATE logisticas SET elim = 1 WHERE did = ? AND superado = 0"
+        await executeQuery(connection, deleteQuery, [did])
 
-            return {
-                estado: true,
-                message: "Logistica eliminado correctamente.",
-            }
-        } catch (error) {
-            throw error
+        return {
+            estado: true,
+            message: "Logistica eliminado correctamente.",
         }
     }
 
     async getAll(connection) {
-        try {
-            const selectQuery = ` SELECT * FROM insumos
+        const selectQuery = ` SELECT * FROM insumos
         WHERE   elim = 0 AND superado = 0
         ORDER BY did DESC
     `
 
-            const results = await executeQuery(connection, selectQuery, [])
+        const results = await executeQuery(connection, selectQuery, [])
 
-            // Agrupar por atributo
+        // Agrupar por atributo
 
-            return results
-        } catch (error) {
-            throw error
-        }
+        return results
     }
 
     async getInsumos(connection, filtros = {}) {
@@ -180,10 +164,8 @@ class Insumo {
         LIMIT ? OFFSET ?
         `
             const dataValues = [...values, cantidadPorPagina, offset]
-            console.log(dataQuery, dataValues, "dataaa")
 
             const results = await executeQuery(connection, dataQuery, dataValues)
-            console.log(pagina, "paginaaa")
             return {
                 data: results,
                 totalRegistros,
@@ -203,23 +185,19 @@ class Insumo {
         }
     }
     async getInsumosById(connection, did) {
-        try {
-            const selectQuery = `
+        const selectQuery = `
         SELECT * FROM insumos
         WHERE did = ? AND elim = 0 AND superado = 0
       `
-            const results = await executeQuery(connection, selectQuery, [did])
-            if (results.length === 0) {
-                return {
-                    estado: false,
-                    message: "No se encontró el insumo con el ID proporcionado.",
-                }
+        const results = await executeQuery(connection, selectQuery, [did])
+        if (results.length === 0) {
+            return {
+                estado: false,
+                message: "No se encontró el insumo con el ID proporcionado.",
             }
-
-            return results
-        } catch (error) {
-            throw error
         }
+
+        return results
     }
 }
 

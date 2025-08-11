@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { executeQuery } = require('../../dbconfig');
+const { executeQuery } = require('lightdata-tools');
 
 
 function hashPassword(password) {
@@ -52,62 +52,50 @@ class Empresa {
   }
 
   async checkAndUpdateDidProducto(connection) {
-    try {
-      const checkDidProductoQuery = 'SELECT id FROM sistema_empresa WHERE did = ?';
-      const results = await executeQuery(connection, checkDidProductoQuery, [this.did]);
+    const checkDidProductoQuery = 'SELECT id FROM sistema_empresa WHERE did = ?';
+    const results = await executeQuery(connection, checkDidProductoQuery, [this.did]);
 
-      if (results.length > 0) {
-        const updateQuery = 'UPDATE sistema_empresa SET superado = 1 WHERE did = ?';
-        await executeQuery(connection, updateQuery, [this.did]);
-        return this.createNewRecord(connection);
-      } else {
-        return this.createNewRecord(connection);
-      }
-    } catch (error) {
-      throw error;
+    if (results.length > 0) {
+      const updateQuery = 'UPDATE sistema_empresa SET superado = 1 WHERE did = ?';
+      await executeQuery(connection, updateQuery, [this.did]);
+      return this.createNewRecord(connection);
+    } else {
+      return this.createNewRecord(connection);
     }
   }
 
   async createNewRecord(connection) {
-    try {
-      const columnsQuery = 'DESCRIBE sistema_empresa';
-      const results = await executeQuery(connection, columnsQuery, []);
+    const columnsQuery = 'DESCRIBE sistema_empresa';
+    const results = await executeQuery(connection, columnsQuery, []);
 
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-      // 🧂 Hasheamos la contraseña si está presente y no está ya en formato $5$
-      if (this.pass && !this.pass.startsWith('$5$')) {
-        this.pass = hashPassword(this.pass); // Usamos hashPassword aquí
-      }
-
-      const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO sistema_empresa (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
-
-      const insertResult = await executeQuery(connection, insertQuery, values);
-
-      if (this.did == 0 || this.did == null) {
-        const updateQuery = 'UPDATE sistema_empresa SET did = ? WHERE id = ?';
-        await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
-      }
-
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
+    // 🧂 Hasheamos la contraseña si está presente y no está ya en formato $5$
+    if (this.pass && !this.pass.startsWith('$5$')) {
+      this.pass = hashPassword(this.pass); // Usamos hashPassword aquí
     }
+
+    const values = filteredColumns.map((column) => this[column]);
+    const insertQuery = `INSERT INTO sistema_empresa (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+
+    const insertResult = await executeQuery(connection, insertQuery, values);
+
+    if (this.did == 0 || this.did == null) {
+      const updateQuery = 'UPDATE sistema_empresa SET did = ? WHERE id = ?';
+      await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
+    }
+
+    return { insertId: insertResult.insertId };
   }
 
   async delete(connection, did) {
-    try {
-      const deleteQuery = 'UPDATE sistema_empresa SET elim = 1 WHERE did = ?';
-      await executeQuery(connection, deleteQuery, [did]);
-      return {
-        estado: true,
-        message: "Producto eliminado correctamente."
-      };
-    } catch (error) {
-      throw error;
-    }
+    const deleteQuery = 'UPDATE sistema_empresa SET elim = 1 WHERE did = ?';
+    await executeQuery(connection, deleteQuery, [did]);
+    return {
+      estado: true,
+      message: "Producto eliminado correctamente."
+    };
   }
 
 

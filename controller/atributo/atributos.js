@@ -1,5 +1,5 @@
-const e = require("cors");
-const { executeQuery } = require("../../dbconfig");
+const { executeQuery } = require("lightdata-tools");
+
 class Atributo {
   constructor(
     did = "",
@@ -47,88 +47,74 @@ class Atributo {
   }
 
   async checkAndUpdateDidProducto(connection) {
-    try {
-      const checkDidProductoQuery = "SELECT id FROM atributos WHERE did = ?";
-      const results = await executeQuery(connection, checkDidProductoQuery, [
-        this.did,
-      ]);
+    const checkDidProductoQuery = "SELECT id FROM atributos WHERE did = ?";
+    const results = await executeQuery(connection, checkDidProductoQuery, [
+      this.did,
+    ]);
 
-      if (results.length > 0) {
-        console.log("entramossss");
+    if (results.length > 0) {
 
-        const updateQuery = "UPDATE atributos SET superado = 1 WHERE did = ?";
-        await executeQuery(connection, updateQuery, [this.did]);
-        return this.createNewRecord(connection);
-      } else {
-        return this.createNewRecord(connection);
-      }
-    } catch (error) {
-      throw error;
+      const updateQuery = "UPDATE atributos SET superado = 1 WHERE did = ?";
+      await executeQuery(connection, updateQuery, [this.did]);
+      return this.createNewRecord(connection);
+    } else {
+      return this.createNewRecord(connection);
     }
   }
 
   async createNewRecord(connection) {
-    try {
-      const querycheck =
-        "SELECT codigo FROM atributos WHERE codigo = ? and superado = 0 and elim = 0";
-      const resultscheck = await executeQuery(this.connection, querycheck, [
-        this.codigo,
-      ]);
-      if (resultscheck.length > 0) {
-        return {
-          estado: false,
-          message: "El codigo del atributo valor ya existe.",
-        };
-      }
-      const columnsQuery = "DESCRIBE atributos";
-      const results = await executeQuery(connection, columnsQuery, []);
-
-      const tableColumns = results.map((column) => column.Field);
-      const filteredColumns = tableColumns.filter(
-        (column) => this[column] !== undefined
-      );
-
-      const values = filteredColumns.map((column) => this[column]);
-      const insertQuery = `INSERT INTO atributos (${filteredColumns.join(
-        ", "
-      )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
-
-      const insertResult = await executeQuery(connection, insertQuery, values);
-
-      if (this.did == 0 || this.did == null) {
-        const updateQuery = "UPDATE atributos SET did = ? WHERE id = ?";
-        await executeQuery(connection, updateQuery, [
-          insertResult.insertId,
-          insertResult.insertId,
-        ]);
-      }
-
-      return { insertId: insertResult.insertId };
-    } catch (error) {
-      throw error;
+    const querycheck =
+      "SELECT codigo FROM atributos WHERE codigo = ? and superado = 0 and elim = 0";
+    const resultscheck = await executeQuery(this.connection, querycheck, [
+      this.codigo,
+    ]);
+    if (resultscheck.length > 0) {
+      return {
+        estado: false,
+        message: "El codigo del atributo valor ya existe.",
+      };
     }
+    const columnsQuery = "DESCRIBE atributos";
+    const results = await executeQuery(connection, columnsQuery, []);
+
+    const tableColumns = results.map((column) => column.Field);
+    const filteredColumns = tableColumns.filter(
+      (column) => this[column] !== undefined
+    );
+
+    const values = filteredColumns.map((column) => this[column]);
+    const insertQuery = `INSERT INTO atributos (${filteredColumns.join(
+      ", "
+    )}) VALUES (${filteredColumns.map(() => "?").join(", ")})`;
+
+    const insertResult = await executeQuery(connection, insertQuery, values);
+
+    if (this.did == 0 || this.did == null) {
+      const updateQuery = "UPDATE atributos SET did = ? WHERE id = ?";
+      await executeQuery(connection, updateQuery, [
+        insertResult.insertId,
+        insertResult.insertId,
+      ]);
+    }
+
+    return { insertId: insertResult.insertId };
   }
 
   async delete(connection, did) {
-    try {
-      const deleteQuery =
-        "UPDATE atributos SET elim = 1 WHERE did = ? AND superado = 0";
-      await executeQuery(connection, deleteQuery, [did]);
-      const deleteQuery2 =
-        "UPDATE atributos_valores SET elim = 1 WHERE didAtributo = ? and superado = 0";
-      await executeQuery(connection, deleteQuery2, [did]);
-      return {
-        estado: true,
-        message: "atributo eliminado correctamente.",
-      };
-    } catch (error) {
-      throw error;
-    }
+    const deleteQuery =
+      "UPDATE atributos SET elim = 1 WHERE did = ? AND superado = 0";
+    await executeQuery(connection, deleteQuery, [did]);
+    const deleteQuery2 =
+      "UPDATE atributos_valores SET elim = 1 WHERE didAtributo = ? and superado = 0";
+    await executeQuery(connection, deleteQuery2, [did]);
+    return {
+      estado: true,
+      message: "atributo eliminado correctamente.",
+    };
   }
 
   async getAll(connection, did) {
-    try {
-      const selectQuery = `
+    const selectQuery = `
       SELECT 
         a.id,
         a.did AS atributo_id,
@@ -145,107 +131,97 @@ class Atributo {
       ORDER BY a.did DESC
     `;
 
-      const results = await executeQuery(connection, selectQuery, [did]);
+    const results = await executeQuery(connection, selectQuery, [did]);
 
-      // Agrupar por atributo
-      const atributosMap = new Map();
+    // Agrupar por atributo
+    const atributosMap = new Map();
 
-      for (const row of results) {
-        if (!atributosMap.has(row.atributo_id)) {
-          atributosMap.set(row.atributo_id, {
-            nombre: row.nombre,
-            codigo: row.atributo_codigo,
-            did: row.atributo_id,
-            descripcion: row.descripcion,
-            habilitado: row.habilitado,
-            valores: [],
-          });
-        }
-
-        if (row.valor_id) {
-          atributosMap.get(row.atributo_id).valores.push({
-            did: row.valor_id,
-            codigo: row.valor_codigo,
-            valor: row.valor_nombre,
-          });
-        }
+    for (const row of results) {
+      if (!atributosMap.has(row.atributo_id)) {
+        atributosMap.set(row.atributo_id, {
+          nombre: row.nombre,
+          codigo: row.atributo_codigo,
+          did: row.atributo_id,
+          descripcion: row.descripcion,
+          habilitado: row.habilitado,
+          valores: [],
+        });
       }
 
-      return Array.from(atributosMap.values());
-    } catch (error) {
-      throw error;
+      if (row.valor_id) {
+        atributosMap.get(row.atributo_id).valores.push({
+          did: row.valor_id,
+          codigo: row.valor_codigo,
+          valor: row.valor_nombre,
+        });
+      }
     }
+
+    return Array.from(atributosMap.values());
   }
   async getAtributos(connection, filtros) {
-    try {
-      const conditions = ["elim = 0", "superado = 0"];
-      const values = [];
+    const conditions = ["elim = 0", "superado = 0"];
+    const values = [];
 
-      // Filtro habilitado (0: no habilitado, 1: habilitado, 2: todos)
-      if (filtros.habilitado != "") {
-        conditions.push("habilitado = ?");
-        values.push(filtros.habilitado);
-      }
+    // Filtro habilitado (0: no habilitado, 1: habilitado, 2: todos)
+    if (filtros.habilitado != "") {
+      conditions.push("habilitado = ?");
+      values.push(filtros.habilitado);
+    }
 
-      if (filtros.codigo) {
-        conditions.push("codigo LIKE ?");
-        values.push(`%${filtros.codigo}%`);
-      }
+    if (filtros.codigo) {
+      conditions.push("codigo LIKE ?");
+      values.push(`%${filtros.codigo}%`);
+    }
 
-      if (filtros.nombre) {
-        conditions.push("nombre LIKE ?");
-        values.push(`%${filtros.nombre}%`);
-      }
+    if (filtros.nombre) {
+      conditions.push("nombre LIKE ?");
+      values.push(`%${filtros.nombre}%`);
+    }
 
-      const whereClause = conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
-        : "";
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
 
-      // Paginación (aseguramos que sean números)
-      const pagina = Number(filtros.pagina) || 1;
-      const cantidadPorPagina = Number(filtros.cantidad) || 10;
-      const offset = (pagina - 1) * cantidadPorPagina;
+    // Paginación (aseguramos que sean números)
+    const pagina = Number(filtros.pagina) || 1;
+    const cantidadPorPagina = Number(filtros.cantidad) || 10;
+    const offset = (pagina - 1) * cantidadPorPagina;
 
-      // Consulta total
-      const totalQuery = `SELECT COUNT(*) as total FROM atributos ${whereClause}`;
-      const totalResult = await executeQuery(
-        connection,
-        totalQuery,
-        values,
-        true
-      );
-      const totalRegistros = totalResult[0].total;
-      const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
+    // Consulta total
+    const totalQuery = `SELECT COUNT(*) as total FROM atributos ${whereClause}`;
+    const totalResult = await executeQuery(
+      connection,
+      totalQuery,
+      values,
+      true
+    );
+    const totalRegistros = totalResult[0].total;
+    const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
 
-      // Consulta paginada
-      const dataQuery = `
+    // Consulta paginada
+    const dataQuery = `
       SELECT id,did, nombre, codigo, descripcion, habilitado,autofecha,orden FROM atributos
       ${whereClause}
       ORDER BY did DESC
       LIMIT ? OFFSET ?
     `;
-      const dataValues = [...values, cantidadPorPagina, offset];
+    const dataValues = [...values, cantidadPorPagina, offset];
 
-      console.log(dataQuery, dataValues, "dataaa");
 
-      const results = await executeQuery(connection, dataQuery, dataValues);
-      console.log(pagina, "paginaaa");
+    const results = await executeQuery(connection, dataQuery, dataValues);
 
-      return {
-        totalRegistros,
-        totalPaginas,
-        pagina,
-        cantidad: cantidadPorPagina,
-        atributos: results,
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      totalRegistros,
+      totalPaginas,
+      pagina,
+      cantidad: cantidadPorPagina,
+      atributos: results,
+    };
   }
 
   async getAllFull(connection) {
-    try {
-      const selectQuery = `
+    const selectQuery = `
       SELECT 
         a.id,
         a.did AS atributo_id,
@@ -262,37 +238,34 @@ class Atributo {
       ORDER BY a.did DESC
     `;
 
-      const results = await executeQuery(connection, selectQuery, []);
+    const results = await executeQuery(connection, selectQuery, []);
 
-      // Agrupar por atributo
-      const atributosMap = new Map();
+    // Agrupar por atributo
+    const atributosMap = new Map();
 
-      for (const row of results) {
-        if (!atributosMap.has(row.atributo_id)) {
-          atributosMap.set(row.atributo_id, {
-            tipo: row.nombre,
-            codigo: row.atributo_codigo,
-            did: row.atributo_id,
-            obs: row.descripcion,
+    for (const row of results) {
+      if (!atributosMap.has(row.atributo_id)) {
+        atributosMap.set(row.atributo_id, {
+          tipo: row.nombre,
+          codigo: row.atributo_codigo,
+          did: row.atributo_id,
+          obs: row.descripcion,
 
-            habilitado: row.habilitado,
-            valores: [],
-          });
-        }
-
-        if (row.valor_id) {
-          atributosMap.get(row.atributo_id).valores.push({
-            codigo: row.valor_codigo,
-            nombre: row.valor_nombre,
-            did: row.valor_id,
-          });
-        }
+          habilitado: row.habilitado,
+          valores: [],
+        });
       }
 
-      return Array.from(atributosMap.values());
-    } catch (error) {
-      throw error;
+      if (row.valor_id) {
+        atributosMap.get(row.atributo_id).valores.push({
+          codigo: row.valor_codigo,
+          nombre: row.valor_nombre,
+          did: row.valor_id,
+        });
+      }
     }
+
+    return Array.from(atributosMap.values());
   }
 }
 module.exports = Atributo;

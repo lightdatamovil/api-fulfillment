@@ -40,7 +40,6 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
       connection
     );
 
-    console.log(data.contraseña, "contraseña");
 
     const usuarioResult = await usuario.insert();
     if (usuarioResult.estado === false) {
@@ -73,7 +72,6 @@ usuario.post("/login", async (req, res) => {
 
   const empresaInfo = global.empresasCodigos[data.e];
 
-  console.log("empresaInfo", empresaInfo.did);
 
   if (!empresaInfo || !empresaInfo.did) {
     return res.status(401).json({
@@ -178,7 +176,6 @@ usuario.post("/deleteUsuario", verificarToken, async (req, res) => {
   try {
     const usuario = new Usuario();
     const response = await usuario.delete(connection, data.did);
-    console.log("Respuesta de delete:", response);
     return res.status(200).json({
       estado: response.estado !== undefined ? response.estado : false,
       message: response.message || response,

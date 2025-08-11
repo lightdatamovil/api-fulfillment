@@ -1,4 +1,3 @@
-const { executeQuery } = require('../../dbconfig');
 const Stock = require('./stock');
 class MovimientoStock {
     constructor(
@@ -25,7 +24,6 @@ class MovimientoStock {
     async insert() {
         try {
             const insertResult = await this.createNewRecord(this.connection);
-            console.log("✅ Insertado lote de movimiento_stock con ID:", insertResult.insertId);
 
             for (const mov of this.data) {
 

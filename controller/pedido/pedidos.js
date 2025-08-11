@@ -1,5 +1,5 @@
-const { executeQuery } = require("../../dbconfig")
-const { logYellow, logBlue } = require("../../fuctions/logsCustom")
+const { executeQuery } = require("lightdata-tools")
+
 let clientesCache = {}
 
 class Pedidos {
@@ -79,51 +79,42 @@ class Pedidos {
     }
 
     async checkAndUpdateDidEnvio(connection) {
-        try {
-            const checkDidEnvioQuery = "SELECT number,did FROM pedidos WHERE number = ?  and superado = 0 and elim = 0"
-            const results = await executeQuery(connection, checkDidEnvioQuery, [this.number, this.didCliente, this.didCuenta, this.flex])
+        const checkDidEnvioQuery = "SELECT number,did FROM pedidos WHERE number = ?  and superado = 0 and elim = 0"
+        const results = await executeQuery(connection, checkDidEnvioQuery, [this.number, this.didCliente, this.didCuenta, this.flex])
 
-            this.did = results[0]?.did || 0
+        this.did = results[0]?.did || 0
 
-            if (results.length > 0) {
-                console.log("entramossss")
-                return await this.updateRecord(connection)
-            } else {
-                // Si `didEnvio` no existe, crear un nuevo registro directamente
-                return this.createNewRecord(connection)
-            }
-        } catch (error) {
-            throw error
+        if (results.length > 0) {
+            return await this.updateRecord(connection)
+        } else {
+            // Si `didEnvio` no existe, crear un nuevo registro directamente
+            return this.createNewRecord(connection)
         }
     }
 
     async createNewRecord(connection) {
-        try {
-            const columnsQuery = "DESCRIBE pedidos"
-            const results = await executeQuery(connection, columnsQuery, [])
+        const columnsQuery = "DESCRIBE pedidos"
+        const results = await executeQuery(connection, columnsQuery, [])
 
-            const tableColumns = results.map((column) => column.Field)
-            const filteredColumns = tableColumns.filter((column) => this[column] !== undefined && !(column === "did" && (this[column] === 0 || this[column] === null)))
+        const tableColumns = results.map((column) => column.Field)
+        const filteredColumns = tableColumns.filter((column) => this[column] !== undefined && !(column === "did" && (this[column] === 0 || this[column] === null)))
 
-            const values = filteredColumns.map((column) => this[column])
-            const insertQuery = `INSERT INTO pedidos (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
+        const values = filteredColumns.map((column) => this[column])
+        const insertQuery = `INSERT INTO pedidos (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
 
-            const insertResult = await executeQuery(connection, insertQuery, values)
-            const insertId = insertResult.insertId
-            if (this.did == 0 || this.did == null) {
-                const didquery = "select did from pedidos where number = ? "
-                const didresult = await executeQuery(connection, didquery, [this.number])
-                this.did = didresult[0].did
-                const updateQuery = "UPDATE pedidos SET did = ? WHERE id = ?"
-                await executeQuery(connection, updateQuery, [insertId, insertId])
-            }
-
-            // await this.insertHistorial(connection, insertId);
-
-            return { insertId: insertId || this.did }
-        } catch (error) {
-            throw error
+        const insertResult = await executeQuery(connection, insertQuery, values)
+        const insertId = insertResult.insertId
+        if (this.did == 0 || this.did == null) {
+            const didquery = "select did from pedidos where number = ? "
+            const didresult = await executeQuery(connection, didquery, [this.number])
+            this.did = didresult[0].did
+            const updateQuery = "UPDATE pedidos SET did = ? WHERE id = ?"
+            await executeQuery(connection, updateQuery, [insertId, insertId])
         }
+
+        // await this.insertHistorial(connection, insertId);
+
+        return { insertId: insertId || this.did }
     }
 
     async updateRecord(connection) {
@@ -139,10 +130,8 @@ class Pedidos {
 
             const updateQuery = `UPDATE pedidos SET ${setClause} WHERE number = ?`
             values.push(this.number) // 'number' va en el WHERE
-            console.log(updateQuery, "updateQuery")
 
             const updateResult = await executeQuery(connection, updateQuery, values)
-            console.log(updateResult, "updateResult")
 
             return { insertId: this.did } // <-- ESTA ES LA LÍNEA CLAVE
         } catch (error) {
@@ -152,16 +141,12 @@ class Pedidos {
     }
 
     async eliminar(connection, did) {
-        try {
-            const deleteQuery = "UPDATE pedidos set elim = 1 WHERE did = ?"
-            await executeQuery(connection, deleteQuery, [did])
-            const deletetequery2 = "UPDATE pedidos_items set elim = 1 WHERE didOrden = ? and superado = 0"
-            await executeQuery(connection, deletetequery2, [did])
-            const deletequery3 = "UPDATE pedidos set elim = 1 WHERE didOrden = ? and superado = 0"
-            await executeQuery(connection, deletequery3, [did])
-        } catch (error) {
-            throw error
-        }
+        const deleteQuery = "UPDATE pedidos set elim = 1 WHERE did = ?"
+        await executeQuery(connection, deleteQuery, [did])
+        const deletetequery2 = "UPDATE pedidos_items set elim = 1 WHERE didOrden = ? and superado = 0"
+        await executeQuery(connection, deletetequery2, [did])
+        const deletequery3 = "UPDATE pedidos set elim = 1 WHERE didOrden = ? and superado = 0"
+        await executeQuery(connection, deletequery3, [did])
     }
 
     async getOrdenPorId(connection, did, pagina = 1, cantidad = 10) {
@@ -341,7 +326,6 @@ class Pedidos {
         `
 
             const results = await executeQuery(connection, query, [...valores, cantidad, offset])
-            //  console.log(results, "results");
 
             // Actualizar caché de clientes
             for (const orden of results) {
@@ -485,20 +469,16 @@ class Pedidos {
     }
 
     async delete(connection, did) {
-        try {
-            const deleteQuery = "UPDATE pedidos SET elim = 1 WHERE did = ?"
-            await executeQuery(connection, deleteQuery, [did])
-            const deleteItemsQuery = "UPDATE pedidos_items SET elim = 1 WHERE didPedido = ? AND superado = 0"
-            await executeQuery(connection, deleteItemsQuery, [did])
-            const deleteHistorialQuery = "UPDATE pedidos_historial SET elim = 1 WHERE didPedido = ? AND superado = 0 LIMIT 1"
-            await executeQuery(connection, deleteHistorialQuery, [did])
+        const deleteQuery = "UPDATE pedidos SET elim = 1 WHERE did = ?"
+        await executeQuery(connection, deleteQuery, [did])
+        const deleteItemsQuery = "UPDATE pedidos_items SET elim = 1 WHERE didPedido = ? AND superado = 0"
+        await executeQuery(connection, deleteItemsQuery, [did])
+        const deleteHistorialQuery = "UPDATE pedidos_historial SET elim = 1 WHERE didPedido = ? AND superado = 0 LIMIT 1"
+        await executeQuery(connection, deleteHistorialQuery, [did])
 
-            return {
-                estado: true,
-                message: "Orden eliminada correctamente.",
-            }
-        } catch (error) {
-            throw error
+        return {
+            estado: true,
+            message: "Orden eliminada correctamente.",
         }
     }
 

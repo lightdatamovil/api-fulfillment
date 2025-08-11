@@ -319,7 +319,6 @@ producto.post("/updateDepositos", async (req, res) => {
       deposito.did,
       deposito.habilitado // habilitado
     );
-    // console.log(productoDeposito, "productoDeposito");
 
     await productoDeposito.checkAndUpdateDidProductoDeposito(connection);
   }
@@ -448,7 +447,6 @@ producto.post("/ALGUNAS COSAS VIEJAS DE PRODUCTO ", async (req, res) => {
 
           connection
         );
-        //    console.log(varianteA, "productoDeposito");
 
         const resultsVariante = await varianteA.insert();
         const variantId = resultsVariante.insertId;
@@ -504,7 +502,6 @@ producto.post("/ALGUNAS COSAS VIEJAS DE PRODUCTO ", async (req, res) => {
           0,
           connection
         );
-        console.log(productoDeposito, "productoDeposito");
 
         await productoDeposito.insert();
       }
