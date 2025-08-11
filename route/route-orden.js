@@ -1,15 +1,16 @@
-const express = require("express");
-const producto = express.Router();
-const { getConnectionLocal, } = require("../dbconfig").default;
-const Orden_Trabajo = require("../controller/orden/ordenes_trabajo").default;
-const Orden_trabajo_pedido = require("../controller/orden/ordenes_trabajo_pedido").default;
-const Orden_trabajo_pedido_items = require("../controller/orden/ordenes_trabajo_pedido_items").default;
-const OrdenTrabajoEstado = require("../controller/orden/ordenes_trabajo_pedidos_estados").default;
+import { Router } from "express";
+const producto = Router();
+import Orden_Trabajo from "../controller/orden/ordenes_trabajo";
+import Orden_trabajo_pedido from "../controller/orden/ordenes_trabajo_pedido";
+import Orden_trabajo_pedido_items from "../controller/orden/ordenes_trabajo_pedido_items";
+import OrdenTrabajoEstado from "../controller/orden/ordenes_trabajo_pedidos_estados";
+import { getFFProductionDbConfig } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "../db";
 
 
 producto.post("/postOrdenTrabajo", async (req, res) => {
     const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
     try {
         const ordenTrabajo = new Orden_Trabajo(
@@ -59,7 +60,7 @@ producto.post("/postOrdenTrabajo", async (req, res) => {
 });
 producto.post("/postOrdenTrabajoPedido", async (req, res) => {
     const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
     try {
         const ordenTrabajoPedido = new Orden_trabajo_pedido(
@@ -109,7 +110,7 @@ producto.post("/postOrdenTrabajoPedido", async (req, res) => {
 });
 producto.post("/postOrdenTrabajoPedidoItem", async (req, res) => {
     const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
     try {
         const ordenTrabajoPedidoItem = new Orden_trabajo_pedido_items(
@@ -161,7 +162,7 @@ producto.post("/postOrdenTrabajoPedidoItem", async (req, res) => {
 });
 producto.post("/postOrdenTrabajoEstado", async (req, res) => {
     const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
     try {
         const ordenTrabajoEstado = new OrdenTrabajoEstado(
@@ -213,12 +214,4 @@ producto.post("/postOrdenTrabajoEstado", async (req, res) => {
     }
 });
 
-producto.get("/", async (req, res) => {
-    res.status(200).json({
-        estado: true,
-        mesanje: "Hola chris",
-    });
-});
-
-
-module.exports = producto;
+export default producto;

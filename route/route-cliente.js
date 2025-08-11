@@ -1,15 +1,17 @@
-const Cliente = require("../controller/cliente/cliente");
-const ClienteContacto = require("../controller/cliente/cliente_contacto");
-const ClienteDireccion = require("../controller/cliente/cliente_direccion");
-const Cliente_cuenta = require("../controller/cliente/cliente-cuenta");
-const express = require("express");
-const cliente = express.Router();
-const { getConnectionLocal } = require("../dbconfig").default;
-const verificarToken = require("../middleware/token");
+import Cliente from "../controller/cliente/cliente";
+import ClienteContacto from "../controller/cliente/cliente_contacto";
+import ClienteDireccion from "../controller/cliente/cliente_direccion";
+import Cliente_cuenta from "../controller/cliente/cliente-cuenta";
+import { Router } from "express";
+import verificarToken from "../middleware/token";
+import { getFFProductionDbConfig } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "../db";
+
+const cliente = Router();
 
 cliente.post("/postCliente", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   let clienteId = 0;
 
   try {
@@ -128,7 +130,7 @@ cliente.post("/postCliente", async (req, res) => {
 
 cliente.post("/getClientes", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const filtros = {
     nombre_fantasia: data.nombre_fantasia ?? null,
     razon_social: data.razon_social ?? null,
@@ -163,7 +165,7 @@ cliente.post("/getClientes", async (req, res) => {
 
 cliente.post("/getClienteById", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const cliente = new Cliente();
 
   try {
@@ -185,7 +187,7 @@ cliente.post("/getClienteById", async (req, res) => {
 });
 cliente.post("/deleteCliente", verificarToken, async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
   try {
     const cliente = new Cliente();
@@ -215,7 +217,7 @@ cliente.get("/getAllClientes/:empresa", verificarToken, async (req, res) => {
     });
   }
 
-  const connection = await getConnectionLocal(empresa);
+  const connection = getFFProductionDbConfig(empresa, hostFulFillement, portFulFillement);
   const cliente = new Cliente();
 
   try {
@@ -232,11 +234,4 @@ cliente.get("/getAllClientes/:empresa", verificarToken, async (req, res) => {
   }
 });
 
-cliente.get("/", async (req, res) => {
-  res.status(200).json({
-    estado: true,
-    mesanje: "Hola chris",
-  });
-});
-
-module.exports = cliente;
+export default cliente;

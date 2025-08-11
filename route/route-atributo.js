@@ -1,16 +1,16 @@
-const express = require("express");
-const atributo = express.Router();
-const {
-  getConnectionLocal,
-} = require("../dbconfig").default;
-const Atributo = require("../controller/atributo/atributos");
-const Atributo_valor = require("../controller/atributo/atributo_valor");
-const verificarToken = require("../middleware/token");
+import { Router } from "express";
+import Atributo from "../controller/atributo/atributos";
+import Atributo_valor from "../controller/atributo/atributo_valor";
+import verificarToken from "../middleware/token";
+import { getFFProductionDbConfig } from "lightdata-tools";
+import { hostFulFillement, hostFulFillementHost, portFulFillement } from "../db";
+
+const atributo = Router();
 
 atributo.post("/postAtributo", verificarToken, async (req, res) => {
   try {
     const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillementHost, portFulFillement);
 
     const atributo = new Atributo(
       data.did ?? 0,
@@ -76,7 +76,7 @@ atributo.post("/postAtributo", verificarToken, async (req, res) => {
 atributo.post("/deleteAtributo", verificarToken, async (req, res) => {
   try {
     const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillementHost, portFulFillement);
 
     const atributo = new Atributo();
     const response = await atributo.delete(connection, data.did);
@@ -97,7 +97,7 @@ atributo.post("/deleteAtributo", verificarToken, async (req, res) => {
 atributo.post("/getAtributoById", verificarToken, async (req, res) => {
   try {
     const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillementHost, portFulFillement);
     const atributo = new Atributo();
     const response = await atributo.getAll(connection, data.did);
 
@@ -116,7 +116,7 @@ atributo.post("/getAtributoById", verificarToken, async (req, res) => {
 atributo.post("/getAtributos", verificarToken, async (req, res) => {
   try {
     const data = req.body;
-    const connection = await getConnectionLocal(data.idEmpresa);
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillementHost, portFulFillement);
     const atributo = new Atributo();
     const response = await atributo.getAtributos(connection, data);
 
@@ -139,7 +139,7 @@ atributo.post("/getAtributos", verificarToken, async (req, res) => {
 atributo.get("/getAllAtributos/:empresa", verificarToken, async (req, res) => {
   try {
     const data = req.params;
-    const connection = await getConnectionLocal(data.empresa);
+    const connection = getFFProductionDbConfig(data.empresa, hostFulFillement, portFulFillement);
     const atributo = new Atributo();
     const response = await atributo.getAllFull(connection);
 
@@ -153,11 +153,4 @@ atributo.get("/getAllAtributos/:empresa", verificarToken, async (req, res) => {
   }
 });
 
-atributo.get("/", async (req, res) => {
-  res.status(200).json({
-    estado: true,
-    mesanje: "Hola chris",
-  });
-});
-
-module.exports = atributo;
+export default atributo;

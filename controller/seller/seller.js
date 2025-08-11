@@ -1,4 +1,4 @@
-const { redisClient } = require("../../dbconfig").default;
+const { redisClient } = require("../../db").default;
 
 async function saveSellerRedis(seller, data) {
     const keySellers = "seller_ff";

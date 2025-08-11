@@ -1,12 +1,14 @@
-const express = require("express");
-const insumo = express.Router();
-const { getConnectionLocal, } = require("../dbconfig").default;
-const verificarToken = require("../middleware/token");
-const Insumo = require("../controller/insumo/insumos");
+import { Router } from "express";
+import verificarToken from "../middleware/token";
+import Insumo from "../controller/insumo/insumos";
+import { getFFProductionDbConfig } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "../db";
+
+const insumo = Router();
 
 insumo.post("/postInsumo", verificarToken, async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
   try {
     const insumo = new Insumo(
@@ -50,7 +52,7 @@ insumo.post("/postInsumo", verificarToken, async (req, res) => {
 
 insumo.post("/getInsumos", verificarToken, async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const { pagina, cantidad, nombre, habilitado, codigo, did, didCliente } =
     data;
   const insumo = new Insumo();
@@ -92,7 +94,7 @@ insumo.post("/getInsumos", verificarToken, async (req, res) => {
 
 insumo.post("/getInsumoById", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const insumo = new Insumo();
 
   try {
@@ -122,7 +124,7 @@ insumo.post("/getInsumoById", async (req, res) => {
 
 insumo.post("/deleteInsumo", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
   try {
     const insumo = new Insumo();
@@ -153,7 +155,7 @@ insumo.get("/getAllInsumos/:empresa", verificarToken, async (req, res) => {
     });
   }
 
-  const connection = await getConnectionLocal(empresa);
+  const connection = getFFProductionDbConfig(empresa, hostFulFillement, portFulFillement);
   const insumo = new Insumo();
 
   try {
@@ -169,11 +171,5 @@ insumo.get("/getAllInsumos/:empresa", verificarToken, async (req, res) => {
     connection.end();
   }
 });
-insumo.get("/", async (req, res) => {
-  res.status(200).json({
-    estado: true,
-    mesanje: "Hola chris",
-  });
-});
 
-module.exports = insumo;
+export default insumo;

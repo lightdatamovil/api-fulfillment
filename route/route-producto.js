@@ -1,17 +1,18 @@
-const express = require("express");
-const producto = express.Router();
-const { getConnectionLocal, } = require("../dbconfig").default;
-const verificarToken = require("../middleware/token");
-const ProductoCombo = require("../controller/producto/productoCombo");
-const ProductoDeposito = require("../controller/producto/productoDeposito");
-const ProductoEcommerce = require("../controller/producto/productoEcommerce");
-const ProductO1 = require("../controller/producto/producto");
-const ProductoInsumo = require("../controller/producto/productoInsumo").default;
-const ProductoVariantes = require("../controller/producto/productoVariaciones");
+import { Router } from "express";
+import verificarToken from "../middleware/token";
+import ProductoCombo from "../controller/producto/productoCombo";
+import ProductoDeposito from "../controller/producto/productoDeposito";
+import ProductoEcommerce from "../controller/producto/productoEcommerce";
+import ProductO1 from "../controller/producto/producto";
+import ProductoInsumo from "../controller/producto/productoInsumo";
+import ProductoVariantes from "../controller/producto/productoVariaciones";
+import { getFFProductionDbConfig } from "lightdata-tools";
 
-producto.post("/postProducto", verificarToken, async (req, res) => {
+const productos = Router();
+
+productos.post("/postProducto", verificarToken, async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = await getFFProductionDbConfig(data.idEmpresa);
 
   try {
     const producto = new ProductO1(
@@ -190,7 +191,7 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
   }
 });
 
-producto.post("/getProductos", async (req, res) => {
+productos.post("/getProductos", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const producto = new ProductO1();
@@ -226,7 +227,7 @@ producto.post("/getProductos", async (req, res) => {
   }
 });
 
-producto.post("/getProductoById", async (req, res) => {
+productos.post("/getProductoById", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const producto = new ProductO1();
@@ -236,7 +237,7 @@ producto.post("/getProductoById", async (req, res) => {
     data: response,
   });
 });
-producto.post("/updateProducts", async (req, res) => {
+productos.post("/updateProducts", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const producto = new ProductO1(
@@ -263,7 +264,7 @@ producto.post("/updateProducts", async (req, res) => {
     productos: response,
   });
 });
-producto.post("/updateCombos", async (req, res) => {
+productos.post("/updateCombos", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
@@ -279,7 +280,7 @@ producto.post("/updateCombos", async (req, res) => {
     estado: true,
   });
 });
-producto.post("/updateEcommerce", async (req, res) => {
+productos.post("/updateEcommerce", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   for (const ecommerceItem of data.ecommerce) {
@@ -305,7 +306,7 @@ producto.post("/updateEcommerce", async (req, res) => {
   });
 });
 
-producto.post("/updateDepositos", async (req, res) => {
+productos.post("/updateDepositos", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   for (const deposito of data.depositos) {
@@ -322,7 +323,7 @@ producto.post("/updateDepositos", async (req, res) => {
     estado: true,
   });
 });
-producto.post("/getProducts", async (req, res) => {
+productos.post("/getProducts", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
   const producto = new ProductO1();
@@ -333,7 +334,7 @@ producto.post("/getProducts", async (req, res) => {
   });
 });
 
-producto.get("/getAllProductos/:empresa", async (req, res) => {
+productos.get("/getAllProductos/:empresa", async (req, res) => {
   const empresa = req.params.empresa;
   if (!empresa) {
     return res.status(400).json({
@@ -358,14 +359,14 @@ producto.get("/getAllProductos/:empresa", async (req, res) => {
   }
 });
 
-producto.get("/", async (req, res) => {
+productos.get("/", async (req, res) => {
   res.status(200).json({
     estado: true,
     mesanje: "Hola chris",
   });
 });
 
-producto.post("/ALGUNAS COSAS VIEJAS DE PRODUCTO ", async (req, res) => {
+productos.post("/ALGUNAS COSAS VIEJAS DE PRODUCTO ", async (req, res) => {
   const data = req.body;
   const connection = await getConnectionLocal(data.idEmpresa);
 
@@ -459,4 +460,4 @@ producto.post("/ALGUNAS COSAS VIEJAS DE PRODUCTO ", async (req, res) => {
   }
 });
 
-module.exports = producto;
+export default productos;

@@ -1,6 +1,7 @@
-const express = require('express');
-const seller = express.Router();
-const { saveSellerRedis } = require('../controller/seller/seller');
+import { Router } from 'express';
+import { saveSellerRedis } from '../controller/seller/seller';
+
+const seller = Router();
 
 seller.post('/', async (req, res) => {
     const data = req.body;
@@ -19,11 +20,4 @@ seller.post('/', async (req, res) => {
     }
 });
 
-seller.get("/", async (req, res) => {
-    res.status(200).json({
-        estado: true,
-        mesanje: "Hola chris"
-    });
-});
-
-module.exports = seller;
+export default seller;

@@ -1,7 +1,7 @@
-const express = require("express");
-const publicaciones = express.Router();
-const { getConnectionLocal, } = require("../dbconfig").default;
-const { getPublicacionesUnificadas, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosDesdePublicaciones } = require("../controller/publicacionesMLTN/publicaciones");
+import { Router } from "express";
+import { getPublicacionesUnificadas, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosDesdePublicaciones } from "../controller/publicacionesMLTN/publicaciones";
+
+const publicaciones = Router();
 
 publicaciones.post("/publicacionesML", async (req, res) => {
     try {
@@ -96,4 +96,4 @@ publicaciones.post("/getProductosImportados", async (req, res) => {
     }
 })
 
-module.exports = publicaciones;
+export default publicaciones;

@@ -1,13 +1,15 @@
-const express = require("express");
-const stock = express.Router();
-const { getConnectionLocal, } = require("../dbconfig").default;
-const StockConsolidado = require("../controller/stock/stock_consolidado");
-const Stock = require("../controller/stock/stock");
-const MovimientoStock = require("../controller/stock/movimiento_stock");
+import { Router } from "express";
+import StockConsolidado from "../controller/stock/stock_consolidado";
+import Stock from "../controller/stock/stock";
+import MovimientoStock from "../controller/stock/movimiento_stock";
+import { getFFProductionDbConfig } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "../db";
+
+const stock = Router();
 
 stock.post("/stockConsolidado", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   try {
     const stock = new StockConsolidado(
       data.did ?? 0,
@@ -37,7 +39,7 @@ stock.post("/stockConsolidado", async (req, res) => {
 });
 stock.post("/stock", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   try {
     const stock = new Stock(
       data.did ?? 0,
@@ -68,7 +70,7 @@ stock.post("/stock", async (req, res) => {
 
 stock.post("/movimientoStock", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   try {
     const stock = new MovimientoStock(
       data.did ?? 0,
@@ -96,11 +98,4 @@ stock.post("/movimientoStock", async (req, res) => {
   }
 });
 
-stock.get("/", async (req, res) => {
-  res.status(200).json({
-    estado: true,
-    mesanje: "Hola chris",
-  });
-});
-
-module.exports = stock;
+export default stock;

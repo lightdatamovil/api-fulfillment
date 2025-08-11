@@ -1,12 +1,14 @@
-const express = require("express");
-const usuario = express.Router();
-const { getConnectionLocal, } = require("../dbconfig").default;
-const Usuario = require("../controller/usuario/usuario");
-const verificarToken = require("../middleware/token");
+import { Router } from "express";
+import Usuario from "../controller/usuario/usuario";
+import verificarToken from "../middleware/token";
+import { getFFProductionDbConfig } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "../db";
+
+const usuario = Router();
 
 usuario.post("/postUsuario", verificarToken, async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
   try {
     const usuarioRegex = /^[a-zA-Z0-9_]+$/;
@@ -78,7 +80,7 @@ usuario.post("/login", async (req, res) => {
     });
   }
 
-  const connection = await getConnectionLocal(empresaInfo.did);
+  const connection = getFFProductionDbConfig(empresaInfo.did, hostFulFillement, portFulFillement);
   const usuario = new Usuario();
 
   try {
@@ -101,7 +103,7 @@ usuario.post("/login", async (req, res) => {
 
 usuario.post("/getUsuarios", verificarToken, async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const usuario = new Usuario();
 
   try {
@@ -142,7 +144,7 @@ usuario.post("/getUsuarios", verificarToken, async (req, res) => {
 
 usuario.post("/getUsuarioById", verificarToken, async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const usuario = new Usuario();
 
   try {
@@ -165,7 +167,7 @@ usuario.post("/getUsuarioById", verificarToken, async (req, res) => {
 
 usuario.post("/deleteUsuario", verificarToken, async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
   try {
     const usuario = new Usuario();
@@ -185,11 +187,4 @@ usuario.post("/deleteUsuario", verificarToken, async (req, res) => {
   }
 });
 
-usuario.get("/", async (req, res) => {
-  res.status(200).json({
-    estado: true,
-    mesanje: "Hola chris",
-  });
-});
-
-module.exports = usuario;
+export default usuario;

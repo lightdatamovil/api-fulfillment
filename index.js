@@ -1,16 +1,14 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const cors = require("cors");
-const { cargarEmpresasMap } = require("./fuctions/empresaMap");
+import express from "express";
+import { json, urlencoded } from "body-parser";
+import cors from "cors";
+import { cargarEmpresasMap } from "./fuctions/empresaMap";
 
 global.empresasCodigos = {};
 cargarEmpresasMap();
 
-
-
 const app = express();
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+app.use(json({ limit: "50mb" }));
+app.use(urlencoded({ limit: "50mb", extended: true }));
 app.use(
   cors({
     origin: "*",
@@ -19,7 +17,7 @@ app.use(
   })
 );
 
-app.use("/producto", require("./route/route-producto"));
+app.use("/producto", require("./route/route-producto").default);
 app.use("/cliente", require("./route/route-cliente"));
 app.use("/empresa", require("./route/route-empresa"));
 app.use("/serviceSellerToken", require("./route/route-seller"));

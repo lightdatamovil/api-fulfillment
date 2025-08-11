@@ -1,12 +1,13 @@
-const express = require("express");
-const empresa = express.Router();
-const { getConnectionLocal } = require("../dbconfig").default;
-const Empresa = require("../controller/empresa/empresa");
-const { guardarEmpresasMap } = require("../fuctions/empresaMap");
+import { Router } from "express";
+const empresa = Router();
+import Empresa from "../controller/empresa/empresa";
+import { guardarEmpresasMap } from "../fuctions/empresaMap";
+import { getFFProductionDbConfig } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "../db";
 
 empresa.post("/empresa", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
   try {
     if (data.operador === "eliminar") {
@@ -49,9 +50,9 @@ empresa.post("/empresa", async (req, res) => {
     connection.end();
   }
 });
-empresa.post("deleteEmpresa", async (req, res) => {
+empresa.post("/deleteEmpresa", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   try {
     const empresa = new Empresa();
     const response = await empresa.delete(connection, data.did);
@@ -70,11 +71,4 @@ empresa.post("deleteEmpresa", async (req, res) => {
   }
 });
 
-empresa.get("/", async (req, res) => {
-  res.status(200).json({
-    estado: true,
-    mesanje: "Hola chris",
-  });
-});
-
-module.exports = empresa;
+export default empresa;

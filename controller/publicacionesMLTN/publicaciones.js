@@ -1,5 +1,5 @@
 const axios = require("axios")
-const { redisClient } = require("../../dbconfig").default
+const { redisClient } = require("../../db").default
 const { executeQuery } = require("lightdata-tools")
 
 const USER_ID_ML = "746339074"

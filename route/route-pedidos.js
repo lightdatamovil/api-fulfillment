@@ -1,15 +1,17 @@
-const express = require("express")
-const orden = express.Router()
-const { getConnectionLocal } = require("../dbconfig").default
-const verificarToken = require("../middleware/token")
-const InsertOrder = require("../fuctions/insertOrdenes")
-const Pedidos = require("../controller/pedido/pedidos").default
-const Pedidos_items = require("../controller/pedido/pedidos_items").default
-const pedidoHistorial = require("../controller/pedido/pedidos_historial").default
+import { Router } from "express"
+import verificarToken from "../middleware/token"
+import InsertOrder from "../fuctions/insertOrdenes"
+import Pedidos from "../controller/pedido/pedidos"
+import Pedidos_items from "../controller/pedido/pedidos_items"
+import pedidoHistorial from "../controller/pedido/pedidos_historial"
+import { getFFProductionDbConfig } from "lightdata-tools"
+import { hostFulFillement, portFulFillement } from "../db"
+
+const orden = Router()
 
 orden.post("/postPedido", verificarToken, async (req, res) => {
   const data = req.body
-  const connection = await getConnectionLocal(data.idEmpresa)
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
   try {
     const estadoRepetido = await Ordenes.esEstadoRepetido(connection, data.number, data.status)
@@ -97,7 +99,7 @@ orden.post("/postPedido", verificarToken, async (req, res) => {
 })
 orden.post("/postOrden2", async (req, res) => {
   const data = req.body
-  const connection = await getConnectionLocal(data.idEmpresa)
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
   try {
     const result = await InsertOrder(connection, data)
@@ -126,7 +128,7 @@ orden.post("/postOrden2", async (req, res) => {
 
 orden.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
   const data = req.body
-  const connection = await getConnectionLocal(data.idEmpresa)
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const estadoRepetido = await Ordenes.esEstadoRepetido(connection, data.numero_venta, "pendiente")
 
   if (estadoRepetido) {
@@ -209,7 +211,7 @@ orden.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
 
 orden.post("/getPedidos", async (req, res) => {
   const data = req.body
-  const connection = await getConnectionLocal(data.idEmpresa)
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const pedidos = new Pedidos()
 
   try {
@@ -237,7 +239,7 @@ orden.post("/getPedidos", async (req, res) => {
 
 orden.post("/getPedidoById", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const pedidos = new Pedidos();
   try {
     const response = await pedidos.getOrdenPorId(connection, data.did);
@@ -258,7 +260,7 @@ orden.post("/getPedidoById", async (req, res) => {
 });
 orden.post("/deletePedido", async (req, res) => {
   const data = req.body;
-  const connection = await getConnectionLocal(data.idEmpresa);
+  const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
   try {
     const orden = new Ordenes();
@@ -278,13 +280,4 @@ orden.post("/deletePedido", async (req, res) => {
   }
 });
 
-//
-
-orden.get("/", async (req, res) => {
-  res.status(200).json({
-    estado: true,
-    mesanje: "Hola chris",
-  })
-})
-
-module.exports = orden
+export default orden
