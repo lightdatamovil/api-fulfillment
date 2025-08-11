@@ -121,9 +121,11 @@ usuario.post("/getUsuarios", verificarToken, async (req, res) => {
       usuario: data.usuario,
       habilitado: data.habilitado,
       cantidad: data.cantidad,
-    };
 
-    const response = await Usuario.getUsuarios(connection, filtros);
+
+    };
+    const didUsuario = data.didUsuario;
+    const response = await Usuario.getUsuarios(connection, filtros, didUsuario);
 
     return res.status(200).json({
       estado: true,
