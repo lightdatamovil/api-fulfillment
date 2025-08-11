@@ -147,7 +147,6 @@ class Cliente_cuenta {
     const conditions = ["elim = 0 and superado = 0"];
     const values = [];
 
-    // Filtros dinámicos
     if (filtros.didCliente) {
       conditions.push("didCliente = ?");
       values.push(filtros.didCliente);
@@ -167,18 +166,15 @@ class Cliente_cuenta {
       ? `WHERE ${conditions.join(" AND ")}`
       : "";
 
-    // Paginación
     const pagina = Number(filtros.pagina) || 1;
     const cantidadPorPagina = Number(filtros.cantidad) || 10;
     const offset = (pagina - 1) * cantidadPorPagina;
 
-    // Total de registros
     const totalQuery = `SELECT COUNT(*) as total FROM clientes_cuentas ${whereClause}`;
     const totalResult = await executeQuery(connection, totalQuery, values);
     const totalRegistros = totalResult[0].total;
     const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
 
-    // Consulta de datos
     const dataQuery = `
       SELECT * FROM clientes_cuentas
       ${whereClause}
@@ -188,7 +184,6 @@ class Cliente_cuenta {
     const dataValues = [...values, cantidadPorPagina, offset];
     const results = await executeQuery(connection, dataQuery, dataValues);
 
-    // Enriquecer los resultados
     const enriched = results.map((row) => ({
       ...row,
       tipo_nombre: Cliente_cuenta.getTipoNombre(row.tipo),
@@ -209,7 +204,7 @@ class Cliente_cuenta {
     const result = await executeQuery(connection, query, [did]);
 
     if (result.length === 0) {
-      return "El clienteCuenta no existe"; // O lanzar un error si lo prefieres
+      return "El clienteCuenta no existe";
     }
 
     const enrichedResult = {

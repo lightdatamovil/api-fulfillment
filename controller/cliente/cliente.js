@@ -1,8 +1,8 @@
 import { executeQuery } from "lightdata-tools";
 
 function encodeArr(data) {
-  const json = JSON.stringify(data); // Serializa el objeto
-  const base64 = Buffer.from(json).toString('base64'); // Lo codifica en base64
+  const json = JSON.stringify(data);
+  const base64 = Buffer.from(json).toString('base64');
   return base64;
 }
 function generateToken4() {

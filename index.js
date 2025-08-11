@@ -3,7 +3,6 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const { cargarEmpresasMap } = require("./fuctions/empresaMap");
 
-// Inicializar variable global
 global.empresasCodigos = {};
 cargarEmpresasMap();
 
@@ -20,8 +19,6 @@ app.use(
   })
 );
 
-
-// Rutas
 app.use("/producto", require("./route/route-producto"));
 app.use("/cliente", require("./route/route-cliente"));
 app.use("/empresa", require("./route/route-empresa"));

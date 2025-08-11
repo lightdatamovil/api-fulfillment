@@ -12,7 +12,6 @@ orden.post("/postPedido", verificarToken, async (req, res) => {
   const connection = await getConnectionLocal(data.idEmpresa)
 
   try {
-    // Verificar si el estado ya existe
     const estadoRepetido = await Ordenes.esEstadoRepetido(connection, data.number, data.status)
 
     if (estadoRepetido) {
@@ -21,8 +20,6 @@ orden.post("/postPedido", verificarToken, async (req, res) => {
         mensaje: "Estado repetido, no se realizaron cambios",
       })
     }
-
-    // Insertar orden
     const ordenes = new Pedidos(
       data.did ?? 0,
       0,
@@ -52,7 +49,6 @@ orden.post("/postPedido", verificarToken, async (req, res) => {
     const response = await ordenes.insert()
     const didParaUsar = response.insertId || data.did
 
-    // Insertar ítems
     if (Array.isArray(data.items) && data.items.length > 0) {
       for (const item of data.items) {
         const variation_attribute = JSON.stringify(item.variation_attributes ?? {})

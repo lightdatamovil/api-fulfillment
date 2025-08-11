@@ -72,10 +72,8 @@ async function getPublicacionesML(pagina = 1, cantidad = 20) {
                 fullItem: item,
             })
 
-            // 🔍 Recolectar atributos de cada variación
             if (Array.isArray(item.variations)) {
                 for (const variation of item.variations) {
-                    // attribute_combinations
                     if (Array.isArray(variation.attribute_combinations)) {
                         for (const attr of variation.attribute_combinations) {
                             const attrName = attr.name
@@ -91,7 +89,6 @@ async function getPublicacionesML(pagina = 1, cantidad = 20) {
                         }
                     }
 
-                    // attributes
                     if (Array.isArray(variation.attributes)) {
                         for (const attr of variation.attributes) {
                             const attrName = attr.name
@@ -110,7 +107,6 @@ async function getPublicacionesML(pagina = 1, cantidad = 20) {
             }
         }
 
-        // 🧩 Convertimos el map a array
         const variacionesItems = Array.from(variacionesMap.entries()).map(([name, valuesSet]) => ({
             name,
             values: Array.from(valuesSet),
@@ -167,7 +163,7 @@ async function getPublicacionesTN(pagina = 1, cantidad = 20) {
                     producto: titulo,
                     id_producto: p.id,
                     id_variant: v.id,
-                    data_variant: v, // ← aquí va la variante completa (cruda)
+                    data_variant: v,
                 })
             }
         }
@@ -200,28 +196,24 @@ async function getPublicacionesUnificadas(pagina = 1, cantidad = 20) {
 
     const publicacionesUnificadas = []
 
-    // 🔷 Mercado Libre
-    const skusML = new Set() // Conjunto para almacenar SKUs de ML
+    const skusML = new Set()
     if (mlData.estado) {
         for (const pub of mlData.response.resultados) {
             for (const variation of pub.variations) {
                 const sku = variation.attributes.find((attr) => attr.name === "SKU")?.value_name
                 if (sku) {
-                    skusML.add(sku) // Agregar SKU al conjunto
+                    skusML.add(sku)
                 }
             }
         }
     }
 
-    // 🔶 Tienda Nube
     if (tnData.estado) {
-        // Agrupar por producto
         const agrupadosTN = {}
 
         for (const pub of tnData.response.resultados) {
-            const skuTN = pub.data_variant.sku // SKU de Tienda Nube
+            const skuTN = pub.data_variant.sku
 
-            // Solo agregar si el SKU de TN está en el conjunto de SKUs de ML
             if (skusML.has(skuTN)) {
                 if (!agrupadosTN[pub.id_producto]) {
                     agrupadosTN[pub.id_producto] = {
@@ -237,7 +229,6 @@ async function getPublicacionesUnificadas(pagina = 1, cantidad = 20) {
             }
         }
 
-        // Agregar publicaciones de Mercado Libre que coinciden con los SKUs de Tienda Nube
         for (const pub of mlData.response.resultados) {
             const variantesFiltradas = pub.variations.filter((variation) => {
                 const skuML = variation.attributes.find((attr) => attr.name === "SKU")?.value_name
@@ -290,18 +281,15 @@ async function getPublicacionesMLSimplificado(pagina = 1, cantidad = 20) {
             })
 
             const item = itemRes.data
-            //   return item.variations
 
-            // Extraer solo la información necesaria
             publicaciones.push({
                 id: item.id,
                 producto: item.title,
                 precio: item.price,
                 estado: item.status,
                 sellerId: item.seller_id,
-                // Obtener la URL de la imagen
                 imagenUrl: item.pictures.length > 0 ? item.pictures[0].url : null,
-                atributo: item.variations?.[0]?.attribute_combinations?.[0]?.name || null, // Tomar la primera imagen
+                atributo: item.variations?.[0]?.attribute_combinations?.[0]?.name || null,
                 variaciones:
                     item.variations.map((v) => ({
                         id: v.id,
@@ -352,18 +340,17 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
             const titulo = typeof p.name === "string" ? p.name : p.name?.es || p.name?.default || "Sin nombre"
 
             for (const v of p.variants) {
-                // Construir la URL de la imagen usando el image_id
-                const imageUrl = v.image_id ? `https://example.com/images/${v.image_id}` : null // Ajusta la URL base según tu API
+                const imageUrl = v.image_id ? `https://example.com/images/${v.image_id}` : null
 
                 publicaciones.push({
                     canal: "TN",
                     producto: titulo,
                     id_producto: p.id,
                     id_variant: v.id,
-                    tienda_id: STORE_ID_TN, // Agregar id de la tienda
+                    tienda_id: STORE_ID_TN,
                     data_variant: {
                         id: v.id,
-                        image_url: imageUrl, // Incluir la URL de la imagen
+                        image_url: imageUrl,
                         product_id: p.id,
                         price: v.price,
                         weight: v.weight,
@@ -399,14 +386,11 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
 }
 
 /*async function unificarPublicaciones(pagina = 1, cantidad = 20) {
-    // Obtener publicaciones de Tiendanube
     const publicacionesTN = await getPublicacionesTNSimplificado(pagina, cantidad);
-    //  return publicacionesTN
     if (!publicacionesTN.estado) {
         return { estado: false, mensaje: "Error al obtener publicaciones de Tiendanube" };
     }
 
-    // Obtener publicaciones de Mercado Libre
     const publicacionesML = await getPublicacionesMLSimplificado(pagina, cantidad);
     if (!publicacionesML.estado) {
         return { estado: false, mensaje: "Error al obtener publicaciones de Mercado Libre" };
@@ -415,10 +399,9 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
     const publicacionesUnificadas = {};
 
 
-    // Procesar publicaciones de Tiendanube
     for (const pubTN of publicacionesTN.response.resultados) {
-        const variant = pubTN.data_variant; // Acceder directamente a data_variant
-        const sku = variant.sku || 'Sin SKU'; // Asegúrate de manejar SKUs vacíos
+        const variant = pubTN.data_variant; 
+        const sku = variant.sku || 'Sin SKU';
 
         if (!publicacionesUnificadas[sku]) {
             publicacionesUnificadas[sku] = {
@@ -428,17 +411,16 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
                 precio: variant.price,
                 imagenUrl: variant.image_url,
                 variantes: [],
-                union: [] // Inicializar union aquí
+                union: [] 
             };
         }
 
-        // Agregar información de Tiendanube
         const varianteTN = {
             id: pubTN.id_producto,
             image_url: variant.image_url,
             product_id: pubTN.id_producto,
             price: variant.price,
-            weight: variant.weight || "0.000", // Manejar peso si está disponible
+            weight: variant.weight || "0.000",
             sku: variant.sku,
             values: variant.values || [],
             visible: true
@@ -446,17 +428,15 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
 
         publicacionesUnificadas[sku].variantes.push(varianteTN);
 
-        // Agregar información a union
         publicacionesUnificadas[sku].union.push({
             tipo: 2,
-            seller_id: pubTN.tienda_id, // ID de Tiendanube
-            idProducto: pubTN.id_producto // SKU de Tiendanube
+            seller_id: pubTN.tienda_id, 
+            idProducto: pubTN.id_producto
         });
     }
 
-    // Procesar publicaciones de Mercado Libre
     for (const pubML of publicacionesML.response.resultados) {
-        const sku = pubML.variaciones.map(v => v.sku).join(" / ") || 'Sin SKU'; // Asegúrate de manejar SKUs vacíos
+        const sku = pubML.variaciones.map(v => v.sku).join(" / ") || 'Sin SKU'; 
 
         if (!publicacionesUnificadas[sku]) {
             publicacionesUnificadas[sku] = {
@@ -467,17 +447,16 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
                 atributo: pubML.atributo,
                 imagenUrl: pubML.imagenUrl,
                 variantes: [],
-                union: [] // Inicializar union aquí
+                union: []
             };
         }
 
-        // Agregar información de Mercado Libre
         const varianteML = {
             id: pubML.id,
             image_url: pubML.imagenUrl,
             product_id: pubML.id,
             price: pubML.precio,
-            weight: pubML.weight || "0.000", // Manejar peso si está disponible
+            weight: pubML.weight || "0.000", 
             sku: pubML.variaciones.map(v => v.sku).join(" / "),
             values: pubML.variaciones.map(v => ({ es: v.value })) || [],
             visible: true
@@ -485,17 +464,14 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
 
         publicacionesUnificadas[sku].variantes.push(varianteML);
 
-        // Agregar información a union
         publicacionesUnificadas[sku].union.push({
             tipo: 1,
-            seller_id: pubML.sellerId, // Seller ID de Mercado Libre
-            idProducto: pubML.id // ID de Mercado Libre
+            seller_id: pubML.sellerId, 
+            idProducto: pubML.id 
         });
     }
 
-    // Convertir el objeto a un arreglo y devolverlo
     const resultadoFinal = Object.values(publicacionesUnificadas);
-
 
     return {
         estado: true,
@@ -550,7 +526,6 @@ async function unificarPublicaciones(pagina = 1, cantidad = 20, tn = true, ml = 
             })
         }
 
-        // Si solo se quiere TN, devolver acá
         if (!ml) {
             return {
                 estado: true,

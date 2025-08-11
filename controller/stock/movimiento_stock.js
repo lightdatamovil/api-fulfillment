@@ -65,13 +65,12 @@ class MovimientoStock {
         const results = await executeQuery(connection, columnsQuery, []);
         const tableColumns = results.map((column) => column.Field);
 
-        // Creamos copia de datos para insertar
         const tempData = {};
 
         for (const column of tableColumns) {
             if (this[column] !== undefined) {
                 if (column === 'data') {
-                    tempData[column] = JSON.stringify(this.data); // no modificamos this.data original
+                    tempData[column] = JSON.stringify(this.data);
                 } else {
                     tempData[column] = this[column];
                 }

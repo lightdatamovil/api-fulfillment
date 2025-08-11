@@ -19,7 +19,7 @@ class StockConsolidado {
         this.superado = superado;
         this.elim = elim;
         this.connection = connection;
-        this.autofecha = new Date(); // Timestamp por defecto
+        this.autofecha = new Date();
     }
 
     toJSON() {
@@ -75,8 +75,8 @@ class StockConsolidado {
     }
 
     async consolidateStock(previousStock) {
-        this.stock = previousStock; // Asignar el stock anterior
-        return await this.insert(); // Insertar en stock_consolidado
+        this.stock = previousStock;
+        return await this.insert();
     }
 }
 

@@ -27,17 +27,14 @@ atributo.post("/postAtributo", verificarToken, async (req, res) => {
 
     const response = await atributo.insert();
 
-    // Determinar did del atributo creado o existente
     const didAtributo = data.did == 0 ? response.insertId : data.did;
 
-    // Borrar los valores que ya no están
     const helperValor = new Atributo_valor();
     const didsActuales = Array.isArray(data.valores)
       ? data.valores.map((v) => v.did).filter((d) => d > 0)
       : [];
     await helperValor.deleteMissing(connection, didAtributo, didsActuales);
 
-    // Insertar los valores que vinieron
     if (Array.isArray(data.valores)) {
       for (const valor of data.valores) {
         const atributoValor = new Atributo_valor(

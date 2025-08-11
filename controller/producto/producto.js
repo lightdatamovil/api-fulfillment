@@ -88,10 +88,8 @@ class ProductO1 {
 
     if (existsInCombo == true) {
 
-      // Si existe en combos, devuelve un mensaje de advertencia
       return "Existe un combo con este producto "
     } else {
-      // Si no existe en combos, procede a eliminar
       const deleteQuery = "UPDATE productos SET elim = 1 WHERE did = ?"
       await executeQuery(connection, deleteQuery, [did])
       return {
@@ -149,7 +147,6 @@ class ProductO1 {
       const cantidad = Number(data.cantidad) || 10
       const offset = (pagina - 1) * cantidad
 
-      // Consulta para total de registros
       const totalQuery = `
       SELECT COUNT(*) AS total
       FROM productos AS p
@@ -159,7 +156,6 @@ class ProductO1 {
       const totalRegistros = totalResult[0]?.total || 0
       const totalPaginas = Math.ceil(totalRegistros / cantidad)
 
-      // Consulta principal con paginado
       const query = `
       SELECT p.did AS did, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo,p.cm3
       FROM productos AS p
@@ -262,7 +258,6 @@ class ProductO1 {
       const setEcommerce = new Set()
 
       for (const row of rows) {
-        // Variantes
         if (row.didVariante && !setVariante.has(row.didVariante)) {
           setVariante.add(row.didVariante)
           producto.variantes.push({
@@ -271,7 +266,6 @@ class ProductO1 {
           })
         }
 
-        // Insumos
         if (row.didInsumo && !setInsumo.has(row.didInsumo)) {
           setInsumo.add(row.didInsumo)
           producto.insumos.push({
@@ -280,7 +274,6 @@ class ProductO1 {
           })
         }
 
-        // Combos
         if (row.didCombo && !setCombo.has(row.didCombo)) {
           setCombo.add(row.didCombo)
           producto.combos.push({
@@ -290,7 +283,6 @@ class ProductO1 {
           })
         }
 
-        // Ecommerce
         if (row.didEcommerce && !setEcommerce.has(row.didEcommerce)) {
           setEcommerce.add(row.didEcommerce)
           producto.ecommerce.push({

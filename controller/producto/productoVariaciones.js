@@ -91,7 +91,6 @@ class ProductoVariantes {
       `
             params = [didAtributo, ...didsActuales]
         } else {
-            // Si el array está vacío, eliminar todos los registros del atributo
             deleteQuery = `
         UPDATE productos_variantes
         SET elim = 1

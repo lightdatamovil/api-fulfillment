@@ -12,7 +12,6 @@ producto.post("/postOrdenTrabajo", async (req, res) => {
     const connection = await getConnectionLocal(data.idEmpresa);
 
     try {
-        // Crear nuevo producto
         const ordenTrabajo = new Orden_Trabajo(
             data.did ?? 0,
             data.estado ?? "",
@@ -63,7 +62,6 @@ producto.post("/postOrdenTrabajoPedido", async (req, res) => {
     const connection = await getConnectionLocal(data.idEmpresa);
 
     try {
-        // Crear nuevo producto
         const ordenTrabajoPedido = new Orden_trabajo_pedido(
             data.did ?? 0,
             data.didOrden ?? 0,
@@ -114,7 +112,6 @@ producto.post("/postOrdenTrabajoPedidoItem", async (req, res) => {
     const connection = await getConnectionLocal(data.idEmpresa);
 
     try {
-        // Crear nuevo producto
         const ordenTrabajoPedidoItem = new Orden_trabajo_pedido_items(
             data.did ?? 0,
             data.didOrden ?? 0,
@@ -126,8 +123,6 @@ producto.post("/postOrdenTrabajoPedidoItem", async (req, res) => {
             data.superado ?? 0,
             data.elim ?? 0,
             connection
-
-
         );
 
         const pedidoResultado = await ordenTrabajoPedidoItem.insert();
@@ -169,7 +164,6 @@ producto.post("/postOrdenTrabajoEstado", async (req, res) => {
     const connection = await getConnectionLocal(data.idEmpresa);
 
     try {
-        // Crear nuevo producto
         const ordenTrabajoEstado = new OrdenTrabajoEstado(
             data.did ?? 0,
             data.didOrden ?? 0,

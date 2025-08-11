@@ -13,9 +13,6 @@ cliente.post("/postCliente", async (req, res) => {
   let clienteId = 0;
 
   try {
-    // ------------------------------
-    // ✅ CREACIÓN / ACTUALIZACIÓN CLIENTE
-    // ------------------------------
     const cliente = new Cliente(
       data.did ?? 0,
       data.nombre_fantasia,
@@ -36,9 +33,6 @@ cliente.post("/postCliente", async (req, res) => {
 
     clienteId = data.did > 0 ? data.did : clienteResult.insertId;
 
-    // ------------------------------
-    // ✅ DIRECCIONES
-    // ------------------------------
     const direccionHelper = new ClienteDireccion();
     const dirDids = Array.isArray(data.direcciones)
       ? data.direcciones.map((d) => d.did).filter((did) => did > 0)
@@ -61,9 +55,6 @@ cliente.post("/postCliente", async (req, res) => {
       }
     }
 
-    // ------------------------------
-    // ✅ CONTACTOS
-    // ------------------------------
     const contactoHelper = new ClienteContacto();
     const contDids = Array.isArray(data.contactos)
       ? data.contactos.map((c) => c.did).filter((did) => did > 0)
@@ -86,15 +77,11 @@ cliente.post("/postCliente", async (req, res) => {
       }
     }
 
-    // ------------------------------
-    // ✅ CLIENTE CUENTA
-    // ------------------------------
     const cuentaHelper = new Cliente_cuenta();
     const cuentaFlexIds = Array.isArray(data.cuentas)
       ? data.cuentas.map((c) => c.flex).filter((flex) => flex > 0)
       : [];
 
-    // Verificar y eliminar cuentas que no tienen flex
     await cuentaHelper.deleteMissingFlex(connection, clienteId, cuentaFlexIds);
 
     if (Array.isArray(data.cuentas)) {

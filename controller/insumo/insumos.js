@@ -91,11 +91,8 @@ class Insumo {
         const selectQuery = ` SELECT * FROM insumos
         WHERE   elim = 0 AND superado = 0
         ORDER BY did DESC
-    `
-
+        `
         const results = await executeQuery(connection, selectQuery, [])
-
-        // Agrupar por atributo
 
         return results
     }
@@ -104,7 +101,7 @@ class Insumo {
         try {
             const conditions = ["i.elim = 0", "i.superado = 0"]
             const values = []
-            // Filtros dinámicos
+
             if (filtros.did) {
                 conditions.push("i.did = ?")
                 values.push(filtros.did)
@@ -139,11 +136,9 @@ class Insumo {
             }
 
             const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""
-            // Paginación (aseguramos que sean números)
             const pagina = Number(filtros.pagina) || 1
             const cantidadPorPagina = Number(filtros.cantidad) || 10
             const offset = (pagina - 1) * cantidadPorPagina
-            // Consulta total
             const totalQuery = `SELECT COUNT(*) as total FROM insumos i ${whereClause}`
             const totalResult = await executeQuery(
                 connection,

@@ -20,7 +20,7 @@ class Stock {
         this.superado = superado;
         this.elim = elim;
         this.connection = connection;
-        this.autofecha = new Date(); // Timestamp por defecto
+        this.autofecha = new Date();
     }
 
     toJSON() {

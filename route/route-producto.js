@@ -6,7 +6,7 @@ const ProductoCombo = require("../controller/producto/productoCombo");
 const ProductoDeposito = require("../controller/producto/productoDeposito");
 const ProductoEcommerce = require("../controller/producto/productoEcommerce");
 const ProductO1 = require("../controller/producto/producto");
-const ProductoInsumo = require("../controller/producto/productoInsumo");
+const ProductoInsumo = require("../controller/producto/productoInsumo").default;
 const ProductoVariantes = require("../controller/producto/productoVariaciones");
 
 producto.post("/postProducto", verificarToken, async (req, res) => {
@@ -14,7 +14,6 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    // Crear nuevo producto
     const producto = new ProductO1(
       data.did ?? 0,
       data.cliente,
@@ -56,7 +55,6 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
 
     const dIdProducto = data.did;
 
-    // Borrar los valores que ya no están
     const helperValor = new ProductoCombo();
     const didsActuales = Array.isArray(data.combos)
       ? data.combos
@@ -133,7 +131,7 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
       const varianteA = new ProductoVariantes(
         data.variantes.did,
         productId,
-        JSON.stringify(data.variantes.data), // 👈 transformás el objeto a string
+        JSON.stringify(data.variantes.data),
         data.quien,
         0,
         0,
@@ -161,7 +159,7 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
     if (data.ecommerce && Array.isArray(data.ecommerce)) {
       for (const ecommerceItem of data.ecommerce) {
         const productoEcommerce = new ProductoEcommerce(
-          ecommerceItem.did ?? 0, // Usamos el did del ecommerceItem aquí
+          ecommerceItem.did ?? 0,
           productId,
           ecommerceItem.didCuenta ?? 0,
           ecommerceItem.flex ?? 0,
@@ -372,7 +370,6 @@ producto.post("/ALGUNAS COSAS VIEJAS DE PRODUCTO ", async (req, res) => {
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    // Crear nuevo producto
     const producto = new ProductO1(
       data.did ?? 0,
       data.cliente,
@@ -394,7 +391,6 @@ producto.post("/ALGUNAS COSAS VIEJAS DE PRODUCTO ", async (req, res) => {
 
     const productId = productoResult.insertId;
 
-    // Procesar combos
     if (data.combos && Array.isArray(data.combos)) {
       for (const item of data.combos) {
         const productoCombo = new ProductoCombo(

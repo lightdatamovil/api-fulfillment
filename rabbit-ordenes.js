@@ -28,7 +28,6 @@ async function getConnectionLocal(idempresa) {
       );
     }
 
-    // Configuración de conexión al servidor MariaDB (sin base de datos)
     const config = {
       host: "149.56.182.49",
       port: 44347,
@@ -36,20 +35,15 @@ async function getConnectionLocal(idempresa) {
       password: `78451296_${idempresa}`,
     };
 
-    // Conexión sin base de datos para verificar existencia y crearla si es necesario
     const connection = await mysql.createConnection(config);
     const dbName = `empresa_${idempresa}`;
 
-    // Crear la base de datos si no existe
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
 
-    // Cerrar conexión temporal
     await connection.end();
 
-    // 🔹 Esperar un breve momento para asegurarse de que la BD esté disponible
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Conectar a la base de datos específica
     const dbConfig = { ...config, database: dbName };
     const dbConnection = await mysql.createConnection(dbConfig);
 
@@ -109,7 +103,6 @@ async function listenToChannel(channelName) {
     if (isConnecting) return;
     isConnecting = true;
 
-    // 🔁 Cerramos conexiones anteriores por las dudas
     if (channel) {
       await channel.close();
 
@@ -130,15 +123,14 @@ async function listenToChannel(channelName) {
             try {
 
               const datain = JSON.parse(msg.content.toString());
-              const seller_id = datain.sellerid; // asegurarse que sea número
+              const seller_id = datain.sellerid;
               const resource = datain.resource;
 
-              // Lista de sellers permitidos
               const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
 
 
               if (!sellersPermitidos.includes(seller_id)) {
-                channel.ack(msg); // marcar como procesado para no reintentar
+                channel.ack(msg);
                 return;
               }
 
@@ -166,22 +158,19 @@ async function listenToChannel(channelName) {
 
                 if (!Aorders.includes(keyorder)) {
                   Aorders.push(keyorder);
-                  // insertar y actualizar
-                } else {
-                  // solo actualizar
+
                 }
               }
 
               channel.ack(msg);
             } catch (err) {
-              channel.nack(msg, false, false); // O descartá el mensaje
+              channel.nack(msg, false, false);
             }
           }
         },
         { noAck: false }
       );
 
-      // 👇 Solo reconectamos desde acá
       connection.on("close", () => {
         isConnecting = false;
         setTimeout(connect, 1000);
@@ -199,12 +188,10 @@ async function listenToChannel(channelName) {
 const ORDENES_INSERTADAS = {};
 const ESTADOS_CACHE = {};
 
-// Vaciar caché cada 2 semanas
 setInterval(() => {
   Object.keys(ESTADOS_CACHE).forEach((key) => delete ESTADOS_CACHE[key]);
 }, 1000 * 60 * 60 * 24 * 14);
 
-// Función para obtener el estado anterior de una orden
 async function getEstadoOrden(connection, did) {
   if (ESTADOS_CACHE[did]) {
     return ESTADOS_CACHE[did];
@@ -309,13 +296,12 @@ async function InsertOrder(connection, data, dataredis) {
       }
     }
 
-    // Verificar si hay cambio de estado (solo si no es nueva)
     let estadoCambiado = false;
     if (!nuevaOrden && didParaUsar !== 0) {
       const estadoAnterior = await getEstadoOrden(connection, didParaUsar);
       estadoCambiado = estadoAnterior !== data.status;
       if (estadoCambiado) {
-        ESTADOS_CACHE[didParaUsar] = data.status; // actualizar en caché
+        ESTADOS_CACHE[didParaUsar] = data.status;
       }
     }
 
@@ -359,9 +345,7 @@ async function InsertOrder(connection, data, dataredis) {
 
     return { insertId: didParaUsar };
   } catch (error) {
-    return { insertId: 0 }; // Manejar el error y devolver un valor por defecto
-  } finally {
-    // Asegúrate de cerrar la conexión en el bloque finally
+    return { insertId: 0 };
   }
 }
 
@@ -369,7 +353,6 @@ async function main() {
   try {
     await redisClient.connect();
     await listenToChannel("ordenesFF");
-    // await getdataSeller('298477234');
   } catch (error) {
   } finally {
     await redisClient.disconnect();

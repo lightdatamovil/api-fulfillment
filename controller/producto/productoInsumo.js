@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools")
+import { executeQuery } from "lightdata-tools"
 
 class ProductoInsumo {
     constructor(
@@ -126,7 +126,6 @@ class ProductoInsumo {
       `
             params = [didAtributo, ...didsActuales]
         } else {
-            // Si el array está vacío, eliminar todos los registros del atributo
             deleteQuery = `
         UPDATE productos_insumos
         SET elim = 1
@@ -177,23 +176,19 @@ class ProductoInsumo {
             countParams.push(filtros.habilitado)
         }
 
-        // Paginación
         const pagina = parseInt(filtros.pagina) || 1
         const porPagina = filtros.cantidad || 10
         const offset = (pagina - 1) * porPagina
 
-        // Consulta principal con LIMIT
         const query = `SELECT did,perfil,nombre,apellido,mail,usuario,habilitado,modulo_inicial, app_habilitada, codigo_cliente ${baseQuery} ORDER BY did DESC LIMIT ? OFFSET ?`
         params.push(porPagina, offset)
         const results = await executeQuery(connection, query, params)
 
-        // Consulta para contar total de usuarios con filtros
         const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`
         const countResult = await executeQuery(connection, countQuery, countParams)
         const totalRegistros = countResult[0]?.total || 0
         const totalPaginas = Math.ceil(totalRegistros / porPagina)
 
-        // Remover contraseña
         const usuariosSinPass = results.map((usuario) => {
             delete usuario.pass
             return usuario
@@ -213,7 +208,6 @@ class ProductoInsumo {
         const params = [id]
         const results = await executeQuery(connection, query, params)
 
-        // Remover contraseña
         const usuariosSinPass = results.map((usuario) => {
             delete usuario.pass
             return usuario
@@ -223,4 +217,4 @@ class ProductoInsumo {
     }
 }
 
-module.exports = ProductoInsumo
+export default ProductoInsumo

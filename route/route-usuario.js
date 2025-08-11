@@ -9,7 +9,7 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    const usuarioRegex = /^[a-zA-Z0-9_]+$/; // Solo permite letras, números y guion bajo
+    const usuarioRegex = /^[a-zA-Z0-9_]+$/;
     if (!usuarioRegex.test(data.usuario)) {
       return res.status(200).json({
         estado: false,
@@ -18,7 +18,6 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
       });
     }
 
-    // Crear nuevo producto
     const usuario = new Usuario(
       data.did ?? 0,
       data.nombre,
@@ -106,7 +105,6 @@ usuario.post("/getUsuarios", verificarToken, async (req, res) => {
   const usuario = new Usuario();
 
   try {
-    // Filtros dinámicos desde el body
     const filtros = {
       did: data.did,
       perfil: data.perfil,
@@ -121,7 +119,7 @@ usuario.post("/getUsuarios", verificarToken, async (req, res) => {
 
     };
     const didUsuario = data.didUsuario;
-    const response = await Usuario.getUsuarios(connection, didUsuario, filtros);
+    const response = await usuario.getUsuarios(connection, didUsuario, filtros);
 
     return res.status(200).json({
       estado: true,

@@ -83,7 +83,6 @@ class Pedidos {
         if (results.length > 0) {
             return await this.updateRecord(connection)
         } else {
-            // Si `didEnvio` no existe, crear un nuevo registro directamente
             return this.createNewRecord(connection)
         }
     }
@@ -144,7 +143,6 @@ class Pedidos {
     async getOrdenPorId(connection, did, pagina = 1, cantidad = 10) {
         const offset = (pagina - 1) * cantidad
 
-        // 1. Consultar total de ítems
         const countQuery = `
                 SELECT COUNT(*) AS totalItems 
                 FROM pedidos_items
@@ -154,7 +152,6 @@ class Pedidos {
         const totalItems = countResult[0]?.totalItems ?? 0
         const totalPages = Math.ceil(totalItems / cantidad)
 
-        // 2. Consultar datos de la orden con ítems paginados
         const query = `
                 SELECT 
                     o.id, o.did, o.didEnvio, o.didCliente, o.didCuenta, o.status, o.flex, 
@@ -365,11 +362,9 @@ class Pedidos {
 
         const offset = (pagina - 1) * cantidad
 
-        // Condiciones básicas
         let condiciones = [`elim = 0`, `superado = 0`]
         let valores = []
 
-        // Filtros aplicables
         if (filtros.ml_shipment_id) {
             condiciones.push(`ml_shipment_id = ?`)
             valores.push(filtros.ml_shipment_id)
@@ -453,11 +448,10 @@ class Pedidos {
         }
     }
 
-    // Dentro de la clase Ordenes
     static async esEstadoRepetido(connection, number, nuevoEstado) {
         const query = "SELECT status FROM pedidos WHERE number = ?"
         const result = await executeQuery(connection, query, [number])
-        if (result.length === 0) return false // No existe, por lo tanto no es repetido
+        if (result.length === 0) return false
         return result[0].status === nuevoEstado
     }
 }

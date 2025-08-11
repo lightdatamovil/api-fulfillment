@@ -17,7 +17,6 @@ empresa.post("/empresa", async (req, res) => {
         message: response.message || response,
       });
     } else {
-      // Crear nueva empresa
       const nuevaEmpresa = new Empresa(
         data.did ?? 0,
         data.nombre,
@@ -31,7 +30,6 @@ empresa.post("/empresa", async (req, res) => {
       const empresaResult = await nuevaEmpresa.insert();
       const empresaId = empresaResult.insertId;
 
-      // Agregar a variable global y guardar en JSON
       global.empresasCodigos[data.codigo] = { did: data.idEmpresa };
       guardarEmpresasMap();
 

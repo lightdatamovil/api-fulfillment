@@ -9,7 +9,6 @@ insumo.post("/postInsumo", verificarToken, async (req, res) => {
   const connection = await getConnectionLocal(data.idEmpresa);
 
   try {
-    // Crear nuevo producto
     const insumo = new Insumo(
       data.did || "",
       data.nombre,
@@ -145,7 +144,7 @@ insumo.post("/deleteInsumo", async (req, res) => {
 });
 
 insumo.get("/getAllInsumos/:empresa", verificarToken, async (req, res) => {
-  const empresa = req.params.empresa; // <-- esto es lo correcto
+  const empresa = req.params.empresa;
 
   if (!empresa) {
     return res.status(400).json({
