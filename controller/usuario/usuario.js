@@ -152,10 +152,12 @@ class Usuario {
 
     static async getUsuarios(connection, didUsuario, filtros = {}) {
         try {
+            // Base de la query y parámetros
             let baseQuery = "FROM usuarios WHERE superado = 0 AND elim = 0 AND did != ?";
             const params = [didUsuario];
-            const countParams = [didUsuario]; // CORRECCIÓN AQUÍ
+            const countParams = [didUsuario];
 
+            // Agregar filtros dinámicos
             if (filtros.perfil !== undefined && filtros.perfil !== "") {
                 baseQuery += " AND perfil = ?";
                 params.push(filtros.perfil);
@@ -186,7 +188,7 @@ class Usuario {
                 countParams.push(`%${filtros.usuario}%`);
             }
 
-            if (filtros.habilitado !== "") {
+            if (filtros.habilitado !== undefined && filtros.habilitado !== "") {
                 baseQuery += " AND habilitado = ?";
                 params.push(filtros.habilitado);
                 countParams.push(filtros.habilitado);
@@ -197,7 +199,7 @@ class Usuario {
             const porPagina = filtros.cantidad || 10;
             const offset = (pagina - 1) * porPagina;
 
-            // Consulta principal
+            // Query principal
             const query = `
             SELECT did, perfil, nombre, apellido, mail, usuario, habilitado, 
                    modulo_inicial, app_habilitada, telefono, codigo_cliente
@@ -209,13 +211,13 @@ class Usuario {
 
             const results = await executeQuery(connection, query, params);
 
-            // Conteo total
+            // Query de conteo
             const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`;
             const countResult = await executeQuery(connection, countQuery, countParams);
             const totalRegistros = countResult[0]?.total || 0;
             const totalPaginas = Math.ceil(totalRegistros / porPagina);
 
-            // Remover contraseña
+            // Eliminar campo de contraseña
             const usuariosSinPass = results.map(usuario => {
                 delete usuario.pass;
                 return usuario;
@@ -226,7 +228,7 @@ class Usuario {
                 pagina,
                 totalRegistros,
                 totalPaginas,
-                cantidad: porPagina,
+                cantidad: porPagina
             };
 
         } catch (error) {
