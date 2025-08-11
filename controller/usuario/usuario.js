@@ -150,11 +150,11 @@ class Usuario {
         }
     }
 
-    static async getUsuarios(connection, filtros = {}) {
+    static async getUsuarios(connection, didUsuario, filtros = {}) {
         try {
-            let baseQuery = "FROM usuarios WHERE superado = 0 AND elim = 0 "
-            const params = []
-            const countParams = []
+            let baseQuery = "FROM usuarios WHERE superado = 0 AND elim = 0 AND did =! ?"
+            const params = [didUsuario]
+            const countParams = [didUsuario]
 
             if (filtros.perfil !== undefined && filtros.perfil !== "") {
                 baseQuery += " AND perfil = ?"
