@@ -1,6 +1,6 @@
 const express = require("express");
 const stock = express.Router();
-const { getConnectionLocal, } = require("../dbconfig");
+const { getConnectionLocal, } = require("../dbconfig").default;
 const StockConsolidado = require("../controller/stock/stock_consolidado");
 const Stock = require("../controller/stock/stock");
 const MovimientoStock = require("../controller/stock/movimiento_stock");
@@ -26,7 +26,6 @@ stock.post("/stockConsolidado", async (req, res) => {
       productos: response,
     });
   } catch (error) {
-    console.error("Error en /stock:", error);
     return res.status(500).json({
       estado: false,
       mensaje: "Error al obtener los atributos del producto.",
@@ -57,7 +56,6 @@ stock.post("/stock", async (req, res) => {
       productos: response,
     });
   } catch (error) {
-    console.error("Error en /stock:", error);
     return res.status(500).json({
       estado: false,
       mensaje: "Error al obtener los atributos del producto.",
@@ -88,7 +86,6 @@ stock.post("/movimientoStock", async (req, res) => {
       stock: response,
     });
   } catch (error) {
-    console.error("❌ Error en /movimientoStock:", error);
     return res.status(500).json({
       estado: false,
       mensaje: "Error al insertar movimiento de stock.",

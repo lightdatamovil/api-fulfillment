@@ -31,7 +31,6 @@ class ProductoVariantes {
                 return this.checkAndUpdateDidProducto(this.connection)
             }
         } catch (error) {
-            console.error("Error en el método insert:", error.message)
             throw {
                 status: 500,
                 response: {

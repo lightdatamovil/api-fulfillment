@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools")
+import { executeQuery } from "lightdata-tools"
 
 let clientesCache = {}
 
@@ -54,20 +54,16 @@ class Pedidos {
 
         this.connection = connection
     }
-    // Método para convertir a JSON
+
     toJSON() {
         return JSON.stringify(this)
     }
 
-    // Método para insertar en la base de datos
     async insert() {
         try {
-            // Si `didEnvio` no es null, verificar si ya existe y manejarlo
             return this.checkAndUpdateDidEnvio(this.connection)
         } catch (error) {
-            console.error("Error en el método insert:", error.message)
 
-            // Lanzar un error con el formato estándar
             throw {
                 status: 500,
                 response: {
@@ -118,26 +114,22 @@ class Pedidos {
     }
 
     async updateRecord(connection) {
-        try {
-            const columnsQuery = "DESCRIBE pedidos"
-            const results = await executeQuery(connection, columnsQuery, [])
+        const columnsQuery = "DESCRIBE pedidos"
+        const results = await executeQuery(connection, columnsQuery, [])
 
-            const tableColumns = results.map((column) => column.Field)
-            const filteredColumns = tableColumns.filter((column) => this[column] !== undefined && column !== "id" && column !== "did")
+        const tableColumns = results.map((column) => column.Field)
+        const filteredColumns = tableColumns.filter((column) => this[column] !== undefined && column !== "id" && column !== "did")
 
-            const setClause = filteredColumns.map((column) => `${column} = ?`).join(", ")
-            const values = filteredColumns.map((column) => this[column])
+        const setClause = filteredColumns.map((column) => `${column} = ?`).join(", ")
+        const values = filteredColumns.map((column) => this[column])
 
-            const updateQuery = `UPDATE pedidos SET ${setClause} WHERE number = ?`
-            values.push(this.number) // 'number' va en el WHERE
+        const updateQuery = `UPDATE pedidos SET ${setClause} WHERE number = ?`
+        values.push(this.number)
 
-            const updateResult = await executeQuery(connection, updateQuery, values)
+        await executeQuery(connection, updateQuery, values)
 
-            return { insertId: this.did } // <-- ESTA ES LA LÍNEA CLAVE
-        } catch (error) {
-            console.error("Error en el método updateRecord:", error.message)
-            throw error
-        }
+        return { insertId: this.did }
+
     }
 
     async eliminar(connection, did) {
@@ -150,21 +142,20 @@ class Pedidos {
     }
 
     async getOrdenPorId(connection, did, pagina = 1, cantidad = 10) {
-        try {
-            const offset = (pagina - 1) * cantidad
+        const offset = (pagina - 1) * cantidad
 
-            // 1. Consultar total de ítems
-            const countQuery = `
+        // 1. Consultar total de ítems
+        const countQuery = `
                 SELECT COUNT(*) AS totalItems 
                 FROM pedidos_items
                 WHERE didPedido = ? AND elim = 0 AND superado = 0
             `
-            const countResult = await executeQuery(connection, countQuery, [did])
-            const totalItems = countResult[0]?.totalItems ?? 0
-            const totalPages = Math.ceil(totalItems / cantidad)
+        const countResult = await executeQuery(connection, countQuery, [did])
+        const totalItems = countResult[0]?.totalItems ?? 0
+        const totalPages = Math.ceil(totalItems / cantidad)
 
-            // 2. Consultar datos de la orden con ítems paginados
-            const query = `
+        // 2. Consultar datos de la orden con ítems paginados
+        const query = `
                 SELECT 
                     o.id, o.did, o.didEnvio, o.didCliente, o.didCuenta, o.status, o.flex, 
                     o.number, o.fecha_venta, o.observaciones, o.armado, o.descargado, 
@@ -189,125 +180,118 @@ class Pedidos {
                 WHERE o.did = ? AND o.elim = 0 AND o.superado = 0
             `
 
-            const results = await executeQuery(connection, query, [did, cantidad, offset, did])
+        const results = await executeQuery(connection, query, [did, cantidad, offset, did])
 
-            let cliente = ""
-            const clienteQuery = `SELECT nombre_fantasia FROM clientes WHERE did = ?`
-            const clienteResult = await executeQuery(connection, clienteQuery, [results[0].didCliente])
-            if (clienteResult.length > 0) {
-                cliente = clienteResult[0].nombre_fantasia
+        let cliente = ""
+        const clienteQuery = `SELECT nombre_fantasia FROM clientes WHERE did = ?`
+        const clienteResult = await executeQuery(connection, clienteQuery, [results[0].didCliente])
+        if (clienteResult.length > 0) {
+            cliente = clienteResult[0].nombre_fantasia
+        }
+
+        if (results.length === 0) return null
+
+        const pedido = {
+            id: results[0].id,
+            did: results[0].did,
+            didEnvio: results[0].didEnvio,
+            cliente,
+            didCuenta: results[0].didCuenta,
+            status: results[0].status,
+            flex: results[0].flex,
+            number: results[0].number,
+            fecha_venta: results[0].fecha_venta,
+            observaciones: results[0].observaciones,
+            armado: results[0].armado,
+            descargado: results[0].descargado,
+            fecha_armado: results[0].fecha_armado,
+            quien_armado: results[0].quien_armado,
+            autofecha: results[0].orden_autofecha,
+            ml_shipment_id: results[0].ml_shipment_id,
+            ml_pack_id: results[0].ml_pack_id,
+            idComprador: results[0].buyer_id,
+            usuarioComprador: results[0].buyer_nickname,
+            nombreComprador: `${results[0].buyer_name} ${results[0].buyer_last_name}`,
+            total: results[0].total_amount,
+            seller_id: results[0].seller_id,
+            didOt: results[0].didOt,
+            items: [],
+        }
+
+        for (const row of results) {
+            if (row.codigo) {
+                pedido.items.push({
+                    codigo: row.codigo,
+                    imagen: row.imagen,
+                    descripcion: row.descripcion,
+                    ml_id: row.ml_id,
+                    dimensiones: row.dimensions,
+                    cantidad: row.cantidad,
+                    variacion: row.variacion,
+                    seller_sku: row.seller_sku,
+                    descargado: row.item_descargado,
+                    autofecha: row.item_autofecha,
+                    idVariacion: row.variacion,
+                    user_product_id: row.user_product_id,
+                    variacionAtributos: row.variation_attributes,
+                })
             }
+        }
 
-            if (results.length === 0) return null
-
-            const pedido = {
-                id: results[0].id,
-                did: results[0].did,
-                didEnvio: results[0].didEnvio,
-                cliente,
-                didCuenta: results[0].didCuenta,
-                status: results[0].status,
-                flex: results[0].flex,
-                number: results[0].number,
-                fecha_venta: results[0].fecha_venta,
-                observaciones: results[0].observaciones,
-                armado: results[0].armado,
-                descargado: results[0].descargado,
-                fecha_armado: results[0].fecha_armado,
-                quien_armado: results[0].quien_armado,
-                autofecha: results[0].orden_autofecha,
-                ml_shipment_id: results[0].ml_shipment_id,
-                ml_pack_id: results[0].ml_pack_id,
-                idComprador: results[0].buyer_id,
-                usuarioComprador: results[0].buyer_nickname,
-                nombreComprador: `${results[0].buyer_name} ${results[0].buyer_last_name}`,
-                total: results[0].total_amount,
-                seller_id: results[0].seller_id,
-                didOt: results[0].didOt,
-                items: [],
-            }
-
-            for (const row of results) {
-                if (row.codigo) {
-                    pedido.items.push({
-                        codigo: row.codigo,
-                        imagen: row.imagen,
-                        descripcion: row.descripcion,
-                        ml_id: row.ml_id,
-                        dimensiones: row.dimensions,
-                        cantidad: row.cantidad,
-                        variacion: row.variacion,
-                        seller_sku: row.seller_sku,
-                        descargado: row.item_descargado,
-                        autofecha: row.item_autofecha,
-                        idVariacion: row.variacion,
-                        user_product_id: row.user_product_id,
-                        variacionAtributos: row.variation_attributes,
-                    })
-                }
-            }
-
-            return {
-                pedido,
-                totalItems,
-                totalPages,
-                pagina,
-                cantidad,
-            }
-        } catch (error) {
-            console.error("Error en getOrdenPorId:", error.message)
-            throw error // Lanzar error para manejo superior
+        return {
+            pedido,
+            totalItems,
+            totalPages,
+            pagina,
+            cantidad,
         }
     }
 
     async getTodasLasOrdenes(connection, pagina = 1, cantidad = 10, filtros = {}) {
-        try {
-            pagina = parseInt(pagina)
-            cantidad = parseInt(cantidad)
-            if (isNaN(pagina) || pagina < 1) pagina = 1
-            if (isNaN(cantidad) || cantidad < 1) cantidad = 10
+        pagina = parseInt(pagina)
+        cantidad = parseInt(cantidad)
+        if (isNaN(pagina) || pagina < 1) pagina = 1
+        if (isNaN(cantidad) || cantidad < 1) cantidad = 10
 
-            const offset = (pagina - 1) * cantidad
+        const offset = (pagina - 1) * cantidad
 
-            // Condiciones básicas
-            let condiciones = ["o.elim = 0", "o.superado = 0"]
-            let valores = []
+        let condiciones = ["o.elim = 0", "o.superado = 0"]
+        let valores = []
 
-            // Filtros aplicables
-            if (filtros.cliente) {
-                condiciones.push("o.didCliente = ?")
-                valores.push(filtros.cliente)
-            }
+        if (filtros.cliente) {
+            condiciones.push("o.didCliente = ?")
+            valores.push(filtros.cliente)
+        }
 
-            if (filtros.idVenta) {
-                condiciones.push("o.number LIKE ?")
-                valores.push(`%${filtros.idVenta}%`)
-            }
+        if (filtros.idVenta) {
+            condiciones.push("o.number LIKE ?")
+            valores.push(`%${filtros.idVenta}%`)
+        }
 
-            if (filtros.comprador) {
-                condiciones.push("(o.buyer_name LIKE ? OR o.buyer_last_name LIKE ?)")
-                valores.push(`%${filtros.comprador}%`)
-                valores.push(`%${filtros.comprador}%`)
-            }
+        if (filtros.comprador) {
+            condiciones.push("(o.buyer_name LIKE ? OR o.buyer_last_name LIKE ?)")
+            valores.push(`%${filtros.comprador}%`)
+            valores.push(`%${filtros.comprador}%`)
+        }
 
-            if (filtros.estado) {
-                condiciones.push("o.status = ?")
-                valores.push(filtros.estado)
-            }
+        if (filtros.estado) {
+            condiciones.push("o.status = ?")
+            valores.push(filtros.estado)
+        }
 
-            if (filtros.armado) {
-                condiciones.push("o.armado = ?")
-                valores.push(filtros.armado)
-            }
+        if (filtros.armado) {
+            condiciones.push("o.armado = ?")
+            valores.push(filtros.armado)
+        }
 
-            if (filtros.origen) {
-                condiciones.push("o.flex = ?")
-                valores.push(filtros.origen)
-            }
+        if (filtros.origen) {
+            condiciones.push("o.flex = ?")
+            valores.push(filtros.origen)
+        }
 
-            const whereClause = condiciones.length ? `WHERE ${condiciones.join(" AND ")}` : ""
+        const whereClause = condiciones.length ? `WHERE ${condiciones.join(" AND ")}` : ""
 
-            const query = `
+        const query = `
             SELECT 
                 o.did, 
                 o.didCliente, 
@@ -325,114 +309,105 @@ class Pedidos {
             LIMIT ? OFFSET ?
         `
 
-            const results = await executeQuery(connection, query, [...valores, cantidad, offset])
-
-            // Actualizar caché de clientes
-            for (const orden of results) {
-                const clienteId = orden.didCliente
-                if (!clientesCache[clienteId]) {
-                    // Consulta a la base de datos para obtener el cliente si no está en caché
-                    const clienteQuery = `SELECT nombre_fantasia FROM clientes WHERE did = ?`
-                    const clienteResult = await executeQuery(connection, clienteQuery, [clienteId])
-                    if (clienteResult.length > 0) {
-                        clientesCache[clienteId] = clienteResult[0].nombre_fantasia
-                    }
-                }
-                // Asignar el nombre del cliente desde la caché
-                orden.cliente = clientesCache[clienteId]
-                if (orden.ot == 0) {
-                    orden.ot = ""
+        const results = await executeQuery(connection, query, [...valores, cantidad, offset])
+        for (const orden of results) {
+            const clienteId = orden.didCliente
+            if (!clientesCache[clienteId]) {
+                const clienteQuery = `SELECT nombre_fantasia FROM clientes WHERE did = ?`
+                const clienteResult = await executeQuery(connection, clienteQuery, [clienteId])
+                if (clienteResult.length > 0) {
+                    clientesCache[clienteId] = clienteResult[0].nombre_fantasia
                 }
             }
+            orden.cliente = clientesCache[clienteId]
+            if (orden.ot == 0) {
+                orden.ot = ""
+            }
+        }
 
-            const countQuery = `
+        const countQuery = `
             SELECT COUNT(*) AS total 
             FROM pedidos o
             ${whereClause}
         `
-            const countResult = await executeQuery(connection, countQuery, valores)
-            const total = countResult[0]?.total || 0
-            const totalPages = Math.ceil(total / cantidad)
-            const datosFormateados = results.map((orden) => ({
-                did: orden.did,
-                cliente: orden.cliente,
-                fecha: orden.fecha_venta,
-                origen: orden.flex,
-                idVenta: orden.number,
-                comprador: orden.comprador,
-                estado: orden.status,
-                total: orden.total_amount,
-                armado: orden.fecha_armado,
-                ot: orden.ot,
-            }))
+        const countResult = await executeQuery(connection, countQuery, valores)
+        const total = countResult[0]?.total || 0
+        const totalPages = Math.ceil(total / cantidad)
+        const datosFormateados = results.map((orden) => ({
+            did: orden.did,
+            cliente: orden.cliente,
+            fecha: orden.fecha_venta,
+            origen: orden.flex,
+            idVenta: orden.number,
+            comprador: orden.comprador,
+            estado: orden.status,
+            total: orden.total_amount,
+            armado: orden.fecha_armado,
+            ot: orden.ot,
+        }))
 
-            return {
-                estado: true,
-                message: "Órdenes obtenidas correctamente",
-                totalRegistros: total,
-                totalPaginas: totalPages,
-                pagina,
-                cantidad,
-                data: datosFormateados,
-            }
-        } catch (error) {
-            console.error("Error en getTodasLasOrdenes:", error.message)
-            throw error
+        return {
+            estado: true,
+            message: "Órdenes obtenidas correctamente",
+            totalRegistros: total,
+            totalPaginas: totalPages,
+            pagina,
+            cantidad,
+            data: datosFormateados,
         }
     }
 
     async getTodasLasOrdenesV(connection, pagina = 1, cantidad = 10, filtros = {}) {
-        try {
-            pagina = parseInt(pagina)
-            cantidad = parseInt(cantidad)
-            if (isNaN(pagina) || pagina < 1) pagina = 1
-            if (isNaN(cantidad) || cantidad < 1) cantidad = 10
+        pagina = parseInt(pagina)
+        cantidad = parseInt(cantidad)
+        if (isNaN(pagina) || pagina < 1) pagina = 1
+        if (isNaN(cantidad) || cantidad < 1) cantidad = 10
 
-            const offset = (pagina - 1) * cantidad
+        const offset = (pagina - 1) * cantidad
 
-            // Condiciones básicas
-            let condiciones = [`elim = 0`, `superado = 0`]
-            let valores = []
+        // Condiciones básicas
+        let condiciones = [`elim = 0`, `superado = 0`]
+        let valores = []
 
-            // Filtros aplicables
-            if (filtros.ml_shipment_id) {
-                condiciones.push(`ml_shipment_id = ?`)
-                valores.push(filtros.ml_shipment_id)
-            }
+        // Filtros aplicables
+        if (filtros.ml_shipment_id) {
+            condiciones.push(`ml_shipment_id = ?`)
+            valores.push(filtros.ml_shipment_id)
+        }
 
-            if (filtros.ml_pack_id) {
-                condiciones.push(`ml_pack_id = ?`)
-                valores.push(filtros.ml_pack_id)
-            }
+        if (filtros.ml_pack_id) {
+            condiciones.push(`ml_pack_id = ?`)
+            valores.push(filtros.ml_pack_id)
+        }
 
-            if (filtros.status) {
-                condiciones.push(`status = ?`)
-                valores.push(filtros.status)
-            }
+        if (filtros.status) {
+            condiciones.push(`status = ?`)
+            valores.push(filtros.status)
+        }
 
-            if (filtros.flex) {
-                condiciones.push(`flex = ?`)
-                valores.push(filtros.flex)
-            }
+        if (filtros.flex) {
+            condiciones.push(`flex = ?`)
+            valores.push(filtros.flex)
+        }
 
-            if (filtros.number) {
-                condiciones.push(`number = ?`)
-                valores.push(filtros.number)
-            }
+        if (filtros.number) {
+            condiciones.push(`number = ?`)
+            valores.push(filtros.number)
+        }
 
-            if (filtros.didCuenta) {
-                condiciones.push(`didCuenta = ?`)
-                valores.push(filtros.didCuenta)
-            }
+        if (filtros.didCuenta) {
+            condiciones.push(`didCuenta = ?`)
+            valores.push(filtros.didCuenta)
+        }
 
-            if (filtros.fechaInicio && filtros.fechaFin) {
-                condiciones.push(`fecha_venta BETWEEN ? AND ?`)
-                valores.push(filtros.fechaInicio, filtros.fechaFin)
-            }
+        if (filtros.fechaInicio && filtros.fechaFin) {
+            condiciones.push(`fecha_venta BETWEEN ? AND ?`)
+            valores.push(filtros.fechaInicio, filtros.fechaFin)
+        }
 
-            const whereClause = condiciones.length ? `WHERE ${condiciones.join(" AND ")}` : ""
+        const whereClause = condiciones.length ? `WHERE ${condiciones.join(" AND ")}` : ""
 
-            const query = `
+        const query = `
                 SELECT id, did, didEnvio, didCliente, didCuenta, status, flex, 
                         number, fecha_venta, observaciones, armado, descargado, 
                         fecha_armado, quien_armado, autofecha, ml_shipment_id, 
@@ -444,27 +419,23 @@ class Pedidos {
                 LIMIT ? OFFSET ?
                 `
 
-            const results = await executeQuery(connection, query, [...valores, cantidad, offset])
+        const results = await executeQuery(connection, query, [...valores, cantidad, offset])
 
-            const countQuery = `
+        const countQuery = `
                 SELECT COUNT(*) AS total 
                 FROM pedidos
                 ${whereClause}
                 `
-            const countResult = await executeQuery(connection, countQuery, valores)
-            const total = countResult[0]?.total || 0
-            const totalPages = Math.ceil(total / cantidad)
+        const countResult = await executeQuery(connection, countQuery, valores)
+        const total = countResult[0]?.total || 0
+        const totalPages = Math.ceil(total / cantidad)
 
-            return {
-                pedidos: results,
-                total,
-                totalPages,
-                pagina,
-                cantidad,
-            }
-        } catch (error) {
-            console.error("Error en getTodasLasOrdenes:", error.message)
-            throw error
+        return {
+            pedidos: results,
+            total,
+            totalPages,
+            pagina,
+            cantidad,
         }
     }
 
@@ -490,4 +461,4 @@ class Pedidos {
         return result[0].status === nuevoEstado
     }
 }
-module.exports = Pedidos
+export default Pedidos

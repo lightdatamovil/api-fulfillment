@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 class Clente_contacto {
   constructor(
@@ -34,7 +34,6 @@ class Clente_contacto {
         return this.checkAndUpdateDidProducto(this.connection);
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message);
       throw {
         status: 500,
         response: {
@@ -129,4 +128,4 @@ class Clente_contacto {
   }
 }
 
-module.exports = Clente_contacto;
+export default Clente_contacto;

@@ -54,6 +54,5 @@ const PORT = 13000;
       process.exit();
     });
   } catch (err) {
-    console.error("Error al iniciar el servidor:", err);
   }
 })();

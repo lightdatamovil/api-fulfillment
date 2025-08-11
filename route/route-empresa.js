@@ -1,6 +1,6 @@
 const express = require("express");
 const empresa = express.Router();
-const { getConnectionLocal } = require("../dbconfig");
+const { getConnectionLocal } = require("../dbconfig").default;
 const Empresa = require("../controller/empresa/empresa");
 const { guardarEmpresasMap } = require("../fuctions/empresaMap");
 
@@ -42,7 +42,6 @@ empresa.post("/empresa", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -63,7 +62,6 @@ empresa.post("deleteEmpresa", async (req, res) => {
       message: response.message || response,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,

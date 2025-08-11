@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 class Atributo_valor {
   constructor(
@@ -37,7 +37,6 @@ class Atributo_valor {
         return this.checkAndUpdateDidProducto(this.connection);
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message);
       throw {
         status: 500,
         response: {
@@ -153,7 +152,6 @@ class Atributo_valor {
       `;
       params = [didAtributo, ...didsActuales];
     } else {
-      // Si el array está vacío, eliminar todos los registros del atributo
       deleteQuery = `
         UPDATE atributos_valores
         SET elim = 1
@@ -166,4 +164,4 @@ class Atributo_valor {
   }
 }
 
-module.exports = Atributo_valor;
+export default Atributo_valor;

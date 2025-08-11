@@ -1,14 +1,10 @@
 const express = require("express");
 const publicaciones = express.Router();
-const { getConnectionLocal, } = require("../dbconfig");
-const verificarToken = require("../middleware/token");
-const { getPublicacionesML, getPublicacionesTN, getPublicacionesUnificadas, obtenerDatosUnificados, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosConDids, construirAtributosYProductosConDids, construirAtributosDesdePublicaciones } = require("../controller/publicacionesMLTN/publicaciones");
+const { getConnectionLocal, } = require("../dbconfig").default;
+const { getPublicacionesUnificadas, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosDesdePublicaciones } = require("../controller/publicacionesMLTN/publicaciones");
 
 publicaciones.post("/publicacionesML", async (req, res) => {
     try {
-        // const data = req.body;
-        //   const connection = await getConnectionLocal(data.idEmpresa);
-
 
         const publicaciones = await getPublicacionesMLSimplificado();
         res.status(200).json({
@@ -17,7 +13,6 @@ publicaciones.post("/publicacionesML", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error en publicacionesML:", error);
         return res.status(500).json({
             estado: false,
             mensaje: "Error al obtener los atributos del producto.",
@@ -27,10 +22,6 @@ publicaciones.post("/publicacionesML", async (req, res) => {
 });
 publicaciones.post("/publicacionesTN", async (req, res) => {
     try {
-        // const data = req.body;
-        //   const connection = await getConnectionLocal(data.idEmpresa);
-
-
         const publicaciones = await getPublicacionesTNSimplificado();
         res.status(200).json({
             estado: true,
@@ -38,7 +29,6 @@ publicaciones.post("/publicacionesTN", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error en publicacionesML:", error);
         return res.status(500).json({
             estado: false,
             mensaje: "Error al obtener los atributos del producto.",
@@ -49,10 +39,6 @@ publicaciones.post("/publicacionesTN", async (req, res) => {
 publicaciones.post("/juntar", async (req, res) => {
 
     try {
-        // const data = req.body;
-        //   const connection = await getConnectionLocal(data.idEmpresa);
-
-
         const publicaciones = await getPublicacionesUnificadas();
         res.status(200).json({
             estado: true,
@@ -60,7 +46,6 @@ publicaciones.post("/juntar", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error en publicacionesML:", error);
         return res.status(500).json({
             estado: false,
             mensaje: "Error al obtener los atributos del producto.",
@@ -83,7 +68,6 @@ publicaciones.post("/uni", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error en publicacionesML:", error);
         return res.status(500).json({
             estado: false,
             mensaje: "Error al obtener las publicaciones.",
@@ -93,11 +77,9 @@ publicaciones.post("/uni", async (req, res) => {
 });
 
 publicaciones.post("/getProductosImportados", async (req, res) => {
-
     try {
         const data = req.body;
         const connection = await getConnectionLocal(data.idEmpresa);
-
 
         const publicaciones = await construirAtributosDesdePublicaciones(connection);
         res.status(200).json({
@@ -106,16 +88,12 @@ publicaciones.post("/getProductosImportados", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error en publicacionesML:", error);
         return res.status(500).json({
             estado: false,
             mensaje: "Error al obtener los atributos del producto.",
             error: error.message,
         });
     }
-
-
 })
-
 
 module.exports = publicaciones;

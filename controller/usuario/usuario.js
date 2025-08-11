@@ -1,5 +1,6 @@
-const crypto = require("crypto")
-const jwt = require("jsonwebtoken")
+import { createHash } from "crypto"
+import { sign } from "jsonwebtoken"
+import { executeQuery } from "lightdata-tools"
 const JWT_SECRET = "tu_clave_secreta"
 
 class Usuario {
@@ -58,7 +59,6 @@ class Usuario {
                 return this.checkAndUpdateDidProducto(this.connection)
             }
         } catch (error) {
-            console.error("Error en el método insert:", error.message)
             throw {
                 status: 500,
                 response: {
@@ -78,7 +78,7 @@ class Usuario {
                 this.pass = results[0].pass
             } else {
 
-                const hash = crypto.createHash("sha256").update(this.pass).digest("hex")
+                const hash = createHash("sha256").update(this.pass).digest("hex")
                 this.pass = hash
             }
 
@@ -93,7 +93,6 @@ class Usuario {
     }
 
     async createNewRecord(connection) {
-        // Validar que no exista usuario duplicado
         const querycheck = "SELECT usuario FROM usuarios WHERE usuario = ? AND superado = 0 AND elim = 0"
         const resultscheck = await executeQuery(connection, querycheck, [this.usuario])
 
@@ -104,20 +103,17 @@ class Usuario {
             }
         }
 
-        // Obtener columnas de la tabla
         const columnsQuery = "DESCRIBE usuarios"
         const results = await executeQuery(connection, columnsQuery, [])
 
         const tableColumns = results.map((column) => column.Field)
         const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
 
-        // Preparamos los valores para insertar
         const values = filteredColumns.map((column) => this[column])
         const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
 
         const insertResult = await executeQuery(connection, insertQuery, values)
 
-        // Si el did está vacío o 0, actualizamos para que coincida con el id insertado
         if (this.did == 0 || this.did == null || this.did === "") {
             const updateQuery = "UPDATE usuarios SET did = ? WHERE id = ?"
             await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId])
@@ -136,185 +132,159 @@ class Usuario {
     }
 
     static async getUsuarios(connection, didUsuario, filtros = {}) {
-        try {
-            let baseQuery = "FROM usuarios WHERE superado = 0 AND elim = 0 AND did =! ?"
-            const params = [didUsuario]
-            const countParams = [didUsuario]
+        let baseQuery = "FROM usuarios WHERE superado = 0 AND elim = 0 AND did =! ?"
+        const params = [didUsuario]
+        const countParams = [didUsuario]
 
-            if (filtros.perfil !== undefined && filtros.perfil !== "") {
-                baseQuery += " AND perfil = ?"
-                params.push(filtros.perfil)
-                countParams.push(filtros.perfil)
-            }
+        if (filtros.perfil !== undefined && filtros.perfil !== "") {
+            baseQuery += " AND perfil = ?"
+            params.push(filtros.perfil)
+            countParams.push(filtros.perfil)
+        }
 
-            if (filtros.nombre) {
-                baseQuery += " AND nombre LIKE ?"
-                params.push(`%${filtros.nombre}%`)
-                countParams.push(`%${filtros.nombre}%`)
-            }
+        if (filtros.nombre) {
+            baseQuery += " AND nombre LIKE ?"
+            params.push(`%${filtros.nombre}%`)
+            countParams.push(`%${filtros.nombre}%`)
+        }
 
-            if (filtros.apellido) {
-                baseQuery += " AND apellido LIKE ?"
-                params.push(`%${filtros.apellido}%`)
-                countParams.push(`%${filtros.apellido}%`)
-            }
+        if (filtros.apellido) {
+            baseQuery += " AND apellido LIKE ?"
+            params.push(`%${filtros.apellido}%`)
+            countParams.push(`%${filtros.apellido}%`)
+        }
 
-            if (filtros.email) {
-                baseQuery += " AND mail LIKE ?"
-                params.push(`%${filtros.email}%`)
-                countParams.push(`%${filtros.email}%`)
-            }
-            if (filtros.usuario) {
-                baseQuery += " AND usuario LIKE ?"
-                params.push(`%${filtros.usuario}%`)
-                countParams.push(`%${filtros.usuario}%`)
-            }
-            if (filtros.habilitado != "") {
+        if (filtros.email) {
+            baseQuery += " AND mail LIKE ?"
+            params.push(`%${filtros.email}%`)
+            countParams.push(`%${filtros.email}%`)
+        }
+        if (filtros.usuario) {
+            baseQuery += " AND usuario LIKE ?"
+            params.push(`%${filtros.usuario}%`)
+            countParams.push(`%${filtros.usuario}%`)
+        }
+        if (filtros.habilitado != "") {
 
-                baseQuery += " AND habilitado = ?"
-                params.push(filtros.habilitado)
-                countParams.push(filtros.habilitado)
-            }
+            baseQuery += " AND habilitado = ?"
+            params.push(filtros.habilitado)
+            countParams.push(filtros.habilitado)
+        }
 
-            // Paginación
-            const pagina = parseInt(filtros.pagina) || 1
-            const porPagina = filtros.cantidad || 10
-            const offset = (pagina - 1) * porPagina
+        const pagina = parseInt(filtros.pagina) || 1
+        const porPagina = filtros.cantidad || 10
+        const offset = (pagina - 1) * porPagina
 
-            // Consulta principal con LIMIT
-            const query = `SELECT did,perfil,nombre,apellido,mail,usuario,habilitado,modulo_inicial, app_habilitada,telefono, codigo_cliente ${baseQuery} ORDER BY did DESC LIMIT ? OFFSET ?`
-            params.push(porPagina, offset)
-            const results = await executeQuery(connection, query, params)
+        const query = `SELECT did,perfil,nombre,apellido,mail,usuario,habilitado,modulo_inicial, app_habilitada,telefono, codigo_cliente ${baseQuery} ORDER BY did DESC LIMIT ? OFFSET ?`
+        params.push(porPagina, offset)
+        const results = await executeQuery(connection, query, params)
 
-            // Consulta para contar total de usuarios con filtros
-            const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`
-            const countResult = await executeQuery(connection, countQuery, countParams)
-            const totalRegistros = countResult[0]?.total || 0
-            const totalPaginas = Math.ceil(totalRegistros / porPagina)
+        const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`
+        const countResult = await executeQuery(connection, countQuery, countParams)
+        const totalRegistros = countResult[0]?.total || 0
+        const totalPaginas = Math.ceil(totalRegistros / porPagina)
 
-            // Remover contraseña
-            const usuariosSinPass = results.map((usuario) => {
-                delete usuario.pass
-                return usuario
-            })
+        const usuariosSinPass = results.map((usuario) => {
+            delete usuario.pass
+            return usuario
+        })
 
-            return {
-                usuarios: usuariosSinPass,
-                pagina: pagina,
-                totalRegistros,
-                totalPaginas,
-                cantidad: porPagina,
-            }
-        } catch (error) {
-            console.error("Error en getUsuarios:", error.message)
-            throw error
+        return {
+            usuarios: usuariosSinPass,
+            pagina: pagina,
+            totalRegistros,
+            totalPaginas,
+            cantidad: porPagina,
         }
     }
 
     static async getUsuariosById(connection, id) {
-        try {
-            const query = "SELECT perfil,nombre,apellido,mail,usuario,habilitado,did, modulo_inicial, app_habilitada,telefono, codigo_cliente FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0"
-            const params = [id]
-            const results = await executeQuery(connection, query, params)
+        const query = "SELECT perfil,nombre,apellido,mail,usuario,habilitado,did, modulo_inicial, app_habilitada,telefono, codigo_cliente FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0"
+        const params = [id]
+        const results = await executeQuery(connection, query, params)
 
-            // Remover contraseña
-            const usuariosSinPass = results.map((usuario) => {
-                delete usuario.pass
-                return usuario
-            })
+        const usuariosSinPass = results.map((usuario) => {
+            delete usuario.pass
+            return usuario
+        })
 
-            return usuariosSinPass
-        } catch (error) {
-            console.error("Error en getUsuariosById:", error.message)
-            throw error
-        }
+        return usuariosSinPass
     }
 
     async login(connection, usuario, password, codigo = null) {
-        try {
-            const empresaQuery = "SELECT * FROM sistema_empresa WHERE codigo = ? AND superado = 0 AND elim = 0"
-            const empresaResult = await executeQuery(connection, empresaQuery, [codigo])
+        const empresaQuery = "SELECT * FROM sistema_empresa WHERE codigo = ? AND superado = 0 AND elim = 0"
+        const empresaResult = await executeQuery(connection, empresaQuery, [codigo])
 
-            if (empresaResult.length === 0) {
-                return { estado: false, mensaje: "Código de empresa inválido" }
-            }
+        if (empresaResult.length === 0) {
+            return { estado: false, mensaje: "Código de empresa inválido" }
+        }
 
-            let query = `
+        let query = `
       SELECT u.* 
       FROM usuarios u
       WHERE u.usuario = ? AND u.elim = 0 AND u.superado = 0 AND u.habilitado = 1
     `
-            const params = [usuario]
+        const params = [usuario]
 
-            if (codigo) {
-                query += " AND EXISTS (SELECT 1 FROM sistema_empresa se WHERE se.codigo = ?)"
-                params.push(codigo)
+        if (codigo) {
+            query += " AND EXISTS (SELECT 1 FROM sistema_empresa se WHERE se.codigo = ?)"
+            params.push(codigo)
+        }
+
+        const results = await executeQuery(connection, query, params)
+
+        if (results.length === 0) {
+            return {
+                estado: false,
+                mensaje: "Usuario no encontrado o código inválido",
             }
+        }
 
-            const results = await executeQuery(connection, query, params)
+        const user = results[0]
 
-            if (results.length === 0) {
-                return {
-                    estado: false,
-                    mensaje: "Usuario no encontrado o código inválido",
-                }
-            }
+        const hashCalculado = user.pass
 
-            const user = results[0]
+        if (hashCalculado === password) {
+            delete user.pass
 
-            // Verificamos que la contraseña hasheada esté en el formato correcto
-
-            // Comparar la contraseña ingresada con la contraseña hasheada almacenada
-            const hashCalculado = user.pass // La contraseña ya está hasheada y almacenada
-
-            // Aquí asumimos que la contraseña ingresada se compara directamente con el hash almacenado
-            // Si el hashing es diferente, deberías implementar la lógica de comparación adecuada
-            if (hashCalculado === password) {
-                delete user.pass // Eliminamos la contraseña del resultado para no exponerla
-
-                // Generamos el JWT
-                const token = jwt.sign(
-                    {
-                        did: user.did,
-                        perfil: user.perfil,
-                        nombre: user.nombre,
-                        apellido: user.apellido,
-                        mail: user.mail,
-                        username: user.usuario,
-                        quien: user.did,
-                        empresa: codigo,
-                        idEmpresa: empresaResult[0].did,
-                        tipo: empresaResult[0].tipo,
-                    },
-                    JWT_SECRET,
-                    {
-                        expiresIn: "8h", // duración del token
-                    }
-                )
-
-                return {
-                    estado: true,
-                    mensaje: "Login correcto",
+            const token = sign(
+                {
                     did: user.did,
-                    quien: user.did,
                     perfil: user.perfil,
                     nombre: user.nombre,
                     apellido: user.apellido,
                     mail: user.mail,
                     username: user.usuario,
+                    quien: user.did,
                     empresa: codigo,
-                    didEmpresa: empresaResult[0].did,
+                    idEmpresa: empresaResult[0].did,
                     tipo: empresaResult[0].tipo,
-                    token: token,
+                },
+                JWT_SECRET,
+                {
+                    expiresIn: "8h",
                 }
-            } else {
-                return { estado: false, mensaje: "Contraseña incorrecta" }
+            )
+
+            return {
+                estado: true,
+                mensaje: "Login correcto",
+                did: user.did,
+                quien: user.did,
+                perfil: user.perfil,
+                nombre: user.nombre,
+                apellido: user.apellido,
+                mail: user.mail,
+                username: user.usuario,
+                empresa: codigo,
+                didEmpresa: empresaResult[0].did,
+                tipo: empresaResult[0].tipo,
+                token: token,
             }
-        } catch (error) {
-            console.error("Error en login:", error.message)
-            throw error
+        } else {
+            return { estado: false, mensaje: "Contraseña incorrecta" }
         }
     }
 }
 
-module.exports = Usuario
+export default Usuario

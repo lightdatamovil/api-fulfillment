@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 class Cliente_cuenta {
   constructor(
@@ -56,7 +56,6 @@ class Cliente_cuenta {
         return this.checkAndUpdateDidProducto(this.connection);
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message);
       throw {
         status: 500,
         response: {
@@ -145,92 +144,82 @@ class Cliente_cuenta {
   }
 
   async getClientes(connection, filtros = {}) {
-    try {
-      const conditions = ["elim = 0 and superado = 0"];
-      const values = [];
+    const conditions = ["elim = 0 and superado = 0"];
+    const values = [];
 
-      // Filtros dinámicos
-      if (filtros.didCliente) {
-        conditions.push("didCliente = ?");
-        values.push(filtros.didCliente);
-      }
+    // Filtros dinámicos
+    if (filtros.didCliente) {
+      conditions.push("didCliente = ?");
+      values.push(filtros.didCliente);
+    }
 
-      if (filtros.ml_id_vendedor) {
-        conditions.push("ml_id_vendedor = ?");
-        values.push(filtros.ml_id_vendedor);
-      }
+    if (filtros.ml_id_vendedor) {
+      conditions.push("ml_id_vendedor = ?");
+      values.push(filtros.ml_id_vendedor);
+    }
 
-      if (filtros.ml_user) {
-        conditions.push("ml_user = ?");
-        values.push(filtros.ml_user);
-      }
+    if (filtros.ml_user) {
+      conditions.push("ml_user = ?");
+      values.push(filtros.ml_user);
+    }
 
-      const whereClause = conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
-        : "";
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
 
-      // Paginación
-      const pagina = Number(filtros.pagina) || 1;
-      const cantidadPorPagina = Number(filtros.cantidad) || 10;
-      const offset = (pagina - 1) * cantidadPorPagina;
+    // Paginación
+    const pagina = Number(filtros.pagina) || 1;
+    const cantidadPorPagina = Number(filtros.cantidad) || 10;
+    const offset = (pagina - 1) * cantidadPorPagina;
 
-      // Total de registros
-      const totalQuery = `SELECT COUNT(*) as total FROM clientes_cuentas ${whereClause}`;
-      const totalResult = await executeQuery(connection, totalQuery, values);
-      const totalRegistros = totalResult[0].total;
-      const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
+    // Total de registros
+    const totalQuery = `SELECT COUNT(*) as total FROM clientes_cuentas ${whereClause}`;
+    const totalResult = await executeQuery(connection, totalQuery, values);
+    const totalRegistros = totalResult[0].total;
+    const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
 
-      // Consulta de datos
-      const dataQuery = `
+    // Consulta de datos
+    const dataQuery = `
       SELECT * FROM clientes_cuentas
       ${whereClause}
       ORDER BY id DESC
       LIMIT ? OFFSET ?
     `;
-      const dataValues = [...values, cantidadPorPagina, offset];
-      const results = await executeQuery(connection, dataQuery, dataValues);
+    const dataValues = [...values, cantidadPorPagina, offset];
+    const results = await executeQuery(connection, dataQuery, dataValues);
 
-      // Enriquecer los resultados
-      const enriched = results.map((row) => ({
-        ...row,
-        tipo_nombre: Cliente_cuenta.getTipoNombre(row.tipo),
-        data: row.data ? JSON.parse(row.data) : {},
-      }));
+    // Enriquecer los resultados
+    const enriched = results.map((row) => ({
+      ...row,
+      tipo_nombre: Cliente_cuenta.getTipoNombre(row.tipo),
+      data: row.data ? JSON.parse(row.data) : {},
+    }));
 
-      return {
-        totalRegistros,
-        totalPaginas,
-        pagina,
-        cantidad: cantidadPorPagina,
-        clientes: enriched,
-      };
-    } catch (error) {
-      console.error("Error en getClientes:", error.message);
-      throw error;
-    }
+    return {
+      totalRegistros,
+      totalPaginas,
+      pagina,
+      cantidad: cantidadPorPagina,
+      clientes: enriched,
+    };
   }
 
   async getClientesById(connection, did) {
-    try {
-      const query = `SELECT * FROM clientes_cuentas WHERE did = ?`;
-      const result = await executeQuery(connection, query, [did]);
+    const query = `SELECT * FROM clientes_cuentas WHERE did = ?`;
+    const result = await executeQuery(connection, query, [did]);
 
-      if (result.length === 0) {
-        return "El clienteCuenta no existe"; // O lanzar un error si lo prefieres
-      }
-
-      const enrichedResult = {
-        ...result[0],
-
-        data: result[0].data ? JSON.parse(result[0].data) : {},
-      };
-
-      return enrichedResult;
-    } catch (error) {
-      console.error("Error en getClientesById:", error.message);
-      throw error;
+    if (result.length === 0) {
+      return "El clienteCuenta no existe"; // O lanzar un error si lo prefieres
     }
+
+    const enrichedResult = {
+      ...result[0],
+
+      data: result[0].data ? JSON.parse(result[0].data) : {},
+    };
+
+    return enrichedResult;
   }
 }
 
-module.exports = Cliente_cuenta;
+export default Cliente_cuenta;

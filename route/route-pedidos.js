@@ -1,14 +1,11 @@
 const express = require("express")
 const orden = express.Router()
-const multer = require("multer")
-const xlsx = require("xlsx")
-const fs = require("fs")
-const { getConnectionLocal } = require("../dbconfig")
+const { getConnectionLocal } = require("../dbconfig").default
 const verificarToken = require("../middleware/token")
 const InsertOrder = require("../fuctions/insertOrdenes")
-const Pedidos = require("../controller/pedido/pedidos")
-const Pedidos_items = require("../controller/pedido/pedidos_items")
-const pedidoHistorial = require("../controller/pedido/pedidos_historial")
+const Pedidos = require("../controller/pedido/pedidos").default
+const Pedidos_items = require("../controller/pedido/pedidos_items").default
+const pedidoHistorial = require("../controller/pedido/pedidos_historial").default
 
 orden.post("/postPedido", verificarToken, async (req, res) => {
   const data = req.body
@@ -84,18 +81,15 @@ orden.post("/postPedido", verificarToken, async (req, res) => {
       }
     }
 
-    // Insertar historial
     const pedidos_historial = new pedidoHistorial(didParaUsar, data.status, data.quien ?? 0, 0, 0, connection)
 
     await pedidos_historial.insert()
 
-    // Éxito
     return res.status(200).json({
       estado: true,
       data: response,
     })
   } catch (error) {
-    console.error("Error durante la operación:", error)
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -110,10 +104,7 @@ orden.post("/postOrden2", async (req, res) => {
   const connection = await getConnectionLocal(data.idEmpresa)
 
   try {
-    // Verificar si el estado ya existe
-
     const result = await InsertOrder(connection, data)
-    // Insertar orden
 
     if (result.success == true) {
       return res.status(200).json({
@@ -127,7 +118,6 @@ orden.post("/postOrden2", async (req, res) => {
       })
     }
   } catch (error) {
-    console.error("Error durante la operación:", error)
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -135,98 +125,6 @@ orden.post("/postOrden2", async (req, res) => {
     })
   } finally {
     connection.end()
-  }
-})
-
-const upload = multer({ dest: "uploads/" })
-
-orden.post("/importExcelOrden", upload.single("file"), async (req, res) => {
-  const filePath = req.file.path
-  const workbook = xlsx.readFile(filePath)
-  const sheetName = workbook.SheetNames[0]
-  const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName])
-
-  try {
-    for (const row of rows) {
-      const connection = await getConnectionLocal(req.body.idEmpresa)
-
-      try {
-        const estadoRepetido = await Ordenes.esEstadoRepetido(connection, row.number, row.status)
-
-        if (estadoRepetido) {
-          connection.end()
-          continue
-        }
-
-        const ordenes = new Ordenes(
-          row.did ?? 0,
-          0,
-          row.didCliente ?? 0,
-          row.didCuenta ?? 0,
-          row.status,
-          row.flex,
-          row.number,
-          row.observaciones,
-          row.armado ?? 0,
-          row.descargado ?? 0,
-          row.fecha_armado ?? null,
-          row.fecha_venta,
-          row.quien_armado,
-          row.ml_shipment_id ?? null,
-          row.ml_id ?? "",
-          row.ml_pack_id ?? "",
-          row.buyer_id ?? "",
-          row.buyer_nickname ?? "",
-          row.buyer_name ?? "",
-          row.buyer_last_name ?? "",
-          row.total_amount ?? "",
-          row.seller_sku ?? "",
-          connection
-        )
-
-        const response = await ordenes.insert()
-        const didParaUsar = response.insertId || row.did
-
-        // Insertar ítem
-        const variation_attribute = row.variation_attributes ? JSON.stringify(JSON.parse(row.variation_attributes)) : "{}"
-
-        const ordenes_items = new Ordenes_items(
-          row.did ?? 0,
-          didParaUsar,
-          row.codigo ?? 0,
-          row.descripcion ?? "",
-          row.ml_id_item ?? "",
-          row.dimensions ?? "",
-          row.cantidad ?? 0,
-          variation_attribute,
-          row.seller_sku ?? 0,
-          row.use_product_id ?? 0,
-          row.id_variation ?? 0,
-          row.descargado_item ?? 0,
-          0,
-          0,
-          0,
-          connection
-        )
-
-        await ordenes_items.insert()
-
-        // Insertar historial
-        const ordenes_historial = new OrdenesHistorial(didParaUsar, row.status, row.quien ?? 0, 0, 0, connection)
-
-        await ordenes_historial.insert()
-      } catch (error) {
-        console.error("Error procesando fila:", error)
-      } finally {
-        connection.end()
-      }
-    }
-
-    fs.unlinkSync(filePath) // borrar el archivo temporal
-    return res.status(200).json({ estado: true, mensaje: "Órdenes importadas correctamente" })
-  } catch (error) {
-    console.error("Error en el importador:", error)
-    return res.status(500).json({ estado: false, error: error.message })
   }
 })
 
@@ -298,16 +196,11 @@ orden.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
       }
     }
 
-    const ordenes_historial = new OrdenesHistorial(didOrden, "pendiente", data.quien ?? 0, 0, 0, connection)
-
-    await ordenes_historial.insert()
-
     return res.status(200).json({
       estado: true,
       data: response,
     })
   } catch (error) {
-    console.error("Error al importar orden desde JSON:", error)
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -336,7 +229,6 @@ orden.post("/getPedidos", async (req, res) => {
       data: response.data,
     })
   } catch (error) {
-    console.error("Error durante la operación:", error)
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -359,7 +251,6 @@ orden.post("/getPedidoById", async (req, res) => {
       data: response["pedido"],
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -381,7 +272,6 @@ orden.post("/deletePedido", async (req, res) => {
       message: response.message || response,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,

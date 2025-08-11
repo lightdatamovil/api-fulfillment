@@ -1,6 +1,6 @@
 const express = require("express");
 const producto = express.Router();
-const { getConnectionLocal, } = require("../dbconfig");
+const { getConnectionLocal, } = require("../dbconfig").default;
 const verificarToken = require("../middleware/token");
 const ProductoCombo = require("../controller/producto/productoCombo");
 const ProductoDeposito = require("../controller/producto/productoDeposito");
@@ -182,7 +182,6 @@ producto.post("/postProducto", verificarToken, async (req, res) => {
       estado: true,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -219,7 +218,6 @@ producto.post("/getProductos", async (req, res) => {
       data: response.data,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -317,7 +315,7 @@ producto.post("/updateDepositos", async (req, res) => {
       deposito.did ?? 0,
       data.did ?? productoResult.insertId,
       deposito.did,
-      deposito.habilitado // habilitado
+      deposito.habilitado
     );
 
     await productoDeposito.checkAndUpdateDidProductoDeposito(connection);
@@ -352,7 +350,6 @@ producto.get("/getAllProductos/:empresa", async (req, res) => {
 
     return res.status(200).json(response);
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -452,68 +449,10 @@ producto.post("/ALGUNAS COSAS VIEJAS DE PRODUCTO ", async (req, res) => {
         const variantId = resultsVariante.insertId;
       }
     }
-    /*  const stockConsolidado = new StockConsolidado(
-          data.did ?? 0, // did se genera automáticamente
-          productId,
-          variantId, // didVariante (puede ser 0 si no se relaciona con una variante específica)
-          variante.cantidad, // Asignar la cantidad total
-          data.quien,
-          0,
-          0,
-          connection
-        );
-
-        if (data.ecommerce && Array.isArray(data.ecommerce)) {
-          for (const ecommerceItem of data.ecommerce) {
-            const productoEcommerce = new ProductoEcommerce(
-              data.did ?? 0,
-              productoResult.insertId,
-              variantId ?? 0,
-              ecommerceItem.tienda,
-
-              ecommerceItem.link,
-              ecommerceItem.habilitado,
-              ecommerceItem.sync,
-              ecommerceItem.sku,
-              data.quien,
-              0,
-              0,
-              connection
-            );
-            await productoEcommerce.insert();
-          }
-        }
-
-        await stockConsolidado.insert();
-      }
-    }
-
-    // Procesar depósitos
-    if (data.depositos && Array.isArray(data.depositos)) {
-      for (const deposito of data.depositos) {
-        const productoDeposito = new ProductoDeposito(
-          deposito.did ?? 0,
-          data.did ?? productoResult.insertId,
-          deposito.did,
-
-          deposito.habilitado, // habilitado
-          data.quien,
-          0,
-          0,
-          connection
-        );
-
-        await productoDeposito.insert();
-      }
-    }
-*/
-    // Procesar ecommerce
-
     return res.status(200).json({
       estado: true,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,

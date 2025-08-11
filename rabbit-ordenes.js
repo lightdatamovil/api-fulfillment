@@ -1,14 +1,13 @@
 const amqp = require("amqplib");
 const redis = require("redis");
 const axios = require("axios");
-const mysql = require("mysql"); // Para manejar solicitudes HTTP
-const { executeQuery } = require("./dbconfig");
+const mysql = require("mysql");
+const { executeQuery } = require("./dbconfig").default;
 const Pedidos = require("./controller/pedido/pedidos");
 const Pedidos_items = require("./controller/pedido/pedidos_items");
 const pedidoHistorial = require("./controller/pedido/pedidos_historial");
 const RABBITMQ_URL = "amqp://lightdata:QQyfVBKRbw6fBb@158.69.131.226:5672";
 let Aorders = [];
-let sellersStatus = [];
 
 const redisClient = redis.createClient({
   socket: {
@@ -19,7 +18,6 @@ const redisClient = redis.createClient({
 });
 
 redisClient.on("error", (err) => {
-  console.error("Error al conectar con Redis:", err);
 });
 async function getConnectionLocal(idempresa) {
   try {
@@ -57,7 +55,6 @@ async function getConnectionLocal(idempresa) {
 
     return dbConnection;
   } catch (error) {
-    console.error(`❌ Error al obtener la conexión:`, error.message);
     throw {
       status: 500,
       response: {
@@ -80,7 +77,6 @@ async function getTokenForSeller(seller_id) {
       return null;
     }
   } catch (error) {
-    console.error("Error al obtener el token de Redis:", error);
     return null;
   }
 }
@@ -97,16 +93,9 @@ async function obtenerDatosEnvioML(resource, token) {
     if (response.data && response.data.id) {
       return response.data;
     } else {
-      console.error(
-        `No se encontraron datos válidos para el envío ${resource}.`
-      );
       return null;
     }
   } catch (error) {
-    console.error(
-      `Error al obtener datos del envío ${resource} desde Mercado Libre:`,
-      error.message
-    );
     return null;
   }
 }
@@ -122,18 +111,11 @@ async function listenToChannel(channelName) {
 
     // 🔁 Cerramos conexiones anteriores por las dudas
     if (channel) {
-      try {
-        await channel.close();
-      } catch (e) {
-        console.warn("No se pudo cerrar el canal anterior:", e.message);
-      }
+      await channel.close();
+
     }
     if (connection) {
-      try {
-        await connection.close();
-      } catch (e) {
-        console.warn("No se pudo cerrar la conexión anterior:", e.message);
-      }
+      await connection.close();
     }
 
     try {
@@ -168,7 +150,6 @@ async function listenToChannel(channelName) {
                   const data = await redisClient.hGet("seller_ff_data", seller_id);
                   return data ? JSON.parse(data) : null;
                 } catch (err) {
-                  console.error("Error al obtener datos de Redis:", err);
                   return null;
                 }
               }
@@ -193,7 +174,6 @@ async function listenToChannel(channelName) {
 
               channel.ack(msg);
             } catch (err) {
-              console.error("Error procesando mensaje:", err);
               channel.nack(msg, false, false); // O descartá el mensaje
             }
           }
@@ -203,13 +183,11 @@ async function listenToChannel(channelName) {
 
       // 👇 Solo reconectamos desde acá
       connection.on("close", () => {
-        console.warn("⚠️ Conexión cerrada. Reintentando en 1s...");
         isConnecting = false;
         setTimeout(connect, 1000);
       });
 
     } catch (error) {
-      console.error(`❌ Error al conectar al canal ${channelName}:`, error);
       isConnecting = false;
       setTimeout(connect, 1000);
     }
@@ -377,12 +355,10 @@ async function InsertOrder(connection, data, dataredis) {
       );
 
       await pedidos_historial.insert();
-    } else {
     }
 
     return { insertId: didParaUsar };
   } catch (error) {
-    console.error("Error en InsertOrder:", error.message);
     return { insertId: 0 }; // Manejar el error y devolver un valor por defecto
   } finally {
     // Asegúrate de cerrar la conexión en el bloque finally
@@ -395,8 +371,6 @@ async function main() {
     await listenToChannel("ordenesFF");
     // await getdataSeller('298477234');
   } catch (error) {
-    await reiniciarScript();
-    console.error("Error en la ejecución principal:", error);
   } finally {
     await redisClient.disconnect();
   }

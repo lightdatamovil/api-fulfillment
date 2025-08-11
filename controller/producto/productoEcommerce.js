@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools")
+import { executeQuery } from "lightdata-tools"
 
 class ProductoEcommerce {
     constructor(did = "", didProducto = 0, didCuenta = 0, flex = 0, variante = "", sku = "", ean = "", url = "", actualizar = 0, quien = 0, superado = 0, elim = 0, connection = null) {
@@ -30,7 +30,6 @@ class ProductoEcommerce {
                 return this.checkAndUpdateDidProducto(this.connection)
             }
         } catch (error) {
-            console.error("Error en el método insert:", error.message)
             throw {
                 status: 500,
                 response: {
@@ -98,7 +97,6 @@ class ProductoEcommerce {
       `
             params = [didAtributo, ...didsActuales]
         } else {
-            // Si el array está vacío, eliminar todos los registros del atributo
             deleteQuery = `
         UPDATE productos_ecommerce
         SET elim = 1
@@ -110,99 +108,84 @@ class ProductoEcommerce {
         await executeQuery(connection, deleteQuery, params)
     }
     static async getUsuarios(connection, filtros = {}) {
-        try {
-            let baseQuery = "FROM productos_ecommerce WHERE superado = 0 AND elim = 0"
-            const params = []
-            const countParams = []
+        let baseQuery = "FROM productos_ecommerce WHERE superado = 0 AND elim = 0"
+        const params = []
+        const countParams = []
 
-            if (filtros.perfil !== undefined && filtros.perfil !== "") {
-                baseQuery += " AND perfil = ?"
-                params.push(filtros.perfil)
-                countParams.push(filtros.perfil)
-            }
+        if (filtros.perfil !== undefined && filtros.perfil !== "") {
+            baseQuery += " AND perfil = ?"
+            params.push(filtros.perfil)
+            countParams.push(filtros.perfil)
+        }
 
-            if (filtros.nombre) {
-                baseQuery += " AND nombre LIKE ?"
-                params.push(`%${filtros.nombre}%`)
-                countParams.push(`%${filtros.nombre}%`)
-            }
+        if (filtros.nombre) {
+            baseQuery += " AND nombre LIKE ?"
+            params.push(`%${filtros.nombre}%`)
+            countParams.push(`%${filtros.nombre}%`)
+        }
 
-            if (filtros.apellido) {
-                baseQuery += " AND apellido LIKE ?"
-                params.push(`%${filtros.apellido}%`)
-                countParams.push(`%${filtros.apellido}%`)
-            }
+        if (filtros.apellido) {
+            baseQuery += " AND apellido LIKE ?"
+            params.push(`%${filtros.apellido}%`)
+            countParams.push(`%${filtros.apellido}%`)
+        }
 
-            if (filtros.email) {
-                baseQuery += " AND mail LIKE ?"
-                params.push(`%${filtros.email}%`)
-                countParams.push(`%${filtros.email}%`)
-            }
-            if (filtros.usuario) {
-                baseQuery += " AND usuario LIKE ?"
-                params.push(`%${filtros.usuario}%`)
-                countParams.push(`%${filtros.usuario}%`)
-            }
-            if (filtros.habilitado != "") {
+        if (filtros.email) {
+            baseQuery += " AND mail LIKE ?"
+            params.push(`%${filtros.email}%`)
+            countParams.push(`%${filtros.email}%`)
+        }
+        if (filtros.usuario) {
+            baseQuery += " AND usuario LIKE ?"
+            params.push(`%${filtros.usuario}%`)
+            countParams.push(`%${filtros.usuario}%`)
+        }
+        if (filtros.habilitado != "") {
 
-                baseQuery += " AND habilitado = ?"
-                params.push(filtros.habilitado)
-                countParams.push(filtros.habilitado)
-            }
+            baseQuery += " AND habilitado = ?"
+            params.push(filtros.habilitado)
+            countParams.push(filtros.habilitado)
+        }
 
-            // Paginación
-            const pagina = parseInt(filtros.pagina) || 1
-            const porPagina = filtros.cantidad || 10
-            const offset = (pagina - 1) * porPagina
+        const pagina = parseInt(filtros.pagina) || 1
+        const porPagina = filtros.cantidad || 10
+        const offset = (pagina - 1) * porPagina
 
-            // Consulta principal con LIMIT
-            const query = `SELECT did,perfil,nombre,apellido,mail,usuario,habilitado,modulo_inicial, app_habilitada, codigo_cliente ${baseQuery} ORDER BY did DESC LIMIT ? OFFSET ?`
-            params.push(porPagina, offset)
-            const results = await executeQuery(connection, query, params)
+        const query = `SELECT did,perfil,nombre,apellido,mail,usuario,habilitado,modulo_inicial, app_habilitada, codigo_cliente ${baseQuery} ORDER BY did DESC LIMIT ? OFFSET ?`
+        params.push(porPagina, offset)
+        const results = await executeQuery(connection, query, params)
 
-            // Consulta para contar total de usuarios con filtros
-            const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`
-            const countResult = await executeQuery(connection, countQuery, countParams)
-            const totalRegistros = countResult[0]?.total || 0
-            const totalPaginas = Math.ceil(totalRegistros / porPagina)
+        const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`
+        const countResult = await executeQuery(connection, countQuery, countParams)
+        const totalRegistros = countResult[0]?.total || 0
+        const totalPaginas = Math.ceil(totalRegistros / porPagina)
 
-            // Remover contraseña
-            const usuariosSinPass = results.map((usuario) => {
-                delete usuario.pass
-                return usuario
-            })
+        const usuariosSinPass = results.map((usuario) => {
+            delete usuario.pass
+            return usuario
+        })
 
-            return {
-                usuarios: usuariosSinPass,
-                pagina: pagina,
-                totalRegistros,
-                totalPaginas,
-                cantidad: porPagina,
-            }
-        } catch (error) {
-            console.error("Error en getUsuarios:", error.message)
-            throw error
+        return {
+            usuarios: usuariosSinPass,
+            pagina: pagina,
+            totalRegistros,
+            totalPaginas,
+            cantidad: porPagina,
         }
     }
 
     static async getUsuariosById(connection, id) {
-        try {
-            const query = "SELECT perfil,nombre,apellido,mail,usuario,habilitado,did, modulo_inicial, app_habilitada, codigo_cliente FROM productos_ecommerce WHERE did = ? AND superado = 0 AND  elim = 0"
-            const params = [id]
-            const results = await executeQuery(connection, query, params)
+        const query = "SELECT perfil,nombre,apellido,mail,usuario,habilitado,did, modulo_inicial, app_habilitada, codigo_cliente FROM productos_ecommerce WHERE did = ? AND superado = 0 AND  elim = 0"
+        const params = [id]
+        const results = await executeQuery(connection, query, params)
 
-            // Remover contraseña
-            const usuariosSinPass = results.map((usuario) => {
-                delete usuario.pass
-                return usuario
-            })
+        const usuariosSinPass = results.map((usuario) => {
+            delete usuario.pass
+            return usuario
+        })
 
-            return usuariosSinPass
-        } catch (error) {
-            console.error("Error en getUsuariosById:", error.message)
-            throw error
-        }
+        return usuariosSinPass
     }
 }
 
-module.exports = ProductoEcommerce
+export default ProductoEcommerce

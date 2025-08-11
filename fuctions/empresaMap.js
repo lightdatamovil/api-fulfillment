@@ -13,7 +13,6 @@ function cargarEmpresasMap() {
       global.empresasCodigos = {};
     }
   } catch (err) {
-    console.error('Error al cargar empresasMap.json:', err.message);
     global.empresasCodigos = {};
   }
 }
@@ -25,7 +24,6 @@ function guardarEmpresasMap() {
       JSON.stringify(global.empresasCodigos, null, 2)
     );
   } catch (err) {
-    console.error('Error al guardar empresasMap.json:', err.message);
   }
 }
 

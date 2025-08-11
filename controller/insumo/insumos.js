@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools")
+import { executeQuery } from "lightdata-tools"
 
 class Insumo {
     constructor(did = "", nombre = "", logisticaLD = 0, codigo = "", codigoLD = "", quien = 0, superado = 0, elim = 0, connection = null) {
@@ -26,7 +26,6 @@ class Insumo {
                 return this.checkAndUpdateDidProducto(this.connection)
             }
         } catch (error) {
-            console.error("Error en el método insert:", error.message)
             throw {
                 status: 500,
                 response: {
@@ -155,7 +154,6 @@ class Insumo {
             )
             const totalRegistros = totalResult[0].total
             const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina)
-            // Consulta paginada
             const dataQuery = `
         SELECT i.did, i.nombre, i.codigo,  i.habilitado
         FROM insumos i
@@ -176,7 +174,6 @@ class Insumo {
                 insumos: results,
             }
         } catch (error) {
-            console.error("Error en getInsumos:", error.message)
             throw {
                 estado: false,
                 error: -1,
@@ -201,4 +198,4 @@ class Insumo {
     }
 }
 
-module.exports = Insumo
+export default Insumo

@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 class ProductoDeposito {
   constructor(
@@ -35,7 +35,6 @@ class ProductoDeposito {
         return this.checkAndUpdateDidProductoDeposito(this.connection);
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message);
       throw {
         status: 500,
         response: {
@@ -97,12 +96,8 @@ class ProductoDeposito {
 
     const insertResult = await executeQuery(connection, insertQuery, values);
 
-
-
-
     const updateQuery = 'UPDATE productos_depositos SET did = ? WHERE id = ?';
     await executeQuery(connection, updateQuery, [did2, insertResult.insertId]);
-
 
     return { success: true, insertId: insertResult.insertId };
   }
@@ -113,4 +108,4 @@ class ProductoDeposito {
   }
 }
 
-module.exports = ProductoDeposito;
+export default ProductoDeposito;

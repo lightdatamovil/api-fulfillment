@@ -13,7 +13,7 @@ function validateData(data) {
                 throw new Error(`El campo "${key}" no tiene un formato de correo válido.`);
             }
             // Validar caracteres especiales genéricos
-            const specialCharPattern = /[^a-zA-Z0-9\s\.,\-:ñÑ]/;
+            const specialCharPattern = /[^a-zA-Z0-9\s.,\-:ñÑ]/;
             if (specialCharPattern.test(data[key])) {
                 throw new Error(`El campo "${key}" contiene caracteres especiales no permitidos.`);
             }

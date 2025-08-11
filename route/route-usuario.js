@@ -1,6 +1,6 @@
 const express = require("express");
 const usuario = express.Router();
-const { getConnectionLocal, } = require("../dbconfig");
+const { getConnectionLocal, } = require("../dbconfig").default;
 const Usuario = require("../controller/usuario/usuario");
 const verificarToken = require("../middleware/token");
 
@@ -56,7 +56,6 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
       didUsuario: usuarioId,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -91,7 +90,6 @@ usuario.post("/login", async (req, res) => {
       data: response,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -134,7 +132,6 @@ usuario.post("/getUsuarios", verificarToken, async (req, res) => {
       data: response["usuarios"],
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -151,14 +148,13 @@ usuario.post("/getUsuarioById", verificarToken, async (req, res) => {
   const usuario = new Usuario();
 
   try {
-    const response = await Usuario.getUsuariosById(connection, data.did);
+    const response = await usuario.getUsuariosById(connection, data.did);
 
     return res.status(200).json({
       estado: true,
       data: response[0],
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -181,7 +177,6 @@ usuario.post("/deleteUsuario", verificarToken, async (req, res) => {
       message: response.message || response,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,

@@ -1,3 +1,4 @@
+const { executeQuery } = require('lightdata-tools');
 const StockConsolidado = require('./stock_consolidado');
 
 class Stock {
@@ -34,7 +35,6 @@ class Stock {
                 return this.updateExistingRecord(this.connection);
             }
         } catch (error) {
-            console.error("Error en el método insert:", error.message);
             throw {
                 status: 500,
                 response: {
@@ -46,69 +46,55 @@ class Stock {
     }
 
     async createNewRecord(connection) {
-        try {
-            const columnsQuery = 'DESCRIBE stock';
-            const results = await executeQuery(connection, columnsQuery, []);
+        const columnsQuery = 'DESCRIBE stock';
+        const results = await executeQuery(connection, columnsQuery, []);
 
-            const tableColumns = results.map((column) => column.Field);
-            const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
+        const tableColumns = results.map((column) => column.Field);
+        const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-            const values = filteredColumns.map((column) => this[column]);
-            const insertQuery = `INSERT INTO stock (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
+        const values = filteredColumns.map((column) => this[column]);
+        const insertQuery = `INSERT INTO stock (${filteredColumns.join(', ')}) VALUES (${filteredColumns.map(() => '?').join(', ')})`;
 
-            const insertResult = await executeQuery(connection, insertQuery, values);
+        const insertResult = await executeQuery(connection, insertQuery, values);
 
-            // Asignar el did como el insertId (si usás eso como identificador único)
-            const updateQuery = 'UPDATE stock SET did = ? WHERE id = ?';
-            await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
+        const updateQuery = 'UPDATE stock SET did = ? WHERE id = ?';
+        await executeQuery(connection, updateQuery, [insertResult.insertId, insertResult.insertId]);
 
-            // ----------------------
-            // Lógica de Consolidado
-            // ----------------------
-
-            // Paso 1: Obtener stock anterior no superado
-            const selectQuery = `
+        const selectQuery = `
                 SELECT stock 
                 FROM stock_consolidado 
                 WHERE didProducto = ? AND didVariante = ? AND superado = 0 AND elim = 0
                 ORDER BY id DESC 
                 LIMIT 1
             `;
-            const [lastConsolidado] = await executeQuery(connection, selectQuery, [this.didProducto, this.didVariante]);
-            const stockAnterior = lastConsolidado ? lastConsolidado.stock : 0;
+        const [lastConsolidado] = await executeQuery(connection, selectQuery, [this.didProducto, this.didVariante]);
+        const stockAnterior = lastConsolidado ? lastConsolidado.stock : 0;
 
-            // Paso 2: Marcar el stock anterior como superado
-            if (lastConsolidado) {
-                const markSuperadoQuery = `
+        if (lastConsolidado) {
+            const markSuperadoQuery = `
                     UPDATE stock_consolidado 
                     SET superado = 1 
                     WHERE didProducto = ? AND didVariante = ? AND superado = 0 AND elim = 0
                 `;
-                await executeQuery(connection, markSuperadoQuery, [this.didProducto, this.didVariante]);
-            }
-
-            // Paso 3: Calcular nuevo stock consolidado y guardar
-            const nuevoStock = stockAnterior + this.cantidad;
-
-            const stockConsolidado = new StockConsolidado(
-                0,
-                this.didProducto,
-                this.didVariante,
-                nuevoStock,
-                this.quien,
-                0,
-                0,
-                connection
-            );
-
-            await stockConsolidado.insert();
-
-            return { insertId: insertResult.insertId };
-
-        } catch (error) {
-            console.error("Error en createNewRecord:", error.message);
-            throw error;
+            await executeQuery(connection, markSuperadoQuery, [this.didProducto, this.didVariante]);
         }
+
+        const nuevoStock = stockAnterior + this.cantidad;
+
+        const stockConsolidado = new StockConsolidado(
+            0,
+            this.didProducto,
+            this.didVariante,
+            nuevoStock,
+            this.quien,
+            0,
+            0,
+            connection
+        );
+
+        await stockConsolidado.insert();
+
+        return { insertId: insertResult.insertId };
     }
 
     async updateExistingRecord(connection) {

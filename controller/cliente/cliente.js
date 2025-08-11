@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 function encodeArr(data) {
   const json = JSON.stringify(data); // Serializa el objeto
@@ -54,7 +54,6 @@ class Cliente {
         return this.checkAndUpdateDidProducto(this.connection);
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message);
       throw {
         status: 500,
         response: {
@@ -127,119 +126,108 @@ class Cliente {
     };
   }
   async getClientes(connection, filtros) {
-    try {
-      const conditions = ["c.superado = 0 AND c.elim = 0"];
-      const values = [];
+    const conditions = ["c.superado = 0 AND c.elim = 0"];
+    const values = [];
 
-      if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
-        conditions.push("c.habilitado = ?");
-        values.push(filtros.habilitado);
-      }
+    if (filtros.habilitado !== undefined && filtros.habilitado !== 2) {
+      conditions.push("c.habilitado = ?");
+      values.push(filtros.habilitado);
+    }
 
-      if (filtros.nombre_fantasia) {
-        conditions.push("c.nombre_fantasia LIKE ?");
-        values.push(`%${filtros.nombre_fantasia}%`);
-      }
+    if (filtros.nombre_fantasia) {
+      conditions.push("c.nombre_fantasia LIKE ?");
+      values.push(`%${filtros.nombre_fantasia}%`);
+    }
 
-      if (filtros.codigo) {
-        conditions.push("c.codigo LIKE ?");
-        values.push(`%${filtros.codigo}%`);
-      }
+    if (filtros.codigo) {
+      conditions.push("c.codigo LIKE ?");
+      values.push(`%${filtros.codigo}%`);
+    }
 
-      if (filtros.razon_social) {
-        conditions.push("c.razon_social LIKE ?");
-        values.push(`%${filtros.razon_social}%`);
-      }
+    if (filtros.razon_social) {
+      conditions.push("c.razon_social LIKE ?");
+      values.push(`%${filtros.razon_social}%`);
+    }
 
-      const whereClause = conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
-        : "";
+    const whereClause = conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
 
-      const pagina = Number(filtros.pagina) || 1;
-      const cantidadPorPagina = Number(filtros.cantidad) || 10;
-      const offset = (pagina - 1) * cantidadPorPagina;
+    const pagina = Number(filtros.pagina) || 1;
+    const cantidadPorPagina = Number(filtros.cantidad) || 10;
+    const offset = (pagina - 1) * cantidadPorPagina;
 
-      // Consulta de total
-      const totalQuery = `SELECT COUNT(*) as total FROM clientes ${whereClause.replace(/c\./g, "")}`;
-      const totalResult = await executeQuery(connection, totalQuery, values);
-      const totalRegistros = totalResult[0].total;
-      const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
+    const totalQuery = `SELECT COUNT(*) as total FROM clientes ${whereClause.replace(/c\./g, "")}`;
+    const totalResult = await executeQuery(connection, totalQuery, values);
+    const totalRegistros = totalResult[0].total;
+    const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
 
-      // Traer solo los clientes (sin joins)
-      const clientesQuery = `
+    const clientesQuery = `
         SELECT c.* FROM clientes c
         ${whereClause}
         ORDER BY c.did DESC
         LIMIT ? OFFSET ?
       `;
-      const clientes = await executeQuery(connection, clientesQuery, [...values, cantidadPorPagina, offset]);
+    const clientes = await executeQuery(connection, clientesQuery, [...values, cantidadPorPagina, offset]);
 
-      if (clientes.length === 0) {
-        return {
-          totalRegistros,
-          totalPaginas,
-          pagina,
-          cantidad: cantidadPorPagina,
-          clientes: [],
-        };
-      }
-
-      const dids = clientes.map(c => c.did);
-
-      // Direcciones
-      const direccionesQuery = `
-        SELECT did, didCliente, data 
-        FROM clientes_direcciones 
-        WHERE didCliente IN (${dids.map(() => '?').join(',')}) AND elim = 0 AND superado = 0
-      `;
-      const direcciones = await executeQuery(connection, direccionesQuery, dids);
-
-      // Contactos
-      const contactosQuery = `
-        SELECT did, didCliente, tipo, valor 
-        FROM clientes_contactos 
-        WHERE didCliente IN (${dids.map(() => '?').join(',')}) AND elim = 0 AND superado = 0
-      `;
-      const contactos = await executeQuery(connection, contactosQuery, dids);
-
-      // Mapear clientes con direcciones y contactos
-      const clientesFinal = clientes.map(cliente => {
-        const clienteDirecciones = direcciones.filter(d => d.didCliente === cliente.did)
-          .map(d => ({ did: d.did, data: d.data }));
-        const clienteContactos = contactos.filter(c => c.didCliente === cliente.did)
-          .map(c => ({ did: c.did, tipo: c.tipo, valor: c.valor }));
-
-        return {
-          did: cliente.did,
-          nombre_fantasia: cliente.nombre_fantasia,
-          habilitado: cliente.habilitado,
-          codigo: cliente.codigo,
-          observaciones: cliente.observaciones,
-          razon_social: cliente.razon_social,
-          quien: cliente.quien,
-          contactos: clienteContactos,
-          direcciones: clienteDirecciones,
-        };
-      });
-
+    if (clientes.length === 0) {
       return {
         totalRegistros,
         totalPaginas,
         pagina,
         cantidad: cantidadPorPagina,
-        clientes: clientesFinal,
+        clientes: [],
       };
-
-    } catch (error) {
-      console.error("Error en GETCLIENTES:", error.message);
-      throw error;
     }
+
+    const dids = clientes.map(c => c.did);
+
+    const direccionesQuery = `
+        SELECT did, didCliente, data 
+        FROM clientes_direcciones 
+        WHERE didCliente IN (${dids.map(() => '?').join(',')}) AND elim = 0 AND superado = 0
+      `;
+    const direcciones = await executeQuery(connection, direccionesQuery, dids);
+
+    const contactosQuery = `
+        SELECT did, didCliente, tipo, valor 
+        FROM clientes_contactos 
+        WHERE didCliente IN (${dids.map(() => '?').join(',')}) AND elim = 0 AND superado = 0
+      `;
+    const contactos = await executeQuery(connection, contactosQuery, dids);
+
+    const clientesFinal = clientes.map(cliente => {
+      const clienteDirecciones = direcciones.filter(d => d.didCliente === cliente.did)
+        .map(d => ({ did: d.did, data: d.data }));
+      const clienteContactos = contactos.filter(c => c.didCliente === cliente.did)
+        .map(c => ({ did: c.did, tipo: c.tipo, valor: c.valor }));
+
+      return {
+        did: cliente.did,
+        nombre_fantasia: cliente.nombre_fantasia,
+        habilitado: cliente.habilitado,
+        codigo: cliente.codigo,
+        observaciones: cliente.observaciones,
+        razon_social: cliente.razon_social,
+        quien: cliente.quien,
+        contactos: clienteContactos,
+        direcciones: clienteDirecciones,
+      };
+    });
+
+    return {
+      totalRegistros,
+      totalPaginas,
+      pagina,
+      cantidad: cantidadPorPagina,
+      clientes: clientesFinal,
+    };
+
   }
 
 
   async getAll(connection) {
-    try {
-      const query = `
+    const query = `
       SELECT 
         c.did AS cliente_did,
         c.codigo, 
@@ -255,43 +243,37 @@ class Cliente {
       WHERE c.elim = 0 AND c.superado = 0
       ORDER BY c.did DESC
     `;
-      const rows = await executeQuery(connection, query, []);
+    const rows = await executeQuery(connection, query, []);
 
-      // Agrupar por cliente
-      const clientesMap = new Map();
+    const clientesMap = new Map();
 
-      for (const row of rows) {
-        const clienteId = row.cliente_did;
+    for (const row of rows) {
+      const clienteId = row.cliente_did;
 
-        if (!clientesMap.has(clienteId)) {
-          clientesMap.set(clienteId, {
-            did: row.cliente_did,
-            codigo: row.codigo,
-            nombre_fantasia: row.nombre_fantasia,
-            habilitado: row.habilitado,
-            cuentas: [],
-          });
-        }
-
-        clientesMap.get(clienteId).cuentas.push({
-          did: row.cuenta_did,
-          flex: row.flex,
-          titulo: row.titulo || "",
+      if (!clientesMap.has(clienteId)) {
+        clientesMap.set(clienteId, {
+          did: row.cliente_did,
+          codigo: row.codigo,
+          nombre_fantasia: row.nombre_fantasia,
+          habilitado: row.habilitado,
+          cuentas: [],
         });
       }
 
-      const resultados = Array.from(clientesMap.values());
-      return resultados;
-    } catch (error) {
-      console.error("Error en GETCLIENTES:", error.message);
-      throw error;
+      clientesMap.get(clienteId).cuentas.push({
+        did: row.cuenta_did,
+        flex: row.flex,
+        titulo: row.titulo || "",
+      });
     }
+
+    const resultados = Array.from(clientesMap.values());
+    return resultados;
   }
 
   async getClientesById(connection, did, idEmpresa) {
     let didCuenta = 0;
-    try {
-      const query = `
+    const query = `
         SELECT 
           c.*, 
           d.did as direccion_did, d.data as direccion_data, c.razon_social, c.codigo,
@@ -304,96 +286,88 @@ class Cliente {
         WHERE c.elim = 0 AND c.superado = 0 AND c.did = ?
       `;
 
-      const results = await executeQuery(connection, query, [did]);
-      if (results.length === 0) {
-        return {
-          estado: false,
-          message: "No se encontró el cliente.",
-        };
-      }
-
-      const cliente = {
-        did: results[0].did,
-        nombre_fantasia: results[0].nombre_fantasia,
-        observaciones: results[0].observaciones || "",
-        razon_social: results[0].razon_social,
-        codigo: results[0].codigo,
-        habilitado: results[0].habilitado,
-        quien: results[0].quien,
-        contactos: [],
-        direcciones: [],
-        cuentas: [],
+    const results = await executeQuery(connection, query, [did]);
+    if (results.length === 0) {
+      return {
+        estado: false,
+        message: "No se encontró el cliente.",
       };
-
-      for (const row of results) {
-        if (
-          row.direccion_did &&
-          !cliente.direcciones.some((d) => d.did === row.direccion_did)
-        ) {
-          cliente.direcciones.push({
-            did: row.direccion_did,
-            data: row.direccion_data,
-          });
-        }
-
-        if (
-          row.contacto_did &&
-          !cliente.contactos.some((c) => c.did === row.contacto_did)
-        ) {
-          cliente.contactos.push({
-            did: row.contacto_did,
-            tipo: row.contacto_tipo,
-            valor: row.contacto_valor,
-          });
-        }
-
-        if (
-          row.cuenta_did &&
-          !cliente.cuentas.some((cu) => cu.did === row.cuenta_did)
-        ) {
-          cliente.cuentas.push({
-            did: row.cuenta_did,
-            tipo: row.tipo,
-            titulo: row.titulo,
-            data: row.cuenta_data,
-            ml_id_vendedor: row.ml_id_vendedor,
-            ml_user: row.ml_user,
-            depositos: row.depositos,
-          });
-        }
-        didCuenta = row.cuenta_did;
-      }
-
-      const didcliente = results[0].did;
-      const GLOBAL_empresa_id = idEmpresa;
-      const pais = "AR"; // Simulando `$_SESSION["configuracion"]["pais"]`
-
-      // Generar autofecha
-      const now = new Date();
-      const autofecha = now
-        .toISOString()
-        .replace(/[-T:.Z]/g, '') // Elimina símbolos y formato ISO
-        .slice(0, 14) +           // YYYYMMDDHHMMSS
-        generateToken4();         // Agrega el token aleatorio
-
-      const data = {
-        autofecha,
-        didcliente,
-        didCuenta,
-        didempresa: GLOBAL_empresa_id,
-        pais
-      };
-      const resultado = encodeArr(data)
-
-      // Agregar el token generado a la respuesta
-
-
-      return cliente;
-    } catch (error) {
-      console.error("Error en GETCLIENTES BY ID:", error.message);
-      throw error;
     }
+
+    const cliente = {
+      did: results[0].did,
+      nombre_fantasia: results[0].nombre_fantasia,
+      observaciones: results[0].observaciones || "",
+      razon_social: results[0].razon_social,
+      codigo: results[0].codigo,
+      habilitado: results[0].habilitado,
+      quien: results[0].quien,
+      contactos: [],
+      direcciones: [],
+      cuentas: [],
+    };
+
+    for (const row of results) {
+      if (
+        row.direccion_did &&
+        !cliente.direcciones.some((d) => d.did === row.direccion_did)
+      ) {
+        cliente.direcciones.push({
+          did: row.direccion_did,
+          data: row.direccion_data,
+        });
+      }
+
+      if (
+        row.contacto_did &&
+        !cliente.contactos.some((c) => c.did === row.contacto_did)
+      ) {
+        cliente.contactos.push({
+          did: row.contacto_did,
+          tipo: row.contacto_tipo,
+          valor: row.contacto_valor,
+        });
+      }
+
+      if (
+        row.cuenta_did &&
+        !cliente.cuentas.some((cu) => cu.did === row.cuenta_did)
+      ) {
+        cliente.cuentas.push({
+          did: row.cuenta_did,
+          tipo: row.tipo,
+          titulo: row.titulo,
+          data: row.cuenta_data,
+          ml_id_vendedor: row.ml_id_vendedor,
+          ml_user: row.ml_user,
+          depositos: row.depositos,
+        });
+      }
+      didCuenta = row.cuenta_did;
+    }
+
+    const didcliente = results[0].did;
+    const GLOBAL_empresa_id = idEmpresa;
+    const pais = "AR";
+
+    const now = new Date();
+    const autofecha = now
+      .toISOString()
+      .replace(/[-T:.Z]/g, '')
+      .slice(0, 14) +
+      generateToken4();
+
+    const data = {
+      autofecha,
+      didcliente,
+      didCuenta,
+      didempresa: GLOBAL_empresa_id,
+      pais
+    };
+    const resultado = encodeArr(data)
+
+    return cliente;
   }
 }
 
-module.exports = Cliente;
+export default Cliente;

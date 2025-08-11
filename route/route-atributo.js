@@ -2,7 +2,7 @@ const express = require("express");
 const atributo = express.Router();
 const {
   getConnectionLocal,
-} = require("../dbconfig");
+} = require("../dbconfig").default;
 const Atributo = require("../controller/atributo/atributos");
 const Atributo_valor = require("../controller/atributo/atributo_valor");
 const verificarToken = require("../middleware/token");
@@ -68,7 +68,6 @@ atributo.post("/postAtributo", verificarToken, async (req, res) => {
       atributo: response,
     });
   } catch (error) {
-    console.error("Error en /atributos:", error);
     return res.status(500).json({
       estado: false,
       mensaje: "Error al obtener los atributos del producto.",
@@ -90,7 +89,6 @@ atributo.post("/deleteAtributo", verificarToken, async (req, res) => {
       atributo: response,
     });
   } catch (error) {
-    console.error("Error en /eliminar:", error);
     return res.status(500).json({
       estado: false,
       mensaje: "Error al eliminar los atributos del producto.",
@@ -111,7 +109,6 @@ atributo.post("/getAtributoById", verificarToken, async (req, res) => {
       data: response[0],
     });
   } catch (error) {
-    console.error("Error en /getAtributos:", error);
     return res.status(500).json({
       estado: false,
       mensaje: "Ocurrió un error al obtener los atributos",
@@ -135,7 +132,6 @@ atributo.post("/getAtributos", verificarToken, async (req, res) => {
       data: response["atributos"],
     });
   } catch (error) {
-    console.error("Error en /getAtributos:", error);
     return res.status(500).json({
       estado: false,
       mensaje: "Ocurrió un error al obtener los atributos",
@@ -152,7 +148,6 @@ atributo.get("/getAllAtributos/:empresa", verificarToken, async (req, res) => {
 
     return res.status(200).json(response);
   } catch (error) {
-    console.error("Error en /getAtributos:", error);
     return res.status(500).json({
       estado: false,
       mensaje: "Ocurrio un error al obtener los atributos",

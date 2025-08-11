@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools")
+import { executeQuery } from "lightdata-tools"
 
 class ProductO1 {
   constructor(did = "", didCliente = 0, sku = "", titulo = "", ean = "", descripcion = "", imagen = "", habilitado = 0, esCombo = 0, posicion = "", cm3 = 0, alto = 0, ancho = 0, profundo = 0, quien = 0, superado = 0, elim = 0, connection = null) {
@@ -34,7 +34,6 @@ class ProductO1 {
         return this.checkAndUpdateDidProducto(this.connection)
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message)
       throw {
         status: 500,
         response: {
@@ -179,7 +178,6 @@ class ProductO1 {
         cantidad,
       }
     } catch (error) {
-      console.error("Error al traer productos:", error.message)
       throw {
         estado: false,
         error: -1,
@@ -309,7 +307,6 @@ class ProductO1 {
 
       return producto
     } catch (error) {
-      console.error("Error al traer el producto:", error.message)
       throw {
         status: 500,
         response: {
@@ -332,7 +329,6 @@ class ProductO1 {
 
       return results
     } catch (error) {
-      console.error("Error al traer productos:", error.message)
       throw {
         estado: false,
         error: -1,
@@ -386,4 +382,4 @@ class ProductO1 {
   }
 }
 
-module.exports = ProductO1
+export default ProductO1

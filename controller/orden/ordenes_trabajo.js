@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools")
+import { executeQuery } from "lightdata-tools"
 
 class Orden_Trabajo {
     constructor(did = "", estado = 0, asignada = "", fecha_inicio = 0, fecha_fin = "", quien = 0, superado = 0, elim = 0, connection = null) {
@@ -25,7 +25,6 @@ class Orden_Trabajo {
                 return this.checkAndUpdateDidProducto(this.connection)
             }
         } catch (error) {
-            console.error("Error en el método insert:", error.message)
             throw {
                 status: 500,
                 response: {
@@ -81,7 +80,7 @@ class Orden_Trabajo {
 
     async getOrdenTrabajo(connection) {
         const query = "SELECT * FROM ordenes_trabajo WHERE elim = 0 AND superado = 0"
-        const results = await executeQuery(connection, query, [did])
+        const results = await executeQuery(connection, query)
 
         if (results.length > 0) {
             return results[0]
@@ -89,9 +88,6 @@ class Orden_Trabajo {
             return null
         }
     }
-
-
-
 }
 
-module.exports = Orden_Trabajo
+export default Orden_Trabajo

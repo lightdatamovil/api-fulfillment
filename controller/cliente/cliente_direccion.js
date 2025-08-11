@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 class Cliente_direccion {
   constructor(
@@ -31,7 +31,6 @@ class Cliente_direccion {
         return this.checkAndUpdateDidProducto(this.connection);
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message);
       throw {
         status: 500,
         response: {
@@ -128,4 +127,4 @@ class Cliente_direccion {
   }
 }
 
-module.exports = Cliente_direccion;
+export default Cliente_direccion;

@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 class ProductoCombo {
   constructor(
@@ -6,9 +6,7 @@ class ProductoCombo {
     didProducto = 0,
     didProductoCombo = 0,
     cantidad = 0,
-
     combo = {},
-
     quien = 0,
     superado = 0,
     elim = 0,
@@ -37,7 +35,6 @@ class ProductoCombo {
         return this.checkAndUpdateDidProductoCombo(this.connection);
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message);
       throw {
         status: 500,
         response: {
@@ -147,7 +144,6 @@ class ProductoCombo {
       `;
       params = [didAtributo, ...didsActuales];
     } else {
-      // Si el array está vacío, eliminar todos los registros del atributo
       deleteQuery = `
         UPDATE productos_combos
         SET elim = 1
@@ -160,4 +156,4 @@ class ProductoCombo {
   }
 }
 
-module.exports = ProductoCombo;
+export default ProductoCombo;

@@ -1,3 +1,4 @@
+const { executeQuery } = require("lightdata-tools");
 
 class StockConsolidado {
     constructor(
@@ -29,7 +30,6 @@ class StockConsolidado {
         try {
             return await this.createNewRecord(this.connection);
         } catch (error) {
-            console.error("Error en el método insert:", error.message);
             throw {
                 status: 500,
                 response: {
@@ -63,7 +63,6 @@ class StockConsolidado {
             const updateQuery = 'UPDATE stock_consolidado SET superado = 1 WHERE didProducto = ? AND didVariante = ?';
             await executeQuery(this.connection, updateQuery, [this.stock, this.id]);
         } catch (error) {
-            console.error("Error en el método update:", error.message);
             throw {
                 status: 500,
                 response: {

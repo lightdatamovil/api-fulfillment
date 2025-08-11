@@ -35,7 +35,6 @@ class ProductoInsumo {
                 return this.checkAndUpdateDidProducto(this.connection)
             }
         } catch (error) {
-            console.error("Error en el método insert:", error.message)
             throw {
                 status: 500,
                 response: {
@@ -210,22 +209,17 @@ class ProductoInsumo {
     }
 
     static async getUsuariosById(connection, id) {
-        try {
-            const query = "SELECT perfil,nombre,apellido,mail,usuario,habilitado,did, modulo_inicial, app_habilitada, codigo_cliente FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0"
-            const params = [id]
-            const results = await executeQuery(connection, query, params)
+        const query = "SELECT perfil,nombre,apellido,mail,usuario,habilitado,did, modulo_inicial, app_habilitada, codigo_cliente FROM usuarios WHERE did = ? AND superado = 0 AND  elim = 0"
+        const params = [id]
+        const results = await executeQuery(connection, query, params)
 
-            // Remover contraseña
-            const usuariosSinPass = results.map((usuario) => {
-                delete usuario.pass
-                return usuario
-            })
+        // Remover contraseña
+        const usuariosSinPass = results.map((usuario) => {
+            delete usuario.pass
+            return usuario
+        })
 
-            return usuariosSinPass
-        } catch (error) {
-            console.error("Error en getUsuariosById:", error.message)
-            throw error
-        }
+        return usuariosSinPass
     }
 }
 

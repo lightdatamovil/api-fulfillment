@@ -11,7 +11,6 @@ seller.post('/', async (req, res) => {
             message: save
         });
     } catch (error) {
-        console.error('Error durante la operación:', error);
         return res.status(500).json({
             estado: false,
             error: -1,

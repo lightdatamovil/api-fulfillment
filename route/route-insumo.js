@@ -1,6 +1,6 @@
 const express = require("express");
 const insumo = express.Router();
-const { getConnectionLocal, } = require("../dbconfig");
+const { getConnectionLocal, } = require("../dbconfig").default;
 const verificarToken = require("../middleware/token");
 const Insumo = require("../controller/insumo/insumos");
 
@@ -39,7 +39,6 @@ insumo.post("/postInsumo", verificarToken, async (req, res) => {
       didInsumo: insumoId,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -82,7 +81,6 @@ insumo.post("/getInsumos", verificarToken, async (req, res) => {
       data: response["data"],
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -113,7 +111,6 @@ insumo.post("/getInsumoById", async (req, res) => {
       data: response[0],
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -137,7 +134,6 @@ insumo.post("/deleteInsumo", async (req, res) => {
       message: response.message || response,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -165,7 +161,6 @@ insumo.get("/getAllInsumos/:empresa", verificarToken, async (req, res) => {
     const response = await insumo.getAll(connection);
     return res.status(200).json(response);
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,

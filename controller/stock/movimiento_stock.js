@@ -1,15 +1,16 @@
-const Stock = require('./stock');
+import { executeQuery } from 'lightdata-tools';
+import Stock from './stock';
 class MovimientoStock {
     constructor(
         did = "",
-        data = [], // Ahora recibimos un arreglo de objetos en vez de un string JSON
+        data = [],
         quien = 0,
         superado = 0,
         elim = 0,
         connection = null
     ) {
         this.did = did;
-        this.data = data; // Ahora `data` es un arreglo de objetos
+        this.data = data;
         this.quien = quien || 0;
         this.superado = superado;
         this.elim = elim;
@@ -47,7 +48,6 @@ class MovimientoStock {
 
             return { estado: true, insertId: insertResult.insertId };
         } catch (error) {
-            console.error("❌ Error en insert:", error.message);
             throw {
                 status: 500,
                 response: {
@@ -95,7 +95,6 @@ class MovimientoStock {
             const updateQuery = 'UPDATE movimientos_stock SET superado = 1 WHERE did = ?';
             await executeQuery(this.connection, updateQuery, [this.did]);
         } catch (error) {
-            console.error("Error en el método update:", error.message);
             throw {
                 status: 500,
                 response: {
@@ -107,4 +106,4 @@ class MovimientoStock {
     }
 }
 
-module.exports = MovimientoStock;
+export default MovimientoStock;

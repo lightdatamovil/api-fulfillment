@@ -1,10 +1,10 @@
-const crypto = require('crypto');
-const { executeQuery } = require('lightdata-tools');
+import { randomBytes, pbkdf2Sync } from 'crypto';
+import { executeQuery } from 'lightdata-tools';
 
 
 function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString('hex'); // Generar un salt aleatorio
-  const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha256').toString('hex');
+  const salt = randomBytes(16).toString('hex');
+  const hashedPassword = pbkdf2Sync(password, salt, 1000, 64, 'sha256').toString('hex');
   return `$5$${salt}$${hashedPassword}`;
 }
 
@@ -40,7 +40,6 @@ class Empresa {
         return this.checkAndUpdateDidProducto(this.connection);
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message);
       throw {
         status: 500,
         response: {
@@ -71,9 +70,8 @@ class Empresa {
     const tableColumns = results.map((column) => column.Field);
     const filteredColumns = tableColumns.filter((column) => this[column] !== undefined);
 
-    // 🧂 Hasheamos la contraseña si está presente y no está ya en formato $5$
     if (this.pass && !this.pass.startsWith('$5$')) {
-      this.pass = hashPassword(this.pass); // Usamos hashPassword aquí
+      this.pass = hashPassword(this.pass);
     }
 
     const values = filteredColumns.map((column) => this[column]);
@@ -101,4 +99,4 @@ class Empresa {
 
 }
 
-module.exports = Empresa;
+export default Empresa;

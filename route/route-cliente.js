@@ -4,7 +4,7 @@ const ClienteDireccion = require("../controller/cliente/cliente_direccion");
 const Cliente_cuenta = require("../controller/cliente/cliente-cuenta");
 const express = require("express");
 const cliente = express.Router();
-const { getConnectionLocal } = require("../dbconfig");
+const { getConnectionLocal } = require("../dbconfig").default;
 const verificarToken = require("../middleware/token");
 
 cliente.post("/postCliente", async (req, res) => {
@@ -129,7 +129,6 @@ cliente.post("/postCliente", async (req, res) => {
       didUsuario: clienteId,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -165,7 +164,6 @@ cliente.post("/getClientes", async (req, res) => {
 
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -189,7 +187,6 @@ cliente.post("/getClienteById", async (req, res) => {
       data: response,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -211,7 +208,6 @@ cliente.post("/deleteCliente", verificarToken, async (req, res) => {
       message: response.message || response,
     });
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,
@@ -223,7 +219,7 @@ cliente.post("/deleteCliente", verificarToken, async (req, res) => {
 });
 
 cliente.get("/getAllClientes/:empresa", verificarToken, async (req, res) => {
-  const empresa = req.params.empresa; // <-- esto es lo correcto
+  const empresa = req.params.empresa;
 
   if (!empresa) {
     return res.status(400).json({
@@ -239,7 +235,6 @@ cliente.get("/getAllClientes/:empresa", verificarToken, async (req, res) => {
     const response = await cliente.getAll(connection);
     return res.status(200).json(response);
   } catch (error) {
-    console.error("Error durante la operación:", error);
     return res.status(500).json({
       estado: false,
       error: -1,

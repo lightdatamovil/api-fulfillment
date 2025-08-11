@@ -1,12 +1,11 @@
 const axios = require("axios")
-const { redisClient } = require("../../dbconfig")
+const { redisClient } = require("../../dbconfig").default
 const { executeQuery } = require("lightdata-tools")
 
 const USER_ID_ML = "746339074"
 
 let Atokens = []
 
-// Función para obtener el token desde Redis
 async function getTokenForSeller(seller_id) {
     try {
         const token = Atokens[seller_id]
@@ -14,31 +13,25 @@ async function getTokenForSeller(seller_id) {
         if (token) {
             return token
         } else {
-            console.error("Token no encontrado para el seller:", seller_id)
-            return null // Retorna null si no se encuentra el token
+            return null
         }
     } catch (error) {
-        console.error("Error al obtener el token de Redis:", error)
-        return null // Manejo de errores
+        return null
     }
 }
 
-// Función para cargar los tokens desde Redis
 async function getTokenRedis() {
     try {
         const type = await redisClient.type("token")
         if (type !== "hash") {
-            console.error(`La clave 'token' no es un hash, es de tipo: ${type}`)
-            return // O maneja el error según sea necesario
+            return
         }
         const data = await redisClient.hGetAll("token")
-        Atokens = data // Asegúrate de que esto sea lo que necesitas
+        Atokens = data
     } catch (error) {
-        console.error("Error al obtener tokens de Redis:", error)
     }
 }
 
-// Función para obtener publicaciones de Mercado Libre
 async function getPublicacionesML(pagina = 1, cantidad = 20) {
     await getTokenRedis()
 
@@ -135,7 +128,6 @@ async function getPublicacionesML(pagina = 1, cantidad = 20) {
             },
         }
     } catch (error) {
-        console.error("Error al obtener publicaciones de Mercado Libre:", error.response?.data || error.message)
         return {
             estado: false,
             response: {
@@ -191,7 +183,6 @@ async function getPublicacionesTN(pagina = 1, cantidad = 20) {
             },
         }
     } catch (error) {
-        console.error("Error al obtener publicaciones de Tiendanube:", error.response?.data || error.message)
         return {
             estado: false,
             response: {
@@ -331,7 +322,6 @@ async function getPublicacionesMLSimplificado(pagina = 1, cantidad = 20) {
             },
         }
     } catch (error) {
-        console.error("Error al obtener publicaciones de Mercado Libre:", error.response?.data || error.message)
         return {
             estado: false,
             response: {
@@ -396,7 +386,6 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
             },
         }
     } catch (error) {
-        console.error("Error al obtener publicaciones de Tiendanube:", error.response?.data || error.message)
         return {
             estado: false,
             response: {
@@ -414,14 +403,12 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
     const publicacionesTN = await getPublicacionesTNSimplificado(pagina, cantidad);
     //  return publicacionesTN
     if (!publicacionesTN.estado) {
-        console.error("Error al obtener publicaciones de Tiendanube:", publicacionesTN.response.resultados);
         return { estado: false, mensaje: "Error al obtener publicaciones de Tiendanube" };
     }
 
     // Obtener publicaciones de Mercado Libre
     const publicacionesML = await getPublicacionesMLSimplificado(pagina, cantidad);
     if (!publicacionesML.estado) {
-        console.error("Error al obtener publicaciones de Mercado Libre:", publicacionesML.response);
         return { estado: false, mensaje: "Error al obtener publicaciones de Mercado Libre" };
     }
 
@@ -522,11 +509,9 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
 async function unificarPublicaciones(pagina = 1, cantidad = 20, tn = true, ml = true) {
     const publicacionesUnificadas = {}
 
-    // --- Obtener y procesar publicaciones de Tiendanube ---
     if (tn) {
         const publicacionesTN = await getPublicacionesTNSimplificado(pagina, cantidad)
         if (!publicacionesTN.estado) {
-            console.error("Error al obtener publicaciones de Tiendanube:", publicacionesTN.response?.resultados)
             return { estado: false, mensaje: "Error al obtener publicaciones de Tiendanube" }
         }
 
@@ -576,11 +561,9 @@ async function unificarPublicaciones(pagina = 1, cantidad = 20, tn = true, ml = 
         }
     }
 
-    // --- Obtener y procesar publicaciones de Mercado Libre ---
     if (ml) {
         const publicacionesML = await getPublicacionesMLSimplificado(pagina, cantidad)
         if (!publicacionesML.estado) {
-            console.error("Error al obtener publicaciones de Mercado Libre:", publicacionesML.response)
             return { estado: false, mensaje: "Error al obtener publicaciones de Mercado Libre" }
         }
 
@@ -633,66 +616,52 @@ async function construirAtributosConDids(connection) {
     const respuesta = await unificarPublicaciones()
 
     if (!respuesta.estado || !Array.isArray(respuesta.response.publicaciones)) {
-        console.error("Error al obtener publicaciones:", respuesta)
-        return resultado // O manejar el error de otra manera
+        return resultado
     }
 
     const atributosInput = respuesta.response.publicaciones
-    //return true
 
     for (const atributo of atributosInput) {
-        const nombreAtributo = atributo.atributo || "Sin atributo" // Asegúrate de que 'titulo' sea correcto
+        const nombreAtributo = atributo.atributo || "Sin atributo"
         let didAtributo
 
-        // Buscar si ya existe el atributo
         const [atributoExistente] = await executeQuery(connection, "SELECT did FROM atributos WHERE nombre = ? LIMIT 1", [nombreAtributo])
 
         if (atributoExistente) {
             didAtributo = atributoExistente.did
         } else {
-            // Generar nuevo did
             const [maxAtributo] = await executeQuery(connection, "SELECT MAX(did) AS maxDid FROM atributos", [])
             didAtributo = (maxAtributo?.maxDid || 0) + 1
 
-            // Insertar nuevo atributo
             await executeQuery(connection, "INSERT INTO atributos (nombre, did) VALUES (?, ?)", [nombreAtributo, didAtributo])
         }
 
         const variantes = []
 
-        // Iterar sobre las variantes del atributo
         for (const variante of atributo.variantes) {
-            // Asegúrate de que 'values' sea un array
             if (!Array.isArray(variante.values)) {
-                console.warn(`La variante de ${nombreAtributo} no tiene valores válidos.`)
-                continue // O manejar el caso de otra manera
+                continue
             }
 
             for (const valor of variante.values) {
-                // Accede a la propiedad 'es' que contiene el valor deseado
-                const valorString = valor.es // Cambia 'es' a la propiedad correcta si es necesario
+                const valorString = valor.es
 
                 if (typeof valorString === "string") {
                     const valorTrimmed = valorString.trim()
                     let didValor
 
-                    // Buscar si ya existe el valor del atributo
                     const [valorExistente] = await executeQuery(connection, "SELECT did FROM atributos_valores WHERE didAtributo = ? AND valor = ? LIMIT 1", [didAtributo, valorTrimmed])
 
                     if (valorExistente) {
                         didValor = valorExistente.did
                     } else {
-                        // Generar nuevo did para valor
                         const [maxValor] = await executeQuery(connection, "SELECT MAX(did) AS maxDid FROM atributos_valores", [])
                         didValor = (maxValor?.maxDid || 0) + 1
 
-                        // Insertar nuevo valor
                         await executeQuery(connection, "INSERT INTO atributos_valores (didAtributo, valor, did) VALUES (?, ?, ?)", [didAtributo, valorTrimmed, didValor])
                     }
 
                     variantes.push({ valor: valorTrimmed, did: didValor })
-                } else {
-                    console.warn(`El valor ${valorString} no es una cadena válida.`)
                 }
             }
         }
@@ -712,64 +681,51 @@ async function construirAtributosYProductosConDids(connection) {
     const respuesta = await unificarPublicaciones()
 
     if (!respuesta.estado || !Array.isArray(respuesta.response.publicaciones)) {
-        console.error("Error al obtener publicaciones:", respuesta)
-        return resultado // O manejar el error de otra manera
+        return resultado
     }
 
     const publicacionesInput = respuesta.response.publicaciones
 
     for (const publicacion of publicacionesInput) {
-        // Manejo de atributos
-        const nombreAtributo = publicacion.atributo // Solo proceder si existe
+        const nombreAtributo = publicacion.atributo
         if (nombreAtributo) {
             let didAtributo
 
-            // Buscar si ya existe el atributo
             const [atributoExistente] = await executeQuery(connection, "SELECT did FROM atributos WHERE nombre = ? LIMIT 1", [nombreAtributo])
 
             if (atributoExistente) {
                 didAtributo = atributoExistente.did
             } else {
-                // Generar nuevo did
                 const [maxAtributo] = await executeQuery(connection, "SELECT MAX(did) AS maxDid FROM atributos", [])
                 didAtributo = (maxAtributo?.maxDid || 0) + 1
 
-                // Insertar nuevo atributo
                 await executeQuery(connection, "INSERT INTO atributos (nombre, did) VALUES (?, ?)", [nombreAtributo, didAtributo])
             }
 
             const variantes = []
 
-            // Verificar si hay variantes
             if (Array.isArray(publicacion.variantes)) {
                 for (const variante of publicacion.variantes) {
                     if (Array.isArray(variante.values)) {
                         for (const valor of variante.values) {
-                            const valorString = valor.es // Cambia 'es' a la propiedad correcta si es necesario
+                            const valorString = valor.es
 
                             if (typeof valorString === "string") {
                                 const valorTrimmed = valorString.trim()
                                 let didValor
 
-                                // Buscar si ya existe el valor del atributo
                                 const [valorExistente] = await executeQuery(connection, "SELECT did FROM atributos_valores WHERE didAtributo = ? AND valor = ? LIMIT 1", [didAtributo, valorTrimmed])
 
                                 if (!valorExistente) {
-                                    // Generar nuevo did para valor
                                     const [maxValor] = await executeQuery(connection, "SELECT MAX(did) AS maxDid FROM atributos_valores", [])
                                     didValor = (maxValor?.maxDid || 0) + 1
 
-                                    // Insertar nuevo valor
                                     await executeQuery(connection, "INSERT INTO atributos_valores (didAtributo, valor, did) VALUES (?, ?, ?)", [didAtributo, valorTrimmed, didValor])
                                 }
 
                                 variantes.push({ valor: valorTrimmed, did: didValor })
-                            } else {
-                                console.warn(`El valor ${valorString} no es una cadena válida.`)
                             }
                         }
-                    } else {
-                        console.warn(`La variante de ${nombreAtributo} no tiene valores válidos.`)
                     }
                 }
             }
@@ -781,28 +737,22 @@ async function construirAtributosYProductosConDids(connection) {
             })
         }
 
-        // Manejo de productos
-        const skuProducto = publicacion.sku // SKU del producto
+        const skuProducto = publicacion.sku
         if (skuProducto) {
-            const eanProducto = publicacion.ean || null // EAN del producto, puede ser null
-            const nombreProducto = publicacion.titulo.trim() // Título del producto
-            const descripcionProducto = publicacion.descripcion || "" // Descripción del producto
-            const imagenProducto = publicacion.imagen || "" // URL de la imagen
-            const habilitadoProducto = publicacion.habilitado !== undefined ? publicacion.habilitado : true // Habilitado por defecto
+            const eanProducto = publicacion.ean || null
+            const nombreProducto = publicacion.titulo.trim()
+            const descripcionProducto = publicacion.descripcion || ""
+            const imagenProducto = publicacion.imagen || ""
+            const habilitadoProducto = publicacion.habilitado !== undefined ? publicacion.habilitado : true
 
-            // Verificar si el SKU ya existe en la base de datos
             const [productoExistente] = await executeQuery(connection, "SELECT did FROM productos WHERE sku = ? LIMIT 1", [skuProducto])
 
-            // Si no existe el producto, proceder a insertarlo
             if (!productoExistente) {
-                // Generar nuevo did para el producto
                 const [maxProducto] = await executeQuery(connection, "SELECT MAX(did) AS maxDid FROM productos", [])
                 const didProducto = (maxProducto?.maxDid || 0) + 1
 
-                // Insertar nuevo producto
                 await executeQuery(connection, "INSERT INTO productos (did, sku, ean, titulo, descripcion, imagen, habilitado) VALUES (?, ?, ?, ?, ?, ?, ?)", [didProducto, skuProducto, eanProducto, nombreProducto, descripcionProducto, imagenProducto, habilitadoProducto])
 
-                // Obtener el ID del producto insertado
                 const [productoInsertado] = await executeQuery(connection, "SELECT LAST_INSERT_ID() AS id")
 
                 resultado.productos.push({
@@ -814,17 +764,13 @@ async function construirAtributosYProductosConDids(connection) {
                     imagen: imagenProducto,
                     habilitado: habilitadoProducto,
                 })
-            } else {
             }
-        } else {
-            console.warn("No se proporcionó SKU para el producto, no se insertará.")
         }
     }
 
     return resultado
 }
 async function construirAtributosDesdePublicaciones(connection) {
-    const atributos = []
     const respuesta = await unificarPublicaciones()
     const ml = await getPublicacionesMLSimplificado()
     const tn = await getPublicacionesTNSimplificado()
@@ -833,7 +779,6 @@ async function construirAtributosDesdePublicaciones(connection) {
     const productosTN = tn.response.resultados
 
     if (!respuesta.estado || !Array.isArray(respuesta.response.publicaciones)) {
-        console.error("Error al obtener publicaciones:", respuesta)
         return { estado: false, response: { atributos: [] } }
     }
 
@@ -841,7 +786,6 @@ async function construirAtributosDesdePublicaciones(connection) {
 
     const mapaAtributos = new Map()
 
-    // Obtener el último did usado
     const [maxAtributo] = await executeQuery(connection, "SELECT MAX(id) AS maxDid FROM atributos")
     const [maxValor] = await executeQuery(connection, "SELECT MAX(id) AS maxDid FROM atributos_valores")
 
@@ -869,7 +813,6 @@ async function construirAtributosDesdePublicaciones(connection) {
                     did: v.did,
                 }))
             } else {
-                // Simulación de atributo nuevo
                 didAtributoSimulado++
                 didAtributo = didAtributoSimulado
                 variantes = []
@@ -904,7 +847,6 @@ async function construirAtributosDesdePublicaciones(connection) {
         }
     }
 
-    // Construir salida final
     const atributosFinal = Array.from(mapaAtributos.values())
 
     return {

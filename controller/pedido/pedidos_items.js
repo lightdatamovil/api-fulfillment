@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 class Pedidos_items {
     constructor(
@@ -38,22 +38,16 @@ class Pedidos_items {
 
         this.connection = connection;
     }
-    // Método para convertir a JSON
+
     toJSON() {
         return JSON.stringify(this);
     }
 
-    // Método para insertar en la base de datos
     async insert() {
         try {
-
-            // Si `didEnvio` no es null, verificar si ya existe y manejarlo
             return this.checkAndUpdateDidEnvio(this.connection);
 
         } catch (error) {
-            console.error("Error en el método insert:", error.message);
-
-            // Lanzar un error con el formato estándar
             throw {
                 status: 500,
                 response: {
@@ -70,15 +64,11 @@ class Pedidos_items {
         const results = await executeQuery(connection, checkDidEnvioQuery, [this.didOrden, this.ml_id], true);
 
         if (results.length > 0) {
-
-            // Si `didEnvio` ya existe, actualizarlo
             const updateQuery = 'UPDATE pedidos_items SET superado = 1 WHERE didOrden = ? and ml_id = ?';;
             await executeQuery(connection, updateQuery, [this.didOrden, this.ml_id]);
 
-            // Crear un nuevo registro con el mismo `didEnvio`
             return this.createNewRecord(connection);
         } else {
-            // Si `didEnvio` no existe, crear un nuevo registro directamente
             return this.createNewRecord(connection);
         }
     }
@@ -99,4 +89,4 @@ class Pedidos_items {
         return { insertId: insertId };
     }
 }
-module.exports = Pedidos_items;
+export default Pedidos_items;

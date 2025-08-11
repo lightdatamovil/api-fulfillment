@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools")
+import { executeQuery } from "lightdata-tools"
 
 class Orden_trabajo_pedido_items {
     constructor(did = "", did_orden = "", did_pedido = 0, sku = "", habilitado = 0, cantidad = 0, quien = 0, superado = 0, elim = 0, connection = null) {
@@ -29,7 +29,6 @@ class Orden_trabajo_pedido_items {
                 return this.checkAndUpdateDidProducto(this.connection)
             }
         } catch (error) {
-            console.error("Error en el método insert:", error.message)
             throw {
                 status: 500,
                 response: {
@@ -83,9 +82,6 @@ class Orden_trabajo_pedido_items {
             message: "Orden de trabajo pedido eliminada correctamente.",
         }
     }
-
-
-
 }
 
-module.exports = Orden_trabajo_pedido_items
+export default Orden_trabajo_pedido_items

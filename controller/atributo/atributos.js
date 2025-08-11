@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 class Atributo {
   constructor(
@@ -35,7 +35,6 @@ class Atributo {
         return this.checkAndUpdateDidProducto(this.connection);
       }
     } catch (error) {
-      console.error("Error en el método insert:", error.message);
       throw {
         status: 500,
         response: {
@@ -133,7 +132,6 @@ class Atributo {
 
     const results = await executeQuery(connection, selectQuery, [did]);
 
-    // Agrupar por atributo
     const atributosMap = new Map();
 
     for (const row of results) {
@@ -163,7 +161,6 @@ class Atributo {
     const conditions = ["elim = 0", "superado = 0"];
     const values = [];
 
-    // Filtro habilitado (0: no habilitado, 1: habilitado, 2: todos)
     if (filtros.habilitado != "") {
       conditions.push("habilitado = ?");
       values.push(filtros.habilitado);
@@ -183,12 +180,10 @@ class Atributo {
       ? `WHERE ${conditions.join(" AND ")}`
       : "";
 
-    // Paginación (aseguramos que sean números)
     const pagina = Number(filtros.pagina) || 1;
     const cantidadPorPagina = Number(filtros.cantidad) || 10;
     const offset = (pagina - 1) * cantidadPorPagina;
 
-    // Consulta total
     const totalQuery = `SELECT COUNT(*) as total FROM atributos ${whereClause}`;
     const totalResult = await executeQuery(
       connection,
@@ -199,7 +194,6 @@ class Atributo {
     const totalRegistros = totalResult[0].total;
     const totalPaginas = Math.ceil(totalRegistros / cantidadPorPagina);
 
-    // Consulta paginada
     const dataQuery = `
       SELECT id,did, nombre, codigo, descripcion, habilitado,autofecha,orden FROM atributos
       ${whereClause}
@@ -240,7 +234,6 @@ class Atributo {
 
     const results = await executeQuery(connection, selectQuery, []);
 
-    // Agrupar por atributo
     const atributosMap = new Map();
 
     for (const row of results) {
@@ -268,4 +261,4 @@ class Atributo {
     return Array.from(atributosMap.values());
   }
 }
-module.exports = Atributo;
+export default Atributo;
