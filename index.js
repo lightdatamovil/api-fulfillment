@@ -9,7 +9,7 @@ import producto from "./route/route-producto.js";
 import publicacion from "./route/route-publicaciones.js";
 import atributo from "./route/route-atributo.js";
 import stock from "./route/route-stock.js";
-import usuario from "./route/usuario.js";
+import usuarios from "./route/usuarios.js";
 import seller from "./route/route-seller.js";
 import { logBlue, logRed } from "lightdata-tools";
 import redisClient from "./db.js";
@@ -25,17 +25,17 @@ app.use(cors());
 const PORT = process.env.PORT;
 
 app.use("/api/auth", auth);
-app.use("/api/atributo", atributo);
-app.use("/api/cliente", cliente);
-app.use("/api/empresa", empresa);
-app.use("/api/insumo", insumo);
-app.use("/api/orden", orden);
-app.use("/api/pedido", pedido);
-app.use("/api/producto", producto);
+app.use("/api/atributos", atributo);
+app.use("/api/clientes", cliente);
+app.use("/api/empresas", empresa);
+app.use("/api/insumos", insumo);
+app.use("/api/ordenes", orden);
+app.use("/api/pedidos", pedido);
+app.use("/api/productos", producto);
 app.use("/api/publicaciones", publicacion);
-app.use("/api/seller", seller);
+app.use("/api/sellers", seller);
 app.use("/api/stock", stock);
-app.use("/api/usuario", usuario);
+app.use("/api/usuarios", usuarios);
 
 (async () => {
   try {

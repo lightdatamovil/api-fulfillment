@@ -1,81 +1,98 @@
-import { executeQuery } from "lightdata-tools"
+import { executeQuery } from "lightdata-tools";
 
 export async function getUsuarios(connection, req) {
-    const body = req.body;
+    const src = req.query;
     const filtros = {
-        did: body.did,
-        perfil: body.perfil,
-        nombre: body.nombre,
-        apellido: body.apellido,
-        email: body.email,
-        pagina: body.pagina,
-        usuario: body.usuario,
-        habilitado: body.habilitado,
-        cantidad: body.cantidad,
+        perfil: src.perfil,
+        nombre: src.nombre,
+        apellido: src.apellido,
+        email: src.email ?? src.mail,
+        pagina: src.pagina,
+        usuario: src.usuario,
+        habilitado: src.habilitado,
+        cantidad: src.cantidad,
     };
-    const didUsuario = body.didUsuario;
-    let baseQuery = "FROM usuarios WHERE superado = 0 AND elim = 0 AND did != ?"
-    const params = [didUsuario]
-    const countParams = [didUsuario]
 
+    // Excluir al usuario actual
+    const didUsuario = (req.user?.id ?? src.didUsuario ?? 0);
+
+    let baseQuery = "FROM usuarios WHERE superado = 0 AND elim = 0 AND did != ?";
+    const params = [didUsuario];
+    const countParams = [didUsuario];
+
+    // Filtros
     if (filtros.perfil !== undefined && filtros.perfil !== "") {
-        baseQuery += " AND perfil = ?"
-        params.push(filtros.perfil)
-        countParams.push(filtros.perfil)
+        baseQuery += " AND perfil = ?";
+        params.push(filtros.perfil);
+        countParams.push(filtros.perfil);
     }
 
     if (filtros.nombre) {
-        baseQuery += " AND nombre LIKE ?"
-        params.push(`%${filtros.nombre}%`)
-        countParams.push(`%${filtros.nombre}%`)
+        baseQuery += " AND nombre LIKE ?";
+        params.push(`%${filtros.nombre}%`);
+        countParams.push(`%${filtros.nombre}%`);
     }
 
     if (filtros.apellido) {
-        baseQuery += " AND apellido LIKE ?"
-        params.push(`%${filtros.apellido}%`)
-        countParams.push(`%${filtros.apellido}%`)
+        baseQuery += " AND apellido LIKE ?";
+        params.push(`%${filtros.apellido}%`);
+        countParams.push(`%${filtros.apellido}%`);
     }
 
     if (filtros.email) {
-        baseQuery += " AND mail LIKE ?"
-        params.push(`%${filtros.email}%`)
-        countParams.push(`%${filtros.email}%`)
+        baseQuery += " AND mail LIKE ?";
+        params.push(`%${filtros.email}%`);
+        countParams.push(`%${filtros.email}%`);
     }
+
     if (filtros.usuario) {
-        baseQuery += " AND usuario LIKE ?"
-        params.push(`%${filtros.usuario}%`)
-        countParams.push(`%${filtros.usuario}%`)
-    }
-    if (filtros.habilitado != "") {
-
-        baseQuery += " AND habilitado = ?"
-        params.push(filtros.habilitado)
-        countParams.push(filtros.habilitado)
+        baseQuery += " AND usuario LIKE ?";
+        params.push(`%${filtros.usuario}%`);
+        countParams.push(`%${filtros.usuario}%`);
     }
 
-    const pagina = parseInt(filtros.pagina) || 1
-    const porPagina = filtros.cantidad || 10
-    const offset = (pagina - 1) * porPagina
+    // habilitado: acepta 0/1 o true/false o "0"/"1"
+    if (filtros.habilitado !== undefined && filtros.habilitado !== "") {
+        const h =
+            typeof filtros.habilitado === "boolean"
+                ? (filtros.habilitado ? 1 : 0)
+                : Number(filtros.habilitado);
+        baseQuery += " AND habilitado = ?";
+        params.push(h);
+        countParams.push(h);
+    }
 
-    const query = `SELECT did,perfil,nombre,apellido,mail,usuario,habilitado,modulo_inicial, app_habilitada,telefono, codigo_cliente ${baseQuery} ORDER BY did DESC LIMIT ? OFFSET ?`
-    params.push(porPagina, offset)
-    const results = await executeQuery(connection, query, params)
+    // Paginación
+    const pagina = Number.parseInt(filtros.pagina, 10);
+    const page = Number.isFinite(pagina) && pagina > 0 ? pagina : 1;
 
-    const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`
-    const countResult = await executeQuery(connection, countQuery, countParams)
-    const totalRegistros = countResult[0]?.total || 0
-    const totalPaginas = Math.ceil(totalRegistros / porPagina)
+    const cant = Number.parseInt(filtros.cantidad, 10);
+    const perPageRaw = Number.isFinite(cant) && cant > 0 ? cant : 10;
+    const perPage = Math.min(perPageRaw, 100); // límite de seguridad
+    const offset = (page - 1) * perPage;
 
-    const usuariosSinPass = results.map((usuario) => {
-        delete usuario.pass
-        return usuario
-    })
+    // Consulta de datos
+    const query = `
+    SELECT did, perfil, nombre, apellido, mail, usuario, habilitado,
+           modulo_inicial, app_habilitada, telefono, codigo_cliente
+    ${baseQuery}
+    ORDER BY did DESC
+    LIMIT ? OFFSET ?
+  `;
+    const dataParams = [...params, perPage, offset];
+    const results = await executeQuery(connection, query, dataParams);
+
+    // Conteo total
+    const countQuery = `SELECT COUNT(*) AS total ${baseQuery}`;
+    const countResult = await executeQuery(connection, countQuery, countParams);
+    const totalRegistros = Number(countResult[0]?.total ?? 0);
+    const totalPaginas = Math.ceil(totalRegistros / perPage);
 
     return {
-        usuarios: usuariosSinPass,
-        pagina: pagina,
+        usuarios: results,
+        pagina: page,
         totalRegistros,
         totalPaginas,
-        cantidad: porPagina,
-    }
+        cantidad: perPage,
+    };
 }

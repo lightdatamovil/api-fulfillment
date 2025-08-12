@@ -1,14 +1,15 @@
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyToken, verifyAll, verifyHeaders } from "lightdata-tools";
-import { hostFulFillement, portFulFillement } from "../db.js";
+import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyToken, verifyAll, verifyHeaders, logCyan } from "lightdata-tools";
+import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import { createUsuario } from "../controller/usuario/create_usuario.js";
 import { deleteUsuario } from "../controller/usuario/delete_usuario.js";
 import { getUsuarioById } from "../controller/usuario/get_usuario_by_id.js";
 import { getUsuarios } from "../controller/usuario/get_usuarios.js";
+import mysql2 from "mysql2";
 
-const usuario = Router();
+const usuarios = Router();
 
-usuario.post("/", verifyToken, async (req, res) => {
+usuarios.post("/", verifyToken(jwtSecret), async (req, res) => {
     const startTime = performance.now();
 
     let dbConnection;
@@ -29,7 +30,7 @@ usuario.post("/", verifyToken, async (req, res) => {
     }
 });
 
-usuario.delete("/", verifyToken, async (req, res) => {
+usuarios.delete("/", verifyToken(jwtSecret), async (req, res) => {
     const startTime = performance.now();
 
     let dbConnection;
@@ -50,19 +51,48 @@ usuario.delete("/", verifyToken, async (req, res) => {
     }
 });
 
-usuario.get("/:userId", verifyToken, async (req, res) => {
+usuarios.get("/", verifyToken(jwtSecret), async (req, res) => {
     const startTime = performance.now();
 
     let dbConnection;
 
     try {
-        verifyHeaders(req, res);
-        verifyAll(req, res, [], ['id']);
-        dbConnection = getFFProductionDbConfig(req.body.idEmpresa, hostFulFillement, portFulFillement);
+        verifyHeaders(req, ['X-Device-Id']);
+        verifyAll(req, [], []);
+        const { companyId } = req.user;
 
-        const res = await getUsuarioById(dbConnection, req);
+        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+        dbConnection = mysql2.createConnection(dbConfig);
+        dbConnection.connect();
 
-        return res.status(Status.ok).json(res);
+        const result = await getUsuarios(dbConnection, req);
+
+        return res.status(Status.ok).json(result);
+    } catch (error) {
+        errorHandler(req, res, error);
+    } finally {
+        logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
+        if (dbConnection) dbConnection.end();
+    }
+});
+usuarios.get("/:userId", verifyToken(jwtSecret), async (req, res) => {
+    logCyan(`Obteniendo usuario con ID: ${req.params.userId} para la empresa:a`);
+    const startTime = performance.now();
+
+    let dbConnection;
+
+    try {
+        verifyHeaders(req, ['X-Device-Id']);
+        verifyAll(req, ['userId'], []);
+        const { companyId } = req.user;
+        logCyan(`Obteniendo usuario con ID: ${req.params.userId} para la empresa: ${companyId}`);
+        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+        dbConnection = mysql2.createConnection(dbConfig);
+        dbConnection.connect();
+
+        const result = await getUsuarioById(dbConnection, req);
+
+        return res.status(Status.ok).json(result);
     } catch (error) {
         errorHandler(req, res, error);
     } finally {
@@ -71,32 +101,5 @@ usuario.get("/:userId", verifyToken, async (req, res) => {
     }
 });
 
-usuario.get("/", verifyToken, async (req, res) => {
-    const startTime = performance.now();
 
-    let dbConnection;
-
-    try {
-        verifyHeaders(req, res);
-        verifyAll(req, res, [], ['id']);
-        dbConnection = getFFProductionDbConfig(req.body.idEmpresa, hostFulFillement, portFulFillement);
-
-        const response = await getUsuarios(dbConnection, req);
-
-        return res.status(Status.ok).json({
-            success: true,
-            totalRegistros: response["totalRegistros"],
-            totalPaginas: response["totalPaginas"],
-            pagina: response["pagina"],
-            cantidad: response["cantidad"],
-            data: response["usuarios"],
-        });
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
-        if (dbConnection) dbConnection.end();
-    }
-});
-
-export default usuario;
+export default usuarios;

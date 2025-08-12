@@ -1,6 +1,6 @@
 import { executeQuery } from "lightdata-tools"
 
-export async function getUsuarioById(connection, req) {
+export async function getUsuarioById(dbConnection, req) {
     const { userId } = req.params;
 
     const query = `
@@ -22,7 +22,7 @@ export async function getUsuarioById(connection, req) {
         AND superado = 0
         AND  elim = 0`;
 
-    const results = await executeQuery(connection, query, [userId]);
+    const results = await executeQuery(dbConnection, query, [userId]);
 
     const row = results[0];
 
