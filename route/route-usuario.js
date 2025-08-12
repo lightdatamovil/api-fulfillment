@@ -1,6 +1,6 @@
 const express = require("express");
 const usuario = express.Router();
-const { getConnectionLocal, } = require("../dbconfig");
+const { getConnectionLocal, redisClient, } = require("../dbconfig");
 const Usuario = require("../controller/usuario/usuario");
 const verificarToken = require("../middleware/token");
 
@@ -71,9 +71,13 @@ usuario.post("/postUsuario", verificarToken, async (req, res) => {
 usuario.post("/login", async (req, res) => {
   const data = req.body;
 
-  const empresaInfo = global.empresasCodigos[data.e];
+  const empresasRedis = await redisClient.get('empresasFF');
 
-  console.log("empresaInfo", empresaInfo.did);
+
+  const empresasCodigos = JSON.parse(empresasRedis);
+
+
+  const empresaInfo = empresasCodigos[data.e];
 
   if (!empresaInfo || !empresaInfo.did) {
     return res.status(401).json({
@@ -81,7 +85,6 @@ usuario.post("/login", async (req, res) => {
       message: "Código de empresa inválido o no registrado.",
     });
   }
-
   const connection = await getConnectionLocal(empresaInfo.did);
   const usuario = new Usuario();
 

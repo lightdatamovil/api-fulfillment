@@ -67,7 +67,7 @@ class Pedidos_items {
 
     async checkAndUpdateDidEnvio(connection) {
         try {
-            const checkDidEnvioQuery = 'SELECT id FROM pedidos_items WHERE didOrden = ? and ml_id = ?';
+            const checkDidEnvioQuery = 'SELECT id FROM pedidos_items WHERE didPedido = ? and ml_id = ?';
 
             const results = await executeQuery(connection, checkDidEnvioQuery, [this.didOrden, this.ml_id], true);
             console.log(results, "resultdssdasadasdsads");
