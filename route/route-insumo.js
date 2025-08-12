@@ -1,12 +1,12 @@
 import { Router } from "express";
 import verificarToken from "../middleware/token";
 import Insumo from "../controller/insumo/insumos";
-import { getFFProductionDbConfig } from "lightdata-tools";
+import { getFFProductionDbConfig, verifyToken } from "lightdata-tools";
 import { hostFulFillement, portFulFillement } from "../db";
 
 const insumo = Router();
 
-insumo.post("/postInsumo", verificarToken, async (req, res) => {
+insumo.post("/", verifyToken, async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 

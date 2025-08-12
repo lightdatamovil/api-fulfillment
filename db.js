@@ -1,6 +1,6 @@
 import { createClient } from "redis";
 import dotenv from "dotenv";
-import { logRed } from "lightdata-tools";
+import { CompaniesService, logRed } from "lightdata-tools";
 
 dotenv.config({ path: process.env.ENV_FILE || ".env" });
 
@@ -24,5 +24,5 @@ const redisClient = createClient({
 redisClient.on("error", (err) => {
   logRed(err);
 });
-
+export const companiesService = CompaniesService({ redisClient, empresasFF: "empresasFF" })
 export default redisClient;

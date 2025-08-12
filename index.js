@@ -14,6 +14,7 @@ import usuario from "./route/route-usuario";
 import seller from "./route/route-seller";
 import { logBlue, logRed } from "lightdata-tools";
 import redisClient from "./db.js";
+import auth from "./route/auth.js";
 
 const app = express();
 
@@ -24,17 +25,18 @@ app.use(cors());
 
 const PORT = process.env.PORT;
 
-app.use("/atributo", atributo);
-app.use("/cliente", cliente);
-app.use("/empresa", empresa);
-app.use("/insumo", insumo);
-app.use("/orden", orden);
-app.use("/pedido", pedido);
-app.use("/producto", producto);
-app.use("/publicaciones", publicacion);
-app.use("/seller", seller);
-app.use("/stock", stock);
-app.use("/usuario", usuario);
+app.use("/api/auth", auth);
+app.use("/api/atributo", atributo);
+app.use("/api/cliente", cliente);
+app.use("/api/empresa", empresa);
+app.use("/api/insumo", insumo);
+app.use("/api/orden", orden);
+app.use("/api/pedido", pedido);
+app.use("/api/producto", producto);
+app.use("/api/publicaciones", publicacion);
+app.use("/api/seller", seller);
+app.use("/api/stock", stock);
+app.use("/api/usuario", usuario);
 
 (async () => {
   try {
