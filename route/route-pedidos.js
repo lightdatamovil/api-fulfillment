@@ -7,9 +7,9 @@ import pedidoHistorial from "../controller/pedido/pedidos_historial"
 import { getFFProductionDbConfig } from "lightdata-tools"
 import { hostFulFillement, portFulFillement } from "../db"
 
-const orden = Router()
+const pedido = Router()
 
-orden.post("/postPedido", verificarToken, async (req, res) => {
+pedido.post("/postPedido", verificarToken, async (req, res) => {
   const data = req.body
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
@@ -97,7 +97,7 @@ orden.post("/postPedido", verificarToken, async (req, res) => {
     connection.end()
   }
 })
-orden.post("/postOrden2", async (req, res) => {
+pedido.post("/postOrden2", async (req, res) => {
   const data = req.body
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
@@ -126,7 +126,7 @@ orden.post("/postOrden2", async (req, res) => {
   }
 })
 
-orden.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
+pedido.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
   const data = req.body
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const estadoRepetido = await Ordenes.esEstadoRepetido(connection, data.numero_venta, "pendiente")
@@ -209,7 +209,7 @@ orden.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
   }
 })
 
-orden.post("/getPedidos", async (req, res) => {
+pedido.post("/getPedidos", async (req, res) => {
   const data = req.body
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const pedidos = new Pedidos()
@@ -237,7 +237,7 @@ orden.post("/getPedidos", async (req, res) => {
   }
 })
 
-orden.post("/getPedidoById", async (req, res) => {
+pedido.post("/getPedidoById", async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const pedidos = new Pedidos();
@@ -258,7 +258,7 @@ orden.post("/getPedidoById", async (req, res) => {
     connection.end();
   }
 });
-orden.post("/deletePedido", async (req, res) => {
+pedido.post("/deletePedido", async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
@@ -280,4 +280,4 @@ orden.post("/deletePedido", async (req, res) => {
   }
 });
 
-export default orden
+export default pedido

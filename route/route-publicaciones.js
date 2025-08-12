@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { getPublicacionesUnificadas, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosDesdePublicaciones } from "../controller/publicacionesMLTN/publicaciones";
+import { getFFProductionDbConfig } from "lightdata-tools";
 
-const publicaciones = Router();
+const publicacion = Router();
 
-publicaciones.post("/publicacionesML", async (req, res) => {
+publicacion.post("/publicacionesML", async (req, res) => {
     try {
 
         const publicaciones = await getPublicacionesMLSimplificado();
@@ -20,7 +21,7 @@ publicaciones.post("/publicacionesML", async (req, res) => {
         });
     }
 });
-publicaciones.post("/publicacionesTN", async (req, res) => {
+publicacion.post("/publicacionesTN", async (req, res) => {
     try {
         const publicaciones = await getPublicacionesTNSimplificado();
         res.status(200).json({
@@ -36,7 +37,7 @@ publicaciones.post("/publicacionesTN", async (req, res) => {
         });
     }
 });
-publicaciones.post("/juntar", async (req, res) => {
+publicacion.post("/juntar", async (req, res) => {
 
     try {
         const publicaciones = await getPublicacionesUnificadas();
@@ -56,7 +57,7 @@ publicaciones.post("/juntar", async (req, res) => {
 
 })
 
-publicaciones.post("/uni", async (req, res) => {
+publicacion.post("/uni", async (req, res) => {
     try {
         const { tn = true, ml = true, pagina = 1, cantidad = 20 } = req.body;
 
@@ -76,10 +77,10 @@ publicaciones.post("/uni", async (req, res) => {
     }
 });
 
-publicaciones.post("/getProductosImportados", async (req, res) => {
+publicacion.post("/getProductosImportados", async (req, res) => {
     try {
         const data = req.body;
-        const connection = await getConnectionLocal(data.idEmpresa);
+        const connection = getFFProductionDbConfig(data.idEmpresa);
 
         const publicaciones = await construirAtributosDesdePublicaciones(connection);
         res.status(200).json({
@@ -96,4 +97,4 @@ publicaciones.post("/getProductosImportados", async (req, res) => {
     }
 })
 
-export default publicaciones;
+export default publicacion;

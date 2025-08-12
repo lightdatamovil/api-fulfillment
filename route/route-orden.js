@@ -1,5 +1,5 @@
 import { Router } from "express";
-const producto = Router();
+const orden = Router();
 import Orden_Trabajo from "../controller/orden/ordenes_trabajo";
 import Orden_trabajo_pedido from "../controller/orden/ordenes_trabajo_pedido";
 import Orden_trabajo_pedido_items from "../controller/orden/ordenes_trabajo_pedido_items";
@@ -8,7 +8,7 @@ import { getFFProductionDbConfig } from "lightdata-tools";
 import { hostFulFillement, portFulFillement } from "../db";
 
 
-producto.post("/postOrdenTrabajo", async (req, res) => {
+orden.post("/postOrdenTrabajo", async (req, res) => {
     const data = req.body;
     const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
@@ -58,7 +58,7 @@ producto.post("/postOrdenTrabajo", async (req, res) => {
         connection.end();
     }
 });
-producto.post("/postOrdenTrabajoPedido", async (req, res) => {
+orden.post("/postOrdenTrabajoPedido", async (req, res) => {
     const data = req.body;
     const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
@@ -108,7 +108,7 @@ producto.post("/postOrdenTrabajoPedido", async (req, res) => {
         connection.end();
     }
 });
-producto.post("/postOrdenTrabajoPedidoItem", async (req, res) => {
+orden.post("/postOrdenTrabajoPedidoItem", async (req, res) => {
     const data = req.body;
     const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
@@ -160,7 +160,7 @@ producto.post("/postOrdenTrabajoPedidoItem", async (req, res) => {
         connection.end();
     }
 });
-producto.post("/postOrdenTrabajoEstado", async (req, res) => {
+orden.post("/postOrdenTrabajoEstado", async (req, res) => {
     const data = req.body;
     const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
@@ -214,4 +214,4 @@ producto.post("/postOrdenTrabajoEstado", async (req, res) => {
     }
 });
 
-export default producto;
+export default orden;
