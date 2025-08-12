@@ -1,16 +1,15 @@
 import { Router } from "express";
-import verificarToken from "../middleware/token";
-import ProductoCombo from "../controller/producto/productoCombo";
-import ProductoDeposito from "../controller/producto/productoDeposito";
-import ProductoEcommerce from "../controller/producto/productoEcommerce";
-import ProductO1 from "../controller/producto/producto";
-import ProductoInsumo from "../controller/producto/productoInsumo";
-import ProductoVariantes from "../controller/producto/productoVariaciones";
-import { getFFProductionDbConfig } from "lightdata-tools";
+import ProductoCombo from "../controller/producto/productoCombo.js";
+import ProductoDeposito from "../controller/producto/productoDeposito.js";
+import ProductoEcommerce from "../controller/producto/productoEcommerce.js";
+import ProductO1 from "../controller/producto/producto.js";
+import ProductoInsumo from "../controller/producto/productoInsumo.js";
+import ProductoVariantes from "../controller/producto/productoVariaciones.js";
+import { getFFProductionDbConfig, verifyToken } from "lightdata-tools";
 
 const producto = Router();
 
-producto.post("/postProducto", verificarToken, async (req, res) => {
+producto.post("/postProducto", verifyToken, async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa);
 

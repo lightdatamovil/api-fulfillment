@@ -13,7 +13,7 @@ const redisPassword = process.env.REDIS_PASSWORD;
 export const hostFulFillement = process.env.FULFILLMENT_DB_HOST;
 export const portFulFillement = process.env.FULFILLMENT_DB_PORT;
 
-const redisClient = createClient({
+export const redisClient = createClient({
   socket: {
     host: redisHost,
     port: redisPort,
@@ -24,5 +24,5 @@ const redisClient = createClient({
 redisClient.on("error", (err) => {
   logRed(err);
 });
-export const companiesService = CompaniesService({ redisClient, empresasFF: "empresasFF" })
+export const companiesService = new CompaniesService({ redisClient, empresasFF: "empresasFF" })
 export default redisClient;

@@ -1,15 +1,13 @@
 import { Router } from "express"
-import verificarToken from "../middleware/token"
-import InsertOrder from "../fuctions/insertOrdenes"
-import Pedidos from "../controller/pedido/pedidos"
-import Pedidos_items from "../controller/pedido/pedidos_items"
-import pedidoHistorial from "../controller/pedido/pedidos_historial"
-import { getFFProductionDbConfig } from "lightdata-tools"
-import { hostFulFillement, portFulFillement } from "../db"
+import Pedidos from "../controller/pedido/pedidos.js"
+import Pedidos_items from "../controller/pedido/pedidos_items.js"
+import pedidoHistorial from "../controller/pedido/pedidos_historial.js"
+import { getFFProductionDbConfig, verifyToken } from "lightdata-tools"
+import { hostFulFillement, portFulFillement } from "../db.js"
 
 const pedido = Router()
 
-pedido.post("/postPedido", verificarToken, async (req, res) => {
+pedido.post("/postPedido", verifyToken, async (req, res) => {
   const data = req.body
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
@@ -126,7 +124,7 @@ pedido.post("/postOrden2", async (req, res) => {
   }
 })
 
-pedido.post("/PostsubidaMasiva", verificarToken, async (req, res) => {
+pedido.post("/PostsubidaMasiva", verifyToken, async (req, res) => {
   const data = req.body
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const estadoRepetido = await Ordenes.esEstadoRepetido(connection, data.numero_venta, "pendiente")

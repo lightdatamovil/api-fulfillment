@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyToken, verifyAll, verifyHeaders } from "lightdata-tools";
-import { hostFulFillement, portFulFillement } from "../db";
-import { createUsuario } from "../controller/usuario/create_usuario";
-import { deleteUsuario } from "../controller/usuario/delete_usuario";
-import { getUsuarioById } from "../controller/usuario/get_usuario_by_id";
-import { getUsuarios } from "../controller/usuario/get_usuarios";
+import { hostFulFillement, portFulFillement } from "../db.js";
+import { createUsuario } from "../controller/usuario/create_usuario.js";
+import { deleteUsuario } from "../controller/usuario/delete_usuario.js";
+import { getUsuarioById } from "../controller/usuario/get_usuario_by_id.js";
+import { getUsuarios } from "../controller/usuario/get_usuarios.js";
 
 const usuario = Router();
 

@@ -1,12 +1,12 @@
 import { Router } from "express";
-const orden = Router();
-import Orden_Trabajo from "../controller/orden/ordenes_trabajo";
-import Orden_trabajo_pedido from "../controller/orden/ordenes_trabajo_pedido";
-import Orden_trabajo_pedido_items from "../controller/orden/ordenes_trabajo_pedido_items";
-import OrdenTrabajoEstado from "../controller/orden/ordenes_trabajo_pedidos_estados";
+import Orden_Trabajo from "../controller/orden/ordenes_trabajo.js";
+import Orden_trabajo_pedido from "../controller/orden/ordenes_trabajo_pedido.js";
+import Orden_trabajo_pedido_items from "../controller/orden/ordenes_trabajo_pedido_items.js";
+import OrdenTrabajoEstado from "../controller/orden/ordenes_trabajo_pedidos_estados.js";
 import { getFFProductionDbConfig } from "lightdata-tools";
-import { hostFulFillement, portFulFillement } from "../db";
+import { hostFulFillement, portFulFillement } from "../db.js";
 
+const orden = Router();
 
 orden.post("/postOrdenTrabajo", async (req, res) => {
     const data = req.body;

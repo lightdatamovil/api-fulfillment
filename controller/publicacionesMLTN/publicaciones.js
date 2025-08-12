@@ -1,6 +1,6 @@
-const axios = require("axios")
-const { redisClient } = require("../../db").default
-const { executeQuery } = require("lightdata-tools")
+import { executeQuery } from "lightdata-tools"
+import redisClient from "../../db.js"
+import axios from "axios"
 
 const USER_ID_ML = "746339074"
 
@@ -832,7 +832,7 @@ async function construirAtributosDesdePublicaciones(connection) {
     }
 }
 
-module.exports = {
+export {
     getPublicacionesML,
     getPublicacionesTN,
     getPublicacionesUnificadas,

@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools")
+import { executeQuery } from "lightdata-tools"
 
 class ProductoVariantes {
     constructor(
@@ -104,4 +104,4 @@ class ProductoVariantes {
 
 }
 
-module.exports = ProductoVariantes
+export default ProductoVariantes

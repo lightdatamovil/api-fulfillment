@@ -1,5 +1,5 @@
-const { executeQuery } = require('lightdata-tools');
-const StockConsolidado = require('./stock_consolidado');
+import { executeQuery } from 'lightdata-tools';
+import StockConsolidado from './stock_consolidado.js';
 
 class Stock {
     constructor(
@@ -113,4 +113,4 @@ class Stock {
     }
 }
 
-module.exports = Stock;
+export default Stock;

@@ -1,6 +1,6 @@
-const { redisClient } = require("../../db").default;
+import redisClient from "../../db.js";
 
-async function saveSellerRedis(seller, data) {
+export async function saveSellerRedis(seller, data) {
     const keySellers = "seller_ff";
     const keySellersData = "seller_ff_data";
 
@@ -33,8 +33,4 @@ async function saveSellerRedis(seller, data) {
     } else {
         throw new Error('El operador debe ser "add" o "remove"');
     }
-}
-
-module.exports = {
-    saveSellerRedis
 }

@@ -1,16 +1,15 @@
 import { Router } from "express";
-import Atributo from "../controller/atributo/atributos";
-import Atributo_valor from "../controller/atributo/atributo_valor";
-import verificarToken from "../middleware/token";
-import { getFFProductionDbConfig } from "lightdata-tools";
-import { hostFulFillement, hostFulFillementHost, portFulFillement } from "../db";
+import Atributo from "../controller/atributo/atributos.js";
+import Atributo_valor from "../controller/atributo/atributo_valor.js";
+import { getFFProductionDbConfig, verifyToken } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "../db.js";
 
 const atributo = Router();
 
-atributo.post("/postAtributo", verificarToken, async (req, res) => {
+atributo.post("/postAtributo", verifyToken, async (req, res) => {
   try {
     const data = req.body;
-    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillementHost, portFulFillement);
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
     const atributo = new Atributo(
       data.did ?? 0,
@@ -73,7 +72,7 @@ atributo.post("/postAtributo", verificarToken, async (req, res) => {
   }
 });
 
-atributo.post("/deleteAtributo", verificarToken, async (req, res) => {
+atributo.post("/deleteAtributo", verifyToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillementHost, portFulFillement);
@@ -94,7 +93,7 @@ atributo.post("/deleteAtributo", verificarToken, async (req, res) => {
   }
 });
 
-atributo.post("/getAtributoById", verificarToken, async (req, res) => {
+atributo.post("/getAtributoById", verifyToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillementHost, portFulFillement);
@@ -113,7 +112,7 @@ atributo.post("/getAtributoById", verificarToken, async (req, res) => {
     });
   }
 });
-atributo.post("/getAtributos", verificarToken, async (req, res) => {
+atributo.post("/getAtributos", verifyToken, async (req, res) => {
   try {
     const data = req.body;
     const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillementHost, portFulFillement);
@@ -136,7 +135,7 @@ atributo.post("/getAtributos", verificarToken, async (req, res) => {
     });
   }
 });
-atributo.get("/getAllAtributos/:empresa", verificarToken, async (req, res) => {
+atributo.get("/getAllAtributos/:empresa", verifyToken, async (req, res) => {
   try {
     const data = req.params;
     const connection = getFFProductionDbConfig(data.empresa, hostFulFillement, portFulFillement);

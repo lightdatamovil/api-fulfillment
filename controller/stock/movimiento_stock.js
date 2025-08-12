@@ -1,5 +1,5 @@
 import { executeQuery } from 'lightdata-tools';
-import Stock from './stock';
+import Stock from './stock.js';
 class MovimientoStock {
     constructor(
         did = "",

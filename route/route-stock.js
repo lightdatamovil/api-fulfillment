@@ -1,9 +1,9 @@
 import { Router } from "express";
-import StockConsolidado from "../controller/stock/stock_consolidado";
-import Stock from "../controller/stock/stock";
-import MovimientoStock from "../controller/stock/movimiento_stock";
+import StockConsolidado from "../controller/stock/stock_consolidado.js";
+import Stock from "../controller/stock/stock.js";
+import MovimientoStock from "../controller/stock/movimiento_stock.js";
 import { getFFProductionDbConfig } from "lightdata-tools";
-import { hostFulFillement, portFulFillement } from "../db";
+import { hostFulFillement, portFulFillement } from "../db.js";
 
 const stock = Router();
 

@@ -1,4 +1,4 @@
-const { executeQuery } = require("lightdata-tools");
+import { executeQuery } from "lightdata-tools";
 
 class StockConsolidado {
     constructor(
@@ -80,4 +80,4 @@ class StockConsolidado {
     }
 }
 
-module.exports = StockConsolidado;
+export default StockConsolidado;

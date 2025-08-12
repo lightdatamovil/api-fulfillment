@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getPublicacionesUnificadas, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosDesdePublicaciones } from "../controller/publicacionesMLTN/publicaciones";
+import { getPublicacionesUnificadas, getPublicacionesMLSimplificado, getPublicacionesTNSimplificado, unificarPublicaciones, construirAtributosDesdePublicaciones } from "../controller/publicacionesMLTN/publicaciones.js";
 import { getFFProductionDbConfig } from "lightdata-tools";
 
 const publicacion = Router();

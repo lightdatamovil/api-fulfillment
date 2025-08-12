@@ -1,11 +1,10 @@
-import Cliente from "../controller/cliente/cliente";
-import ClienteContacto from "../controller/cliente/cliente_contacto";
-import ClienteDireccion from "../controller/cliente/cliente_direccion";
-import Cliente_cuenta from "../controller/cliente/cliente-cuenta";
+import Cliente from "../controller/cliente/cliente.js";
+import ClienteContacto from "../controller/cliente/cliente_contacto.js";
+import ClienteDireccion from "../controller/cliente/cliente_direccion.js";
+import Cliente_cuenta from "../controller/cliente/cliente-cuenta.js";
 import { Router } from "express";
-import verificarToken from "../middleware/token";
-import { getFFProductionDbConfig } from "lightdata-tools";
-import { hostFulFillement, portFulFillement } from "../db";
+import { getFFProductionDbConfig, verifyToken } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "../db.js";
 
 const cliente = Router();
 
@@ -185,7 +184,7 @@ cliente.post("/getClienteById", async (req, res) => {
     connection.end();
   }
 });
-cliente.post("/deleteCliente", verificarToken, async (req, res) => {
+cliente.post("/deleteCliente", verifyToken, async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
 
@@ -207,7 +206,7 @@ cliente.post("/deleteCliente", verificarToken, async (req, res) => {
   }
 });
 
-cliente.get("/getAllClientes/:empresa", verificarToken, async (req, res) => {
+cliente.get("/getAllClientes/:empresa", verifyToken, async (req, res) => {
   const empresa = req.params.empresa;
 
   if (!empresa) {

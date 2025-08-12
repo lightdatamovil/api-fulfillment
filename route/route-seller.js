@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { saveSellerRedis } from '../controller/seller/seller';
+import { saveSellerRedis } from '../controller/seller/seller.js';
 
 const seller = Router();
 

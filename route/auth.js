@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { errorHandler, getFFProductionDbConfig, logGreen, logPurple, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
 import { companiesService, hostFulFillement, portFulFillement } from "../db.js";
-import { login } from "../controller/auth/login";
-import { identification } from "../controller/auth/identification";
+import { login } from "../controller/auth/login.js";
+import { identification } from "../controller/auth/identification.js";
 
 const auth = Router();
 

@@ -1,9 +1,9 @@
 import { Router } from "express";
+import Empresa from "../controller/empresa/empresa.js";
+import { getFFProductionDbConfig, verifyToken } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "../db.js";
+
 const empresa = Router();
-import Empresa from "../controller/empresa/empresa";
-import { guardarEmpresasMap } from "../fuctions/empresaMap";
-import { getFFProductionDbConfig } from "lightdata-tools";
-import { hostFulFillement, portFulFillement } from "../db";
 
 empresa.post("/empresa", async (req, res) => {
   const data = req.body;
@@ -60,6 +60,32 @@ empresa.post("/deleteEmpresa", async (req, res) => {
       estado: response.estado !== undefined ? response.estado : false,
       message: response.message || response,
     });
+  } catch (error) {
+    return res.status(500).json({
+      estado: false,
+      error: -1,
+      message: error.message || error,
+    });
+  } finally {
+    connection.end();
+  }
+});
+empresa.get("/insumos", verifyToken, async (req, res) => {
+  const empresa = req.params.empresa;
+
+  if (!empresa) {
+    return res.status(400).json({
+      estado: false,
+      error: "Falta el parámetro 'empresa'",
+    });
+  }
+
+  const connection = getFFProductionDbConfig(empresa, hostFulFillement, portFulFillement);
+  const insumo = new Insumo();
+
+  try {
+    const response = await insumo.getAll(connection);
+    return res.status(200).json(response);
   } catch (error) {
     return res.status(500).json({
       estado: false,
