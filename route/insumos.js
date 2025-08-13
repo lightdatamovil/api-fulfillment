@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
-import { hostFulFillement, portFulFillement } from "../db.js";
+import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import { createInsumo } from "../controller/insumo/create_insumo.js";
 import { getInsumosById } from "../controller/insumo/get_insumo_by_id.js";
 import { deleteInsumo } from "../controller/insumo/delete_insumo.js";
 
 const insumo = Router();
 
-insumo.post("/", verifyToken, async (req, res) => {
+insumo.post("/", verifyToken(jwtSecret), async (req, res) => {
     const startTime = performance.now();
 
     let dbConnection;
@@ -16,7 +16,6 @@ insumo.post("/", verifyToken, async (req, res) => {
         verifyHeaders(req, res);
         verifyAll(req, res, [], ['nombre', 'codigo', 'idCliente']);
 
-        dbConnection = getFFProductionDbConfig(req.body.idEmpresa, hostFulFillement, portFulFillement);
 
         const res = await createInsumo(dbConnection, req);
 
@@ -29,13 +28,12 @@ insumo.post("/", verifyToken, async (req, res) => {
     }
 });
 
-insumo.get("/", verifyToken, async (req, res) => {
+insumo.get("/", verifyToken(jwtSecret), async (req, res) => {
     const data = req.body;
-    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
     const { pagina, cantidad, nombre, habilitado, codigo, did, didCliente } = data;
-    const insumo = new Insumo();
+    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
     try {
-        const response = await insumo.getInsumos(connection, {
+        const response = await getInsumos(connection, {
             pagina: pagina || 1,
             cantidad: cantidad || 10,
             nombre: nombre || "",
@@ -70,7 +68,7 @@ insumo.get("/", verifyToken, async (req, res) => {
     }
 });
 
-insumo.get("/:insumoId", async (req, res) => {
+insumo.get("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
     const startTime = performance.now();
     let dbConnection;
 
@@ -90,7 +88,7 @@ insumo.get("/:insumoId", async (req, res) => {
     }
 });
 
-insumo.delete("/:insumoId", async (req, res) => {
+insumo.delete("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
     const startTime = performance.now();
     let dbConnection;
 

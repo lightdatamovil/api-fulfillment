@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyToken, verifyAll, verifyHeaders, logCyan } from "lightdata-tools";
+import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyToken, verifyAll, verifyHeaders } from "lightdata-tools";
 import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import { createUsuario } from "../controller/usuario/create_usuario.js";
 import { deleteUsuario } from "../controller/usuario/delete_usuario.js";
 import { getUsuarioById } from "../controller/usuario/get_usuario_by_id.js";
-import { getUsuarios } from "../controller/usuario/get_usuarios.js";
+import { getUsuarios } from "../controller/usuario/get_filtered_usuarios.js";
 import mysql2 from "mysql2";
 
 const usuarios = Router();
@@ -17,7 +17,12 @@ usuarios.post("/", verifyToken(jwtSecret), async (req, res) => {
     try {
         verifyHeaders(req, res);
         verifyAll(req, res, [], ['nombre', 'email', 'password']);
-        dbConnection = getFFProductionDbConfig(req.body.idEmpresa, hostFulFillement, portFulFillement);
+
+        const { companyId } = req.user;
+
+        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+        dbConnection = mysql2.createConnection(dbConfig);
+        dbConnection.connect();
 
         const result = await createUsuario(dbConnection, req);
 
@@ -30,15 +35,20 @@ usuarios.post("/", verifyToken(jwtSecret), async (req, res) => {
     }
 });
 
-usuarios.delete("/", verifyToken(jwtSecret), async (req, res) => {
+usuarios.delete("/:userId", verifyToken(jwtSecret), async (req, res) => {
     const startTime = performance.now();
 
     let dbConnection;
 
     try {
-        verifyHeaders(req, res);
-        verifyAll(req, res, [], ['id']);
-        dbConnection = getFFProductionDbConfig(req.body.idEmpresa, hostFulFillement, portFulFillement);
+        verifyHeaders(req, ['X-Device-Id']);
+        verifyAll(req, ['userId'], []);
+
+        const { companyId } = req.user;
+
+        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+        dbConnection = mysql2.createConnection(dbConfig);
+        dbConnection.connect();
 
         const result = await deleteUsuario(dbConnection, req);
 
@@ -59,6 +69,7 @@ usuarios.get("/", verifyToken(jwtSecret), async (req, res) => {
     try {
         verifyHeaders(req, ['X-Device-Id']);
         verifyAll(req, [], []);
+
         const { companyId } = req.user;
 
         const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
@@ -67,7 +78,7 @@ usuarios.get("/", verifyToken(jwtSecret), async (req, res) => {
 
         const result = await getUsuarios(dbConnection, req);
 
-        return res.status(Status.ok).json(result);
+        res.status(Status.ok).json(result);
     } catch (error) {
         errorHandler(req, res, error);
     } finally {
@@ -75,8 +86,8 @@ usuarios.get("/", verifyToken(jwtSecret), async (req, res) => {
         if (dbConnection) dbConnection.end();
     }
 });
+
 usuarios.get("/:userId", verifyToken(jwtSecret), async (req, res) => {
-    logCyan(`Obteniendo usuario con ID: ${req.params.userId} para la empresa:a`);
     const startTime = performance.now();
 
     let dbConnection;
@@ -84,15 +95,16 @@ usuarios.get("/:userId", verifyToken(jwtSecret), async (req, res) => {
     try {
         verifyHeaders(req, ['X-Device-Id']);
         verifyAll(req, ['userId'], []);
+
         const { companyId } = req.user;
-        logCyan(`Obteniendo usuario con ID: ${req.params.userId} para la empresa: ${companyId}`);
+
         const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
         dbConnection = mysql2.createConnection(dbConfig);
         dbConnection.connect();
 
         const result = await getUsuarioById(dbConnection, req);
 
-        return res.status(Status.ok).json(result);
+        res.status(Status.ok).json(result);
     } catch (error) {
         errorHandler(req, res, error);
     } finally {
@@ -100,6 +112,5 @@ usuarios.get("/:userId", verifyToken(jwtSecret), async (req, res) => {
         if (dbConnection) dbConnection.end();
     }
 });
-
 
 export default usuarios;

@@ -4,16 +4,17 @@ import orden from "./route/route-orden.js";
 import cliente from "./route/route-cliente.js";
 import empresa from "./route/route-empresa.js";
 import pedido from "./route/route-pedidos.js";
-import insumo from "./route/insumo.js";
+import insumo from "./route/insumos.js";
 import producto from "./route/route-producto.js";
 import publicacion from "./route/route-publicaciones.js";
-import atributo from "./route/route-atributo.js";
+import atributo from "./route/atributos.js";
 import stock from "./route/route-stock.js";
 import usuarios from "./route/usuarios.js";
 import seller from "./route/route-seller.js";
 import { logBlue, logRed } from "lightdata-tools";
 import redisClient from "./db.js";
 import auth from "./route/auth.js";
+import init from './route/init.js';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(cors());
 
 const PORT = process.env.PORT;
 
+app.use("/api/init", init);
 app.use("/api/auth", auth);
 app.use("/api/atributos", atributo);
 app.use("/api/clientes", cliente);

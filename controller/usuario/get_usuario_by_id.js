@@ -1,4 +1,4 @@
-import { executeQuery } from "lightdata-tools"
+import { CustomException, executeQuery, Status } from "lightdata-tools"
 
 export async function getUsuarioById(dbConnection, req) {
     const { userId } = req.params;
@@ -20,9 +20,17 @@ export async function getUsuarioById(dbConnection, req) {
     WHERE
         did = ?
         AND superado = 0
-        AND  elim = 0`;
+        AND elim = 0`;
 
     const results = await executeQuery(dbConnection, query, [userId]);
+
+    if (!results || results.length === 0) {
+        throw new CustomException({
+            title: "Usuario no encontrado",
+            message: "No se encontró un usuario con el ID proporcionado.",
+            status: Status.noContent
+        });
+    }
 
     const row = results[0];
 

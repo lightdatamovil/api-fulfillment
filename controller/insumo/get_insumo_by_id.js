@@ -1,4 +1,4 @@
-import { executeQuery } from "lightdata-tools"
+import { CustomException, executeQuery } from "lightdata-tools"
 
 export async function getInsumosById(dbConnection, req) {
     const { insumoId } = req.params;
@@ -9,10 +9,10 @@ export async function getInsumosById(dbConnection, req) {
       `
     const results = await executeQuery(dbConnection, selectQuery, [insumoId])
     if (results.length === 0) {
-        return {
-            estado: false,
+        throw new CustomException({
+            title: "Insumo no encontrado",
             message: "No se encontró el insumo con el ID proporcionado.",
-        }
+        })
     }
 
     return results
