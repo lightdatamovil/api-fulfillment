@@ -1,6 +1,4 @@
 import { Router } from "express";
-import Atributo from "../controller/atributo/atributos.js";
-import Atributo_valor from "../controller/atributo/atributo_valor/edit_atributo_valor.js";
 import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyToken } from "lightdata-tools";
 import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import mysql2 from "mysql2";

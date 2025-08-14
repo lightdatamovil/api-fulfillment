@@ -4,6 +4,8 @@ import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import { createInsumo } from "../controller/insumo/create_insumo.js";
 import { getInsumosById } from "../controller/insumo/get_insumo_by_id.js";
 import { deleteInsumo } from "../controller/insumo/delete_insumo.js";
+import { getFilteredInsumos } from "../controller/insumo/get_filtered_insumos.js";
+import mysql2 from "mysql2";
 
 const insumo = Router();
 
@@ -33,7 +35,7 @@ insumo.get("/", verifyToken(jwtSecret), async (req, res) => {
     const { pagina, cantidad, nombre, habilitado, codigo, did, didCliente } = data;
     const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
     try {
-        const response = await getInsumos(connection, {
+        const response = await getFilteredInsumos(connection, {
             pagina: pagina || 1,
             cantidad: cantidad || 10,
             nombre: nombre || "",
@@ -70,16 +72,22 @@ insumo.get("/", verifyToken(jwtSecret), async (req, res) => {
 
 insumo.get("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
     const startTime = performance.now();
+
     let dbConnection;
 
     try {
-        verifyHeaders(req, res);
-        verifyAll(req, res, ['insumoId'], []);
-        dbConnection = getFFProductionDbConfig(req.body.idEmpresa, hostFulFillement, portFulFillement);
+        verifyHeaders(req, ['X-Device-Id']);
+        verifyAll(req, ['insumoId'], []);
 
-        const res = await getInsumosById(dbConnection, req);
+        const { companyId } = req.user;
 
-        res.status(Status.ok).json(res);
+        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+        dbConnection = mysql2.createConnection(dbConfig);
+        dbConnection.connect();
+
+        const result = await getInsumosById(dbConnection, req);
+
+        res.status(Status.ok).json(result);
     } catch (error) {
         errorHandler(req, res, error);
     } finally {
@@ -90,17 +98,22 @@ insumo.get("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
 
 insumo.delete("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
     const startTime = performance.now();
+
     let dbConnection;
 
     try {
-        verifyHeaders(req, res);
-        verifyAll(req, res, ['insumoId'], []);
+        verifyHeaders(req, ['X-Device-Id']);
+        verifyAll(req, ['insumoId'], []);
 
-        dbConnection = getFFProductionDbConfig(req.body.idEmpresa, hostFulFillement, portFulFillement);
+        const { companyId } = req.user;
 
-        const res = await deleteInsumo(dbConnection, req);
+        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+        dbConnection = mysql2.createConnection(dbConfig);
+        dbConnection.connect();
 
-        res.status(Status.ok).json(res);
+        const result = await deleteInsumo(dbConnection, req);
+
+        res.status(Status.ok).json(result);
     } catch (error) {
         errorHandler(req, res, error);
     } finally {
