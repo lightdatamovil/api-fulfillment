@@ -12,12 +12,19 @@ export async function identification(company) {
     }
 
     const result = {
-        id: company.did * 1,
-        image: ''
-        // plan: company.plan * 1,
-        // url: company.url,
-        // country: company.pais * 1,
-        // name: company.empresa,
+        success: true,
+        message: "Empresa identificada correctamente",
+        data: {
+            id: company.did * 1,
+            image: '',
+            // plan: company.plan * 1,
+            // url: company.url,
+            // country: company.pais * 1,
+            // name: company.empresa,
+        },
+        meta: {
+            timestamp: new Date().toISOString()
+        }
     };
 
     return result;

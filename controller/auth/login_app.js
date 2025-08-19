@@ -12,13 +12,12 @@ export async function loginApp(dbConnection, req) {
         });
     }
 
-    // 1) Usuario
     const userSql = `
-    SELECT did, perfil, nombre, apellido, mail, pass, usuario
-    FROM usuarios
-    WHERE usuario = ? AND elim = 0 AND superado = 0
-    LIMIT 1
-  `;
+        SELECT did, perfil, nombre, apellido, mail, pass, usuario
+        FROM usuarios
+        WHERE usuario = ? AND elim = 0 AND superado = 0
+        LIMIT 1
+    `;
     const users = await executeQuery(dbConnection, userSql, [username]);
     const user = users[0];
 
@@ -31,34 +30,38 @@ export async function loginApp(dbConnection, req) {
 
     if (!user) throw invalid();
 
-    // 2) Validar password (sha256 hex)
     const inputHash = crypto.createHash("sha256").update(password).digest("hex").toLowerCase();
-    const dbHash = String(user.pass || "").toLowerCase();
+    const dbHash = String(user.pass).toLowerCase();
 
-    const sameLen = dbHash.length === inputHash.length && dbHash.length > 0;
-    if (!sameLen) throw invalid();
+    const sameLength = dbHash.length === inputHash.length && dbHash.length > 0;
+    if (!sameLength) throw invalid();
     const ok = crypto.timingSafeEqual(
         Buffer.from(dbHash, "utf8"),
         Buffer.from(inputHash, "utf8")
     );
     if (!ok) throw invalid();
 
-    // 4) Token JWT
-    const jwtSecret = process.env.JWT_SECRET || "dev-secret";
+    const jwtSecret = process.env.JWT_SECRET;
     const token = generateToken(jwtSecret, {
         companyId: companyId,
         userId: user.did,
         profile: user.perfil,
     }, {}, 3600 * 8);
 
-    // 5) Respuesta exacta que pediste
     return {
-        did: user.did,
-        perfil: user.perfil,
-        nombre: user.nombre,
-        apellido: user.apellido,
-        mail: user.mail,
-        username: user.usuario,
-        token: token,
+        success: true,
+        message: "Inicio de sesión exitoso",
+        data: {
+            did: user.did,
+            perfil: user.perfil,
+            nombre: user.nombre,
+            apellido: user.apellido,
+            mail: user.mail,
+            username: user.usuario,
+            token: token,
+        },
+        meta: {
+            timestamp: new Date().toISOString()
+        }
     };
 }

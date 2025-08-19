@@ -1,85 +1,45 @@
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyToken } from "lightdata-tools";
+import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
 import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import mysql2 from "mysql2";
 import { getFilteredAtributos } from "../controller/atributo/get_filtered_atributos.js";
 import { getAtributoById } from "../controller/atributo/get_atributo_by_id.js";
 import { deleteAtributo } from "../controller/atributo/delete_atributo.js";
+import { createAtributo } from "../controller/atributo/create_atributo.js";
 
 const atributo = Router();
 
+
 atributo.post("/", verifyToken(jwtSecret), async (req, res) => {
+  let dbConnection;
+
   try {
-    const data = req.body;
-    const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
+    verifyHeaders(req, []);
+    verifyAll(req, [], ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'atributoValores']);
 
-    const atributo = new Atributo(
-      data.did ?? 0,
-      data.nombre,
-      data.descripcion,
-      data.orden,
-      data.habilitado,
-      data.codigo,
-      data.quien,
-      data.superado ?? 0,
-      data.elim ?? 0,
-      connection
-    );
+    const { companyId } = req.user;
 
-    const response = await atributo.insert();
+    const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+    dbConnection = mysql2.createConnection(dbConfig);
+    dbConnection.connect();
 
-    const didAtributo = data.did == 0 ? response.insertId : data.did;
+    const result = await createAtributo(dbConnection, req);
 
-    const helperValor = new Atributo_valor();
-    const didsActuales = Array.isArray(data.valores)
-      ? data.valores.map((v) => v.did).filter((d) => d > 0)
-      : [];
-    await helperValor.deleteMissing(connection, didAtributo, didsActuales);
-
-    if (Array.isArray(data.valores)) {
-      for (const valor of data.valores) {
-        const atributoValor = new Atributo_valor(
-          valor.did ?? 0,
-          didAtributo,
-          valor.valor,
-          data.orden,
-          data.habilitado ?? 1,
-          valor.codigo,
-          data.quien,
-          data.superado ?? 0,
-          data.elim ?? 0,
-          connection
-        );
-        await atributoValor.insert();
-      }
-    }
-
-    if (response.estado === false) {
-      return res.status(200).json({
-        estado: false,
-        message: response.message || response,
-      });
-    }
-
-    return res.status(200).json({
-      estado: true,
-      atributo: response,
-    });
+    res.status(Status.ok).json(result);
   } catch (error) {
-    return res.status(500).json({
-      estado: false,
-      mensaje: "Error al obtener los atributos del producto.",
-      error: error.message,
-    });
+    errorHandler(req, res, error);
+  } finally {
+    if (dbConnection) dbConnection.end();
   }
 });
 
 atributo.delete("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
-  const startTime = performance.now();
-
   let dbConnection;
 
   try {
+    verifyHeaders(req, []);
+    verifyAll(req, ['atributoId'], []);
+
     const { companyId } = req.user;
 
     const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
@@ -92,14 +52,11 @@ atributo.delete("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
   } catch (error) {
     errorHandler(req, res, error);
   } finally {
-    logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
     if (dbConnection) dbConnection.end();
   }
 });
 
 atributo.get("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
-  const startTime = performance.now();
-
   let dbConnection;
 
   try {
@@ -115,14 +72,11 @@ atributo.get("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
   } catch (error) {
     errorHandler(req, res, error);
   } finally {
-    logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
     if (dbConnection) dbConnection.end();
   }
 });
 
 atributo.get("/", verifyToken(jwtSecret), async (req, res) => {
-  const startTime = performance.now();
-
   let dbConnection;
 
   try {
@@ -138,10 +92,10 @@ atributo.get("/", verifyToken(jwtSecret), async (req, res) => {
   } catch (error) {
     errorHandler(req, res, error);
   } finally {
-    logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
     if (dbConnection) dbConnection.end();
   }
 });
+
 atributo.post("/:atributoId/valores", verifyToken(jwtSecret), async (req, res) => {
   const startTime = performance.now();
 
@@ -164,6 +118,7 @@ atributo.post("/:atributoId/valores", verifyToken(jwtSecret), async (req, res) =
     if (dbConnection) dbConnection.end();
   }
 });
+
 atributo.delete("/:atributoId/valores/:valorId", verifyToken(jwtSecret), async (req, res) => {
   const startTime = performance.now();
 
@@ -186,6 +141,7 @@ atributo.delete("/:atributoId/valores/:valorId", verifyToken(jwtSecret), async (
     if (dbConnection) dbConnection.end();
   }
 });
+
 atributo.put("/:atributoId/valores/:valorId", verifyToken(jwtSecret), async (req, res) => {
   const startTime = performance.now();
 

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, logGreen, logPurple, Status, verifyAll, verifyHeaders } from "lightdata-tools";
+import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders } from "lightdata-tools";
 import { companiesService, hostFulFillement, portFulFillement } from "../db.js";
 import { loginApp } from "../controller/auth/login_app.js";
 import { loginWeb } from "../controller/auth/login_web.js";
@@ -9,10 +9,8 @@ import mysql2 from "mysql2";
 const auth = Router();
 
 auth.get('/company-identification/:companyCode', async (req, res) => {
-    const startTime = performance.now();
-
     try {
-        verifyHeaders(req, ['X-Device-Id']);
+        verifyHeaders(req, []);
         verifyAll(req, ['companyCode'], []);
 
         const { companyCode } = req.params;
@@ -21,22 +19,17 @@ auth.get('/company-identification/:companyCode', async (req, res) => {
 
         const result = await identification(company);
 
-        logGreen(`Empresa identificada correctamente`);
-        res.status(Status.ok).json({ body: result, message: "Empresa identificada correctamente" });
+        res.status(Status.ok).json(result);
     } catch (error) {
         errorHandler(req, res, error);
-    } finally {
-        logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
     }
 });
 
 auth.post("/login-app", async (req, res) => {
-    const startTime = performance.now();
-
     let dbConnection;
 
     try {
-        verifyHeaders(req, ['X-Device-Id']);
+        verifyHeaders(req, []);
         verifyAll(req, [], ['username', 'password', 'companyId']);
 
         const { companyId } = req.body;
@@ -51,18 +44,15 @@ auth.post("/login-app", async (req, res) => {
     } catch (error) {
         errorHandler(req, res, error);
     } finally {
-        logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
         if (dbConnection) dbConnection.end();
     }
 });
 
 auth.post("/login-web", async (req, res) => {
-    const startTime = performance.now();
-
     let dbConnection;
 
     try {
-        verifyHeaders(req, ['X-Device-Id']);
+        verifyHeaders(req, []);
         verifyAll(req, [], ['username', 'password', 'companyId']);
 
         const { companyId } = req.body;
@@ -77,7 +67,6 @@ auth.post("/login-web", async (req, res) => {
     } catch (error) {
         errorHandler(req, res, error);
     } finally {
-        logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
         if (dbConnection) dbConnection.end();
     }
 });

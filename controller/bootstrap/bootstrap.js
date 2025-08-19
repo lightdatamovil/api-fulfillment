@@ -1,6 +1,6 @@
 import { executeQuery } from "lightdata-tools"
 
-export async function getInitInfo(dbConnection) {
+export async function bootstrap(dbConnection) {
 
     const queryProductos = `
           SELECT p.did AS did, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo, p.cm3
@@ -100,10 +100,18 @@ export async function getInitInfo(dbConnection) {
     }
 
     const clientes = Array.from(clientesMap.values());
+
     return {
-        productos,
-        atributos,
-        insumos,
-        clientes
-    }
+        success: true,
+        message: "Inicio de sesión exitoso",
+        data: {
+            productos,
+            atributos,
+            insumos,
+            clientes
+        },
+        meta: {
+            timestamp: new Date().toISOString()
+        }
+    };
 }

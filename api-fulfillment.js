@@ -14,7 +14,7 @@ import seller from "./route/route-seller.js";
 import { logBlue, logRed } from "lightdata-tools";
 import redisClient from "./db.js";
 import auth from "./route/auth.js";
-import init from './route/init.js';
+import bootstrap from './route/bootstrap.js';
 
 const app = express();
 
@@ -25,7 +25,7 @@ app.use(cors());
 
 const PORT = process.env.PORT;
 
-app.use("/api/init", init);
+app.use("/api/bootstrap", bootstrap);
 app.use("/api/auth", auth);
 app.use("/api/atributos", atributo);
 app.use("/api/clientes", cliente);

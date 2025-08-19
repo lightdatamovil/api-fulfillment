@@ -1,31 +1,48 @@
-import { executeQuery } from "lightdata-tools"
+import { CustomException, executeQuery } from "lightdata-tools"
 
 export async function createInsumo(dbConnection, req) {
-    const { did, nombre, codigo, idCliente } = req.body;
+    const { did, codigo, clientes, habilitado, nombre, unidad } = req.body;
+    const { userId } = req.user;
 
-    const querycheck = "SELECT codigo FROM logisticas WHERE codigo = ? and superado = 0 and elim = 0"
-    const resultscheck = await executeQuery(dbConnection, querycheck, [codigo])
-    if (resultscheck.length > 0) {
-        return {
-            estado: false,
-            message: "El codigo de la logistica ya existe.",
+    const queryVerify = `
+        SELECT * FROM insumos WHERE codigo = ? AND did = ? AND elim = 0 AND superado = 0
+    `;
+    const existingInsumo = await executeQuery(dbConnection, queryVerify, [codigo, did]);
+
+    if (existingInsumo.length > 0) {
+        throw new CustomException({
+            title: "Insumo existente",
+            message: "El insumo ya existe"
+        });
+    }
+
+    const insertQuery = `
+        INSERT INTO insumos (codigo, clientes, habilitado, nombre, unidad, quien)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    const insertResult = await executeQuery(dbConnection, insertQuery, [codigo, clientes, habilitado, nombre, unidad, userId]);
+
+    if (!insertResult || insertResult.affectedRows === 0) {
+        throw new CustomException({
+            title: "Error al crear insumo",
+            message: "No se pudo crear el insumo"
+        });
+    }
+
+    const updateDidQuery = `
+        UPDATE insumos SET did = ? WHERE id = ?
+    `;
+    await executeQuery(dbConnection, updateDidQuery, [insertResult.insertId, insertResult.insertId], true);
+
+    const q = 'SELECT * FROM insumos WHERE did = ?';
+    const insumoCreado = await executeQuery(dbConnection, q, [insertResult.insertId]);
+
+    return {
+        success: true,
+        message: "Insumo creado correctamente",
+        data: insumoCreado,
+        meta: {
+            timestamp: new Date().toISOString()
         }
-    }
-    const columnsQuery = "DESCRIBE logisticas"
-    const results = await executeQuery(dbConnection, columnsQuery, [])
-
-    const tableColumns = results.map((column) => column.Field)
-    const filteredColumns = tableColumns.filter((column) => this[column] !== undefined)
-
-    const values = filteredColumns.map((column) => this[column])
-    const insertQuery = `INSERT INTO logisticas (${filteredColumns.join(", ")}) VALUES (${filteredColumns.map(() => "?").join(", ")})`
-
-    const insertResult = await executeQuery(dbConnection, insertQuery, values)
-
-    if (did == 0 || did == null) {
-        const updateQuery = "UPDATE logisticas SET did = ? WHERE id = ?"
-        await executeQuery(dbConnection, updateQuery, [insertResult.insertId, insertResult.insertId])
-    }
-
-    return { message: "Insumo creado correctamente", body: insertResult.insertId }
+    };
 }

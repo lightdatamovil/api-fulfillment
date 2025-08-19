@@ -1,17 +1,15 @@
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
+import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
 import mysql2 from "mysql2";
 import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
-import { getInitInfo } from "../controller/init/get_init_info.js";
+import { bootstrap } from "../controller/bootstrap/bootstrap.js";
 
 const init = Router();
 
 init.get('/', verifyToken(jwtSecret), async (req, res) => {
-    const startTime = performance.now();
-
     let dbConnection;
     try {
-        verifyHeaders(req, ['X-Device-Id']);
+        verifyHeaders(req, []);
         verifyAll(req, [], []);
 
         const { companyId } = req.user;
@@ -20,15 +18,13 @@ init.get('/', verifyToken(jwtSecret), async (req, res) => {
         dbConnection = mysql2.createConnection(dbConfig);
         dbConnection.connect();
 
-        const result = await getInitInfo(dbConnection, req);
+        const result = await bootstrap(dbConnection, req);
 
-        res.status(Status.ok).json({ body: result, message: "Datos iniciales obtenidos correctamente" });
+        res.status(Status.ok).json(result);
     } catch (error) {
         errorHandler(req, res, error);
     } finally {
-        logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
         if (dbConnection) dbConnection.end();
-
     }
 });
 
