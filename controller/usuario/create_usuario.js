@@ -1,14 +1,47 @@
 import { CustomException, executeQuery, Status } from "lightdata-tools";
+import crypto from "crypto";
+
+const toStr = (v) => {
+    if (v === undefined || v === null) return undefined;
+    const s = String(v).trim();
+    return s.length ? s : undefined;
+};
+const toInt = (v, def) => {
+    const n = parseInt(v ?? "", 10);
+    return Number.isFinite(n) ? n : def;
+};
+const toBool01 = (v, def) => {
+    const s = String(v ?? "").toLowerCase();
+    if (["true", "1", "yes", "si", "on"].includes(s)) return 1;
+    if (["false", "0", "no", "off"].includes(s)) return 0;
+    return def;
+};
+const emptyToNull = (v) => (typeof v === "string" && v.trim() === "" ? null : v);
+const hashPassword = (plain) => crypto.createHash("sha256").update(String(plain)).digest("hex");
 
 export async function createUsuario(dbConnection, req) {
     const b = req?.body ?? {};
 
-    // --- Validaciones básicas ---
-    const usuario = b.usuario;
-    if (!usuario || typeof usuario !== "string") {
+    // --- normalización básica ---
+    const nombre = toStr(b.nombre);
+    const apellido = toStr(b.apellido);
+    const mail = toStr(b.mail ?? b.email);
+    const usuario = toStr(b.usuario);
+    const passRaw = toStr(b.contrasena ?? b["contraseña"] ?? b.pass ?? b.password);
+    const perfil = toInt(b.perfil, undefined);
+
+    const habilitado = toBool01(b.habilitado, 1);   // default 1
+    const app_habilitada = toBool01(b.app_habilitada, 0); // default 0
+    const telefono = toStr(b.telefono);
+    const codigo_cliente = toStr(b.codigo_cliente);
+    const modulo_inicial = toStr(b.modulo_inicial);
+
+    // --- validaciones mínimas ---
+    if (!usuario || !passRaw || !mail || !nombre || perfil === undefined) {
         throw new CustomException({
             status: Status.badRequest,
-            message: "El campo 'usuario' es obligatorio.",
+            title: "Datos incompletos",
+            message: "Campos obligatorios: nombre, mail, usuario, contraseña y perfil."
         });
     }
 
@@ -16,90 +49,93 @@ export async function createUsuario(dbConnection, req) {
     if (!usuarioRegex.test(usuario)) {
         throw new CustomException({
             status: Status.badRequest,
-            message: "El campo 'usuario' no puede contener caracteres especiales ni espacios.",
+            title: "Usuario inválido",
+            message: "El 'usuario' no puede contener espacios ni caracteres especiales."
         });
     }
 
-    // --- Chequeo de existencia ---
-    const queryCheck =
-        "SELECT usuario FROM usuarios WHERE usuario = ? AND superado = 0 AND elim = 0";
-    const resultsCheck = await executeQuery(dbConnection, queryCheck, [usuario]);
-    if (resultsCheck.length > 0) {
-        throw new CustomException({
-            status: Status.conflict,
-            message: "El usuario ya existe.",
-        });
+    // --- unicidad (case-insensitive) ---
+    const existsUser = await executeQuery(
+        dbConnection,
+        `SELECT 1 FROM usuarios WHERE LOWER(usuario)=LOWER(?) AND superado=0 AND elim=0 LIMIT 1`,
+        [usuario]
+    );
+    if (existsUser?.length) {
+        throw new CustomException({ status: Status.conflict, message: "El usuario ya existe." });
     }
 
-    // --- Whitelist de columnas permitidas (ajustá según tu tabla) ---
-    const allowed = [
-        "nombre",
-        "apellido",
-        "mail",
-        "usuario",
-        "contrasena",        // columna en DB
-        "imagen",
-        "habilitado",
-        "perfil",
-        "accesos",
-        "modulo_inicial",
-        "app_habilitada",
-        "codigo_cliente",
-        "telefono",
-        "quien",
-        "superado",
-        "elim",
-        "did",
+    const existsMail = await executeQuery(
+        dbConnection,
+        `SELECT 1 FROM usuarios WHERE LOWER(mail)=LOWER(?) AND superado=0 AND elim=0 LIMIT 1`,
+        [mail]
+    );
+    if (existsMail?.length) {
+        throw new CustomException({ status: Status.conflict, message: "El email ya está registrado." });
+    }
+
+    // --- INSERT (no permito setear did/superado/elim/accesos/quien desde el front) ---
+    const pass = hashPassword(passRaw);
+
+    const insertSql = `
+    INSERT INTO usuarios
+      (nombre, apellido, mail, usuario, pass, perfil, habilitado,
+       modulo_inicial, app_habilitada, telefono, codigo_cliente,
+       superado, elim)
+    VALUES
+      (?, ?, ?, ?, ?, ?, ?,
+       ?, ?, ?, ?,
+       0, 0)
+  `;
+    const insertParams = [
+        nombre,
+        emptyToNull(apellido),
+        mail,
+        usuario,
+        pass,
+        perfil,
+        habilitado,
+        emptyToNull(modulo_inicial),
+        app_habilitada,
+        emptyToNull(telefono),
+        emptyToNull(codigo_cliente)
     ];
 
-    // Normalizo contraseña: si viene "contraseña" del front, la paso a "contrasena"
-    const body = {
-        nombre: b.nombre,
-        apellido: b.apellido,
-        mail: b.mail,
-        usuario: b.usuario,
-        contrasena: b.contrasena !== undefined ? b.contrasena : b["contraseña"],
-        imagen: b.imagen,
-        habilitado: b.habilitado,
-        perfil: b.perfil,
-        accesos: b.accesos,
-        modulo_inicial: b.modulo_inicial,
-        app_habilitada: b.app_habilitada,
-        codigo_cliente: b.codigo_cliente,
-        telefono: b.telefono,
-        quien: b.quien,
-        superado: b.superado,
-        elim: b.elim,
-        did: b.did,
-    };
-
-    // (Opcional) Normalizo booleans a 0/1 si tu DB usa TINYINT
-    const boolCols = new Set(["habilitado", "app_habilitada", "superado", "elim"]);
-    for (const k of Object.keys(body)) {
-        if (boolCols.has(k) && typeof body[k] === "boolean") {
-            body[k] = body[k] ? 1 : 0;
-        }
-    }
-
-    // --- Filtrar solo columnas permitidas con valor definido ---
-    const filteredColumns = allowed.filter((c) => body[c] !== undefined);
-    if (filteredColumns.length === 0) {
+    const ins = await executeQuery(dbConnection, insertSql, insertParams, true);
+    const insertedId = ins?.insertId ?? ins?.[0]?.insertId;
+    if (!insertedId) {
         throw new CustomException({
-            status: Status.badRequest,
-            message: "No hay datos válidos para insertar.",
+            status: Status.internalServerError,
+            title: "Error de inserción",
+            message: "No se obtuvo insertId."
         });
     }
 
-    const values = filteredColumns.map((c) => body[c]);
-    const placeholders = filteredColumns.map(() => "?").join(", ");
-    const insertQuery = `INSERT INTO usuarios (${filteredColumns.join(
-        ", "
-    )}) VALUES (${placeholders})`;
+    // --- did = id ---
+    await executeQuery(dbConnection, `UPDATE usuarios SET did = ? WHERE id = ?`, [insertedId, insertedId], true);
 
-    const insertResult = await executeQuery(dbConnection, insertQuery, values);
+    // --- fetch final limpio ---
+    const row = (await executeQuery(
+        dbConnection,
+        `SELECT
+        did, perfil, nombre, apellido, mail, usuario, habilitado,
+        modulo_inicial, app_habilitada, telefono, codigo_cliente
+     FROM usuarios
+     WHERE id = ? AND elim = 0 AND superado = 0
+     LIMIT 1`,
+        [insertedId]
+    ))?.[0];
 
     return {
-        message: "Usuario creado correctamente.",
-        body: insertResult.insertId
+        success: true,
+        message: "Usuario creado correctamente",
+        data: row ?? {
+            did: insertedId,
+            perfil, nombre, apellido: apellido ?? null, mail, usuario, habilitado,
+            modulo_inicial: modulo_inicial ?? null,
+            app_habilitada,
+            telefono: telefono ?? null,
+            codigo_cliente: codigo_cliente ?? null
+        },
+        meta: { timestamp: new Date().toISOString() }
     };
 }

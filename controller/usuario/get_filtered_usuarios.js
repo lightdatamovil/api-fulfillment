@@ -4,7 +4,7 @@ import { executeQuery } from "lightdata-tools";
  * GET /usuarios
  * Filtros soportados (query): nombre, usuario, apellido, email|mail, perfil, pagina, habilitado, cantidad
  */
-export async function getUsuarios(connection, req) {
+export async function getFilteredUsuarios(connection, req) {
     // ---------- helpers de parseo ----------
     const q = req.query;
 
@@ -34,14 +34,14 @@ export async function getUsuarios(connection, req) {
         email: toStr(q.email ?? q.mail),
         perfil: toInt(q.perfil, undefined),
         pagina: toInt(q.pagina, 1),
-        habilitado: toBool(q.habilitado, undefined), // devuelve 0/1 o undefined
+        habilitado: toBool(q.habilitado, undefined), // 0/1 o undefined
         cantidad: toInt(q.cantidad, 10),
     };
 
     // clamp de paginación
     const page = Math.max(1, filtros.pagina || 1);
-    const perPage = Math.max(1, Math.min(filtros.cantidad || 10, 100));
-    const offset = (page - 1) * perPage;
+    const pageSize = Math.max(1, Math.min(filtros.cantidad || 10, 100));
+    const offset = (page - 1) * pageSize;
 
     // ---------- excluir usuario actual ----------
     const didActual = Number(req.user?.userId ?? q.didUsuario ?? 0) || 0;
@@ -65,7 +65,6 @@ export async function getUsuarios(connection, req) {
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
     // ---------- orden seguro (whitelist) ----------
-    // Si querés ordenar por query (?sortBy=did&sortDir=desc), hacelo con whitelist para evitar inyecciones:
     const sortBy = toStr(q.sortBy);
     const sortDir = (toStr(q.sortDir) || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
     const sortMap = {
@@ -81,27 +80,42 @@ export async function getUsuarios(connection, req) {
 
     // ---------- data ----------
     const dataSql = `
-    SELECT
-      did, perfil, nombre, apellido, mail, usuario, habilitado,
-      modulo_inicial, app_habilitada, telefono, codigo_cliente
-    FROM usuarios
-    ${whereSql}
-    ${orderSql}
-    LIMIT ? OFFSET ?
-  `;
-    const dataParams = [...params, perPage, offset];
-    const usuarios = await executeQuery(connection, dataSql, dataParams);
+        SELECT
+          did, perfil, nombre, apellido, mail, usuario, habilitado,
+          modulo_inicial, app_habilitada, telefono, codigo_cliente
+        FROM usuarios
+        ${whereSql}
+        ${orderSql}
+        LIMIT ? OFFSET ?
+    `;
+    const dataParams = [...params, pageSize, offset];
+    const results = await executeQuery(connection, dataSql, dataParams);
 
     // ---------- count ----------
     const countSql = `SELECT COUNT(*) AS total FROM usuarios ${whereSql}`;
-    const [{ total: totalRegistros = 0 } = {}] = await executeQuery(connection, countSql, params);
-    const totalPaginas = Math.ceil(totalRegistros / perPage);
+    const [{ total: totalItems = 0 } = {}] = await executeQuery(connection, countSql, params);
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
+    // ---------- filters en meta (solo definidos y útiles) ----------
+    const filtersForMeta = {};
+    for (const k of ["nombre", "usuario", "apellido", "email", "perfil", "habilitado"]) {
+        if (filtros[k] !== undefined && filtros[k] !== null && String(filtros[k]).length) {
+            filtersForMeta[k] = filtros[k];
+        }
+    }
+
+    // ---------- respuesta estándar ----------
     return {
-        usuarios,
-        pagina: page,
-        totalRegistros,
-        totalPaginas,
-        cantidad: perPage,
+        success: true,
+        message: "Usuarios obtenidos correctamente",
+        data: results,
+        meta: {
+            timestamp: new Date().toISOString(),
+            page,
+            pageSize,
+            totalPages,
+            totalItems,
+            ...(Object.keys(filtersForMeta).length > 0 ? { filters: filtersForMeta } : {})
+        }
     };
 }
