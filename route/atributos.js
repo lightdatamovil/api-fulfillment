@@ -1,16 +1,18 @@
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, logPurple, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
+import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
 import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import mysql2 from "mysql2";
 import { getFilteredAtributos } from "../controller/atributo/get_filtered_atributos.js";
 import { getAtributoById } from "../controller/atributo/get_atributo_by_id.js";
 import { deleteAtributo } from "../controller/atributo/delete_atributo.js";
 import { createAtributo } from "../controller/atributo/create_atributo.js";
+import { editAtributo } from "../controller/atributo/edit_atributo.js";
+import { deleteAtributoValor } from "../controller/atributo/atributo_valor/delete_atributo_valor.js";
+import { createAtributoValor } from "../controller/atributo/atributo_valor/create_atributo_valor.js";
 
-const atributo = Router();
+const atributos = Router();
 
-
-atributo.post("/", verifyToken(jwtSecret), async (req, res) => {
+atributos.post("/", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
   try {
@@ -33,7 +35,7 @@ atributo.post("/", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-atributo.delete("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
+atributos.delete("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
   try {
@@ -56,7 +58,7 @@ atributo.delete("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-atributo.get("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
+atributos.get("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
   try {
@@ -76,7 +78,7 @@ atributo.get("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-atributo.get("/", verifyToken(jwtSecret), async (req, res) => {
+atributos.get("/", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
   try {
@@ -96,73 +98,73 @@ atributo.get("/", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-atributo.post("/:atributoId/valores", verifyToken(jwtSecret), async (req, res) => {
-  const startTime = performance.now();
-
+atributos.put("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
   try {
+    verifyHeaders(req, []);
+    verifyAll(req, [], ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'atributoValores']);
+
     const { companyId } = req.user;
 
     const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
     dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
-    const result = await getFilteredAtributos(dbConnection, req);
+    const result = await editAtributo(dbConnection, req);
 
     res.status(Status.ok).json(result);
   } catch (error) {
     errorHandler(req, res, error);
   } finally {
-    logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
     if (dbConnection) dbConnection.end();
   }
 });
 
-atributo.delete("/:atributoId/valores/:valorId", verifyToken(jwtSecret), async (req, res) => {
-  const startTime = performance.now();
-
+atributos.post("/:atributoId/valores", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
   try {
+    verifyHeaders(req, []);
+    verifyAll(req, ['atributoId'], ['codigo', 'valor']);
+
     const { companyId } = req.user;
 
     const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
     dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
-    const result = await getFilteredAtributos(dbConnection, req);
+    const result = await createAtributoValor(dbConnection, req);
 
     res.status(Status.ok).json(result);
   } catch (error) {
     errorHandler(req, res, error);
   } finally {
-    logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
     if (dbConnection) dbConnection.end();
   }
 });
 
-atributo.put("/:atributoId/valores/:valorId", verifyToken(jwtSecret), async (req, res) => {
-  const startTime = performance.now();
-
+atributos.delete("/:atributoId/valores/:valorId", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
   try {
+    verifyHeaders(req, []);
+    verifyAll(req, ['atributoId', 'valorId'], []);
+
     const { companyId } = req.user;
 
     const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
     dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
-    const result = await getFilteredAtributos(dbConnection, req);
+    const result = await deleteAtributoValor(dbConnection, req);
 
     res.status(Status.ok).json(result);
   } catch (error) {
     errorHandler(req, res, error);
   } finally {
-    logPurple(`Tiempo de ejecución: ${performance.now() - startTime} ms`);
     if (dbConnection) dbConnection.end();
   }
 });
 
-export default atributo;
+export default atributos;
