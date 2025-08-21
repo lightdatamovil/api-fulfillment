@@ -1,16 +1,23 @@
 import { CustomException, executeQuery, Status } from "lightdata-tools";
 
 /**
- * Edita un atributo existente (versionado por did).
- * Body soportado: { codigo?, nombre?, descripcion?, habilitado? (0/1), orden?, atributoValores?: [{ valor, codigo?, habilitado? (0/1) }, ...] }
+ * Edita un atributo existente (versionado por did) y procesa 'data' con acciones sobre atributos_valores.
+ * Body:
+ * {
+ *   codigo?, nombre?, descripcion?, habilitado?(0/1), orden?,
+ *   data?: [
+ *     { action: "create", valor, codigo?, habilitado?(0/1), didProducto?, atributoId? },
+ *     { action: "delete", atributoValorId } // atributoValorId = did del valor
+ *   ]
+ * }
  * Param: atributoId (did del atributo)
  */
 export async function editAtributo(dbConnection, req) {
     const { atributoId } = req.params;
     const { userId } = req.user ?? {};
-    const { codigo, nombre, descripcion, habilitado, orden, atributoValores } = req.body ?? {};
+    const { codigo, nombre, descripcion, habilitado, orden, data } = req.body ?? {};
 
-    // 1) Verificar existencia atributo actual
+    // 1) Verificar existencia
     const qGet = `
     SELECT did, codigo, nombre, descripcion, habilitado, orden
     FROM atributos
@@ -27,8 +34,8 @@ export async function editAtributo(dbConnection, req) {
     }
     const current = rows[0];
 
-    // 2) Validar duplicado de código si se modifica
-    let newCodigo = isNonEmpty(codigo) ? String(codigo).trim() : current.codigo;
+    // 2) Duplicado de código si cambia
+    const newCodigo = isNonEmpty(codigo) ? String(codigo).trim() : current.codigo;
     if (newCodigo !== current.codigo) {
         const qDup = `
       SELECT did
@@ -37,7 +44,7 @@ export async function editAtributo(dbConnection, req) {
       LIMIT 1
     `;
         const dup = await executeQuery(dbConnection, qDup, [newCodigo, atributoId]);
-        if (dup && dup.length > 0) {
+        if (dup?.length) {
             throw new CustomException({
                 title: "Código duplicado",
                 message: `Ya existe un atributo activo con código "${newCodigo}"`,
@@ -46,9 +53,10 @@ export async function editAtributo(dbConnection, req) {
         }
     }
 
-    // 3) Preparar nuevos valores
+    // 3) Nuevos valores del atributo
     const newNombre = isNonEmpty(nombre) ? String(nombre).trim() : current.nombre;
     const newDesc = isDefined(descripcion) ? (isNonEmpty(descripcion) ? String(descripcion).trim() : null) : current.descripcion;
+
     let newHab = current.habilitado;
     if (isDefined(habilitado)) {
         const h = number01(habilitado);
@@ -61,22 +69,21 @@ export async function editAtributo(dbConnection, req) {
         }
         newHab = h;
     }
-    const newOrden = Number.isFinite(Number(orden)) ? Number(orden) : current.orden ?? 0;
+    const newOrden = Number.isFinite(Number(orden)) ? Number(orden) : (current.orden ?? 0);
 
-    // 4) Versionar atributo: supero actual e inserto nueva versión con mismo did
+    // 4) Versionar atributo (supero actual + nueva versión)
     await executeQuery(
         dbConnection,
         `UPDATE atributos SET superado = 1 WHERE did = ? AND elim = 0 AND superado = 0`,
         [atributoId]
     );
 
-    const insAttrSql = `
-    INSERT INTO atributos (did, codigo, nombre, descripcion, habilitado, orden, quien, superado, elim)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
-  `;
     const insAttr = await executeQuery(
         dbConnection,
-        insAttrSql,
+        `
+      INSERT INTO atributos (did, codigo, nombre, descripcion, habilitado, orden, quien, superado, elim)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
+    `,
         [atributoId, newCodigo, newNombre, newDesc, newHab, newOrden, userId]
     );
 
@@ -88,75 +95,93 @@ export async function editAtributo(dbConnection, req) {
         });
     }
 
-    // 5) (Opcional) Versionar valores si vienen en el body
-    const insertedValores = [];
-    if (Array.isArray(atributoValores)) {
-        // supero valores actuales del atributo
-        await executeQuery(
-            dbConnection,
-            `UPDATE atributos_valores SET superado = 1
-       WHERE didAtributo = ? AND elim = 0 AND superado = 0`,
-            [atributoId]
-        );
+    // 5) Acciones sueltas en 'data'
+    const created = [];
+    const deleted = [];
 
-        for (const v of atributoValores) {
-            const valValor = isNonEmpty(v?.valor) ? String(v.valor).trim() : null;
-            const valCodigo = isNonEmpty(v?.codigo) ? String(v.codigo).trim() : null;
+    if (Array.isArray(data)) {
+        for (const item of data) {
+            const action = String(item?.action || "").toLowerCase();
 
-            if (!valValor) {
-                throw new CustomException({
-                    title: "Datos incompletos en atributoValores",
-                    message: "Cada item debe incluir 'valor'",
-                    status: Status.badRequest,
-                });
-            }
-
-            let valHab = 1;
-            if (isDefined(v?.habilitado)) {
-                const h = number01(v.habilitado);
-                if (h !== 0 && h !== 1) {
+            if (action === "create") {
+                const didAttr = Number(item?.atributoId ?? atributoId) || Number(atributoId);
+                const valValor = isNonEmpty(item?.valor) ? String(item.valor).trim() : null;
+                if (!valValor) {
                     throw new CustomException({
-                        title: "Valor inválido en atributoValores",
-                        message: "habilitado debe ser 0 o 1",
+                        title: "Dato inválido",
+                        message: "data.create requiere 'valor'",
                         status: Status.badRequest,
                     });
                 }
-                valHab = h;
-            }
+                const valCodigo = isNonEmpty(item?.codigo) ? String(item.codigo).trim() : null;
 
-            const insValSql = `
-        INSERT INTO atributos_valores (didAtributo, valor, codigo, habilitado, quien, superado, elim)
-        VALUES (?, ?, ?, ?, ?, 0, 0)
-      `;
-            const insVal = await executeQuery(
-                dbConnection,
-                insValSql,
-                [atributoId, valValor, valCodigo, valHab, userId]
-            );
+                let valHab = 1;
+                if (isDefined(item?.habilitado)) {
+                    const h = number01(item.habilitado);
+                    if (h !== 0 && h !== 1) {
+                        throw new CustomException({
+                            title: "Dato inválido",
+                            message: "habilitado en data.create debe ser 0 o 1",
+                            status: Status.badRequest,
+                        });
+                    }
+                    valHab = h;
+                }
 
-            if (!insVal || insVal.affectedRows === 0) {
-                throw new CustomException({
-                    title: "Error al versionar valores",
-                    message: "No se pudo insertar un valor de atributo",
-                    status: Status.internalServerError,
+                const didProducto = Number(item?.didProducto ?? 0) || 0;
+
+                const ins = await executeQuery(
+                    dbConnection,
+                    `
+            INSERT INTO atributos_valores
+              (didProducto, didAtributo, valor, codigo, habilitado, quien, superado, elim)
+            VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+          `,
+                    [didProducto, didAttr, valValor, valCodigo, valHab, userId],
+                    true
+                );
+
+                if (!ins || ins.affectedRows === 0) {
+                    throw new CustomException({
+                        title: "Error al crear valor",
+                        message: "No se pudo insertar un valor (data.create)",
+                        status: Status.internalServerError,
+                    });
+                }
+
+                const id = ins.insertId;
+                await executeQuery(dbConnection, `UPDATE atributos_valores SET did = ? WHERE id = ?`, [id, id], true);
+
+                created.push({
+                    id, did: id, didAtributo: didAttr, didProducto, valor: valValor, codigo: valCodigo, habilitado: valHab
                 });
             }
 
-            const idVal = insVal.insertId;
-            await executeQuery(
-                dbConnection,
-                `UPDATE atributos_valores SET did = ? WHERE id = ?`,
-                [idVal, idVal]
-            );
+            else if (action === "delete") {
+                const didVal = Number(item?.atributoValorId);
+                if (!Number.isFinite(didVal) || didVal <= 0) {
+                    throw new CustomException({
+                        title: "Dato inválido",
+                        message: "atributoValorId inválido en data.delete",
+                        status: Status.badRequest,
+                    });
+                }
+                const del = await executeQuery(
+                    dbConnection,
+                    `UPDATE atributos_valores SET elim = 1 WHERE did = ? AND elim = 0`,
+                    [didVal],
+                    true
+                );
+                deleted.push({ did: didVal, affectedRows: del?.affectedRows ?? 0 });
+            }
 
-            insertedValores.push({
-                id: idVal,
-                did: idVal,
-                didAtributo: Number(atributoId),
-                valor: valValor,
-                codigo: valCodigo,
-                habilitado: valHab,
-            });
+            else {
+                throw new CustomException({
+                    title: "Acción inválida",
+                    message: `action debe ser "create" o "delete"`,
+                    status: Status.badRequest,
+                });
+            }
         }
     }
 
@@ -165,7 +190,8 @@ export async function editAtributo(dbConnection, req) {
         message: "Atributo actualizado correctamente",
         data: {
             did: Number(atributoId),
-            valores: insertedValores.length ? insertedValores : undefined
+            created: created.length ? created : undefined,
+            deleted: deleted.length ? deleted : undefined
         },
         meta: { timestamp: new Date().toISOString() },
     };

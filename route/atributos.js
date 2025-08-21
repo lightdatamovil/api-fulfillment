@@ -7,8 +7,6 @@ import { getAtributoById } from "../controller/atributo/get_atributo_by_id.js";
 import { deleteAtributo } from "../controller/atributo/delete_atributo.js";
 import { createAtributo } from "../controller/atributo/create_atributo.js";
 import { editAtributo } from "../controller/atributo/edit_atributo.js";
-import { deleteAtributoValor } from "../controller/atributo/atributo_valor/delete_atributo_valor.js";
-import { createAtributoValor } from "../controller/atributo/atributo_valor/create_atributo_valor.js";
 
 const atributos = Router();
 
@@ -112,52 +110,6 @@ atributos.put("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
     dbConnection.connect();
 
     const result = await editAtributo(dbConnection, req);
-
-    res.status(Status.ok).json(result);
-  } catch (error) {
-    errorHandler(req, res, error);
-  } finally {
-    if (dbConnection) dbConnection.end();
-  }
-});
-
-atributos.post("/:atributoId/valores", verifyToken(jwtSecret), async (req, res) => {
-  let dbConnection;
-
-  try {
-    verifyHeaders(req, []);
-    verifyAll(req, ['atributoId'], ['codigo', 'valor']);
-
-    const { companyId } = req.user;
-
-    const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-    dbConnection = mysql2.createConnection(dbConfig);
-    dbConnection.connect();
-
-    const result = await createAtributoValor(dbConnection, req);
-
-    res.status(Status.ok).json(result);
-  } catch (error) {
-    errorHandler(req, res, error);
-  } finally {
-    if (dbConnection) dbConnection.end();
-  }
-});
-
-atributos.delete("/:atributoId/valores/:valorId", verifyToken(jwtSecret), async (req, res) => {
-  let dbConnection;
-
-  try {
-    verifyHeaders(req, []);
-    verifyAll(req, ['atributoId', 'valorId'], []);
-
-    const { companyId } = req.user;
-
-    const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-    dbConnection = mysql2.createConnection(dbConfig);
-    dbConnection.connect();
-
-    const result = await deleteAtributoValor(dbConnection, req);
 
     res.status(Status.ok).json(result);
   } catch (error) {
