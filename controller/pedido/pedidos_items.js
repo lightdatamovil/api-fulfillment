@@ -39,25 +39,6 @@ class Pedidos_items {
         this.connection = connection;
     }
 
-    toJSON() {
-        return JSON.stringify(this);
-    }
-
-    async insert() {
-        try {
-            return this.checkAndUpdateDidEnvio(this.connection);
-
-        } catch (error) {
-            throw {
-                status: 500,
-                response: {
-                    estado: false,
-                    error: -1,
-                },
-            };
-        }
-    }
-
     async checkAndUpdateDidEnvio(connection) {
         const checkDidEnvioQuery = 'SELECT id FROM pedidos_items WHERE didOrden = ? and ml_id = ?';
 

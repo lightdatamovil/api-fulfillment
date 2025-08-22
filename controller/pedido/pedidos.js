@@ -55,25 +55,6 @@ class Pedidos {
         this.connection = connection
     }
 
-    toJSON() {
-        return JSON.stringify(this)
-    }
-
-    async insert() {
-        try {
-            return this.checkAndUpdateDidEnvio(this.connection)
-        } catch (error) {
-
-            throw {
-                status: 500,
-                response: {
-                    estado: false,
-                    error: -1,
-                },
-            }
-        }
-    }
-
     async checkAndUpdateDidEnvio(connection) {
         const checkDidEnvioQuery = "SELECT number,did FROM pedidos WHERE number = ?  and superado = 0 and elim = 0"
         const results = await executeQuery(connection, checkDidEnvioQuery, [this.number, this.didCliente, this.didCuenta, this.flex])

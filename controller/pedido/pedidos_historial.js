@@ -17,30 +17,6 @@ class pedidoHistorial {
     this.connection = connection
   }
 
-  toJSON() {
-    return JSON.stringify(this);
-  }
-
-  async insert() {
-    try {
-
-      if (this.didOrden === null) {
-        return this.createNewRecord(this.connection);
-      } else {
-        return this.checkAndUpdateDidEnvio(this.connection);
-      }
-    } catch (error) {
-
-      throw {
-        status: 500,
-        response: {
-          estado: false,
-          error: -1,
-        },
-      };
-    }
-  }
-
   async checkAndUpdateDidEnvio(connection) {
     const checkDidEnvioQuery = 'SELECT id FROM  pedidos_historial WHERE didOrden =?';
 
@@ -80,7 +56,6 @@ class pedidoHistorial {
   async eliminar(connection, did) {
     const deleteQuery = 'UPDATE pedidos_historial set elim = 1 WHERE did = ?';
     await executeQuery(connection, deleteQuery, [did]);
-
   }
 
   async getAll(connection, page = 1, limit = 20) {
@@ -112,4 +87,5 @@ class pedidoHistorial {
   }
 
 }
+
 export default pedidoHistorial;

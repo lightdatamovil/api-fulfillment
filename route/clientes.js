@@ -102,7 +102,6 @@ clientes.get("/", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-
 clientes.delete("/:clienteId", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
