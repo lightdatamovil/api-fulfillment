@@ -23,27 +23,6 @@ class Stock {
         this.autofecha = new Date();
     }
 
-    toJSON() {
-        return JSON.stringify(this);
-    }
-
-    async insert() {
-        try {
-            if (this.did === null || this.did === "" || this.did === undefined || this.did === 0) {
-                return this.createNewRecord(this.connection);
-            } else {
-                return this.updateExistingRecord(this.connection);
-            }
-        } catch (error) {
-            throw {
-                status: 500,
-                response: {
-                    estado: false,
-                    error: -1,
-                },
-            };
-        }
-    }
 
     async createNewRecord(connection) {
         const columnsQuery = 'DESCRIBE stock';
@@ -101,15 +80,6 @@ class Stock {
         const updateQuery = 'UPDATE stock SET cantidad = ?, quien = ?, superado = ?, elim = ? WHERE did = ?';
         await executeQuery(connection, updateQuery, [this.cantidad, this.quien, this.superado, this.elim, this.did]);
         return { estado: true, message: "Stock actualizado correctamente." };
-    }
-
-    async delete(connection, did) {
-        const deleteQuery = 'UPDATE stock SET elim = 1 WHERE did = ?';
-        await executeQuery(connection, deleteQuery, [did]);
-        return {
-            estado: true,
-            message: "Stock eliminado correctamente."
-        };
     }
 }
 

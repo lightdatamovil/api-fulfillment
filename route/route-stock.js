@@ -2,8 +2,9 @@ import { Router } from "express";
 import StockConsolidado from "../controller/stock/stock_consolidado.js";
 import Stock from "../controller/stock/stock.js";
 import MovimientoStock from "../controller/stock/movimiento_stock.js";
-import { getFFProductionDbConfig } from "lightdata-tools";
-import { hostFulFillement, portFulFillement } from "../db.js";
+import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
+import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
+import mysql2 from "mysql2";
 
 const stock = Router();
 
@@ -68,6 +69,29 @@ stock.post("/stock", async (req, res) => {
   }
 });
 
+
+stock.put("/:st", verifyToken(jwtSecret), async (req, res) => {
+  let dbConnection;
+
+  try {
+    verifyHeaders(req, []);
+    verifyAll(req, ['clienteId'], []);
+
+    const { companyId } = req.user;
+
+    const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+    dbConnection = mysql2.createConnection(dbConfig);
+    dbConnection.connect();
+
+    const result = await editCliente(dbConnection, req);
+
+    res.status(Status.ok).json(result);
+  } catch (error) {
+    errorHandler(req, res, error);
+  } finally {
+    if (dbConnection) dbConnection.end();
+  }
+});
 stock.post("/movimientoStock", async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);

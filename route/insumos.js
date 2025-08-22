@@ -8,9 +8,9 @@ import { getFilteredInsumos } from "../controller/insumo/get_filtered_insumos.js
 import mysql2 from "mysql2";
 import { editInsumo } from "../controller/insumo/edit_insumo.js";
 
-const insumo = Router();
+const insumos = Router();
 
-insumo.post("/", verifyToken(jwtSecret), async (req, res) => {
+insumos.post("/", verifyToken(jwtSecret), async (req, res) => {
     let dbConnection;
 
     try {
@@ -33,55 +33,7 @@ insumo.post("/", verifyToken(jwtSecret), async (req, res) => {
     }
 });
 
-insumo.get("/", verifyToken(jwtSecret), async (req, res) => {
-
-
-    let dbConnection;
-
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, [], []);
-
-        const { companyId } = req.user;
-
-        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-        dbConnection = mysql2.createConnection(dbConfig);
-        dbConnection.connect();
-
-        const result = await getFilteredInsumos(dbConnection, req);
-
-        res.status(Status.ok).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        if (dbConnection) dbConnection.end()
-    }
-});
-
-insumo.get("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
-    let dbConnection;
-
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, ['insumoId'], []);
-
-        const { companyId } = req.user;
-
-        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-        dbConnection = mysql2.createConnection(dbConfig);
-        dbConnection.connect();
-
-        const result = await getInsumosById(dbConnection, req);
-
-        res.status(Status.ok).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        if (dbConnection) dbConnection.end();
-    }
-});
-
-insumo.put("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
+insumos.put("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
     let dbConnection;
 
     try {
@@ -104,7 +56,53 @@ insumo.put("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
     }
 });
 
-insumo.delete("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
+insumos.get("/", verifyToken(jwtSecret), async (req, res) => {
+    let dbConnection;
+
+    try {
+        verifyHeaders(req, []);
+        verifyAll(req, [], []);
+
+        const { companyId } = req.user;
+
+        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+        dbConnection = mysql2.createConnection(dbConfig);
+        dbConnection.connect();
+
+        const result = await getFilteredInsumos(dbConnection, req);
+
+        res.status(Status.ok).json(result);
+    } catch (error) {
+        errorHandler(req, res, error);
+    } finally {
+        if (dbConnection) dbConnection.end()
+    }
+});
+
+insumos.get("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
+    let dbConnection;
+
+    try {
+        verifyHeaders(req, []);
+        verifyAll(req, ['insumoId'], []);
+
+        const { companyId } = req.user;
+
+        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+        dbConnection = mysql2.createConnection(dbConfig);
+        dbConnection.connect();
+
+        const result = await getInsumosById(dbConnection, req);
+
+        res.status(Status.ok).json(result);
+    } catch (error) {
+        errorHandler(req, res, error);
+    } finally {
+        if (dbConnection) dbConnection.end();
+    }
+});
+
+insumos.delete("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
     let dbConnection;
 
     try {
@@ -127,4 +125,4 @@ insumo.delete("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
     }
 });
 
-export default insumo;
+export default insumos;
