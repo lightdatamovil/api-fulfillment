@@ -57,13 +57,13 @@ auth.post("/login-web", async (req, res) => {
     try {
         verifyHeaders(req, []);
         verifyAll(req, [], {
-            required: ['username', 'password', 'companyId'],
+            required: ['username', 'password', 'companyCode'],
             optional: []
         });
 
-        const { companyId } = req.body;
+        const company = await companiesService.getByCode(req.body.companyCode);
 
-        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
+        const dbConfig = getFFProductionDbConfig(company.did, hostFulFillement, portFulFillement);
         dbConnection = mysql2.createConnection(dbConfig);
         dbConnection.connect();
 
