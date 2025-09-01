@@ -3,7 +3,7 @@ import { CustomException, executeQuery, generateToken, Status } from "lightdata-
 import { companiesService } from "../../db.js";
 
 export async function loginWeb(dbConnection, req) {
-    const { username, password, companyId } = req.body;
+    const { username, password, companyCode } = req.body;
 
     const userSql = `
         SELECT did, perfil, nombre, apellido, mail, pass, usuario
@@ -34,11 +34,11 @@ export async function loginWeb(dbConnection, req) {
     );
     if (!ok) throw invalid();
 
-    const company = await companiesService.getById(companyId);
+    const company = await companiesService.getByCode(companyCode);
 
     const jwtSecret = process.env.JWT_SECRET || "dev-secret";
     const token = generateToken(jwtSecret, {
-        companyId: companyId,
+        companyId: company.did,
         userId: user.did,
         profile: user.perfil,
     }, {}, 3600 * 8);
