@@ -15,7 +15,10 @@ atributos.post("/", verifyToken(jwtSecret), async (req, res) => {
 
   try {
     verifyHeaders(req, []);
-    verifyAll(req, [], ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'atributoValores']);
+    verifyAll(req, [], {
+      required: ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'atributoValores'],
+      optional: []
+    });
 
     const { companyId } = req.user;
 
@@ -38,7 +41,7 @@ atributos.delete("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
 
   try {
     verifyHeaders(req, []);
-    verifyAll(req, ['atributoId'], []);
+    verifyAll(req, ['atributoId'], {});
 
     const { companyId } = req.user;
 
@@ -101,7 +104,10 @@ atributos.put("/:atributoId", verifyToken(jwtSecret), async (req, res) => {
 
   try {
     verifyHeaders(req, []);
-    verifyAll(req, [], ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'atributoValores']);
+    verifyAll(req, [], {
+      required: ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'atributoValores'],
+      optional: []
+    });
 
     const { companyId } = req.user;
 

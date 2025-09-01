@@ -11,7 +11,7 @@ const auth = Router();
 auth.get('/company-identification/:companyCode', async (req, res) => {
     try {
         verifyHeaders(req, []);
-        verifyAll(req, ['companyCode'], []);
+        verifyAll(req, ['companyCode'], {});
 
         const { companyCode } = req.params;
 
@@ -30,7 +30,10 @@ auth.post("/login-app", async (req, res) => {
 
     try {
         verifyHeaders(req, []);
-        verifyAll(req, [], ['username', 'password', 'companyId']);
+        verifyAll(req, [], {
+            required: ['username', 'password', 'companyId'],
+            optional: []
+        });
 
         const { companyId } = req.body;
 
@@ -53,7 +56,10 @@ auth.post("/login-web", async (req, res) => {
 
     try {
         verifyHeaders(req, []);
-        verifyAll(req, [], ['username', 'password', 'companyId']);
+        verifyAll(req, [], {
+            required: ['username', 'password', 'companyId'],
+            optional: []
+        });
 
         const { companyId } = req.body;
 

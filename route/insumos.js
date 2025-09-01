@@ -15,7 +15,10 @@ insumos.post("/", verifyToken(jwtSecret), async (req, res) => {
 
     try {
         verifyHeaders(req, []);
-        verifyAll(req, [], ['codigo', 'habilitado', 'clientes', 'nombre', 'unidad']);
+        verifyAll(req, [], {
+            required: ['codigo', 'habilitado', 'clientes', 'nombre', 'unidad'],
+            optional: []
+        });
 
         const { companyId } = req.user;
 
@@ -38,7 +41,10 @@ insumos.put("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
 
     try {
         verifyHeaders(req, []);
-        verifyAll(req, ['insumoId'], ['codigo', 'habilitado', 'clientes', 'nombre', 'unidad']);
+        verifyAll(req, {
+            required: ['codigo', 'habilitado', 'clientes', 'nombre', 'unidad'],
+            optional: []
+        });
 
         const { companyId } = req.user;
 
@@ -61,7 +67,7 @@ insumos.get("/", verifyToken(jwtSecret), async (req, res) => {
 
     try {
         verifyHeaders(req, []);
-        verifyAll(req, [], []);
+        verifyAll(req, [], {});
 
         const { companyId } = req.user;
 
@@ -84,7 +90,7 @@ insumos.get("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
 
     try {
         verifyHeaders(req, []);
-        verifyAll(req, ['insumoId'], []);
+        verifyAll(req, ['insumoId'], {});
 
         const { companyId } = req.user;
 
@@ -107,7 +113,7 @@ insumos.delete("/:insumoId", verifyToken(jwtSecret), async (req, res) => {
 
     try {
         verifyHeaders(req, []);
-        verifyAll(req, ['insumoId'], []);
+        verifyAll(req, ['insumoId'], {});
 
         const { companyId } = req.user;
 

@@ -15,7 +15,10 @@ clientes.post("/", verifyToken(jwtSecret), async (req, res) => {
 
   try {
     verifyHeaders(req, []);
-    verifyAll(req, [], ['nombre_fantasia', 'razon_social', 'codigo']);
+    verifyAll(req, [], {
+      required: ['nombre_fantasia', 'razon_social', 'codigo'],
+      optional: []
+    });
 
     const { companyId } = req.user;
 
@@ -38,7 +41,10 @@ clientes.put("/:clienteId", verifyToken(jwtSecret), async (req, res) => {
 
   try {
     verifyHeaders(req, []);
-    verifyAll(req, ['clienteId'], ['nombre_fantasia', 'habilitado', 'observaciones', 'direccionesData', 'contactosData', 'cuentasData']);
+    verifyAll(req, ['clienteId'], {
+      required: ['nombre_fantasia', 'habilitado', 'observaciones', 'direccionesData', 'contactosData', 'cuentasData'],
+      optional: []
+    });
 
     const { companyId } = req.user;
 
@@ -61,7 +67,7 @@ clientes.get("/:clienteId", verifyToken(jwtSecret), async (req, res) => {
 
   try {
     verifyHeaders(req, []);
-    verifyAll(req, ['clienteId'], []);
+    verifyAll(req, ['clienteId'], {});
 
     const { companyId } = req.user;
 
@@ -84,7 +90,7 @@ clientes.get("/", verifyToken(jwtSecret), async (req, res) => {
 
   try {
     verifyHeaders(req, []);
-    verifyAll(req, [], []);
+    verifyAll(req, [], {});
 
     const { companyId } = req.user;
 
@@ -107,7 +113,7 @@ clientes.delete("/:clienteId", verifyToken(jwtSecret), async (req, res) => {
 
   try {
     verifyHeaders(req, []);
-    verifyAll(req, ['clienteId'], []);
+    verifyAll(req, ['clienteId'], {});
 
     const { companyId } = req.user;
 

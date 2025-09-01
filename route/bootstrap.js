@@ -10,7 +10,7 @@ init.get('/', verifyToken(jwtSecret), async (req, res) => {
     let dbConnection;
     try {
         verifyHeaders(req, []);
-        verifyAll(req, [], []);
+        verifyAll(req, [], {});
 
         const { companyId } = req.user;
 
