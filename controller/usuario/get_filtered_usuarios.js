@@ -87,7 +87,7 @@ export async function getFilteredUsuarios(connection, req) {
         LIMIT ? OFFSET ?
     `;
     const dataParams = [...params, pageSize, offset];
-    const results = await executeQuery(connection, dataSql, dataParams, true);
+    const results = await executeQuery(connection, dataSql, dataParams);
 
     // ---------- count ----------
     const countSql = `SELECT COUNT(*) AS total FROM usuarios ${whereSql}`;
