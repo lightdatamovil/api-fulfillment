@@ -3,7 +3,7 @@ import cors from "cors";
 import clientes from "./route/clientes.js";
 import pedido from "./route/route-pedidos.js";
 import insumos from "./route/insumos.js";
-import producto from "./route/route-producto.js";
+import producto from "./route/producto.js";
 import publicacion from "./route/route-publicaciones.js";
 import atributo from "./route/atributos.js";
 import usuarios from "./route/usuarios.js";
@@ -28,6 +28,7 @@ app.use("/api/clientes", clientes);
 app.use("/api/insumos", insumos);
 app.use("/api/pedidos", pedido);
 app.use("/api/productos", producto);
+
 app.use("/api/publicaciones", publicacion);
 app.use("/api/usuarios", usuarios);
 

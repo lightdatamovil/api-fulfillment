@@ -28,11 +28,19 @@ export async function deletePedido(connection, req) {
     const didPedido = check[0].did;
 
     // Marcar pedido
-    await executeQuery(
+    const result = await executeQuery(
         connection,
         "UPDATE pedidos SET elim = 1 WHERE id = ? AND superado = 0",
         [id]
     );
+    if (result.affectedRows === 0) {
+        throw new CustomException({
+            title: "No se pudo eliminar el atributo.",
+            message: "No se pudo eliminar el atributo. Puede que no exista o ya esté eliminado.",
+            status: Status.notFound
+        });
+    }
+
 
     return {
         success: true,

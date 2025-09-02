@@ -1,4 +1,4 @@
-import { executeQuery } from "lightdata-tools";
+import { CustomException, executeQuery, Status } from "lightdata-tools";
 
 
 export async function deleteCliente(dbConnection, req) {
@@ -6,7 +6,16 @@ export async function deleteCliente(dbConnection, req) {
 
     const deleteQuery =
         "UPDATE clientes SET elim = 1 WHERE did = ? AND superado = 0 AND elim = 0";
-    await executeQuery(dbConnection, deleteQuery, [clienteId]);
+    const result = await executeQuery(dbConnection, deleteQuery, [clienteId]);
+    if (result.affectedRows === 0) {
+
+        throw new CustomException({
+            title: "No se pudo eliminar el cliente.",
+            message: "No se pudo eliminar el cliente. Puede que no exista o ya esté eliminado.",
+            status: Status.notFound
+        });
+    }
+
 
     return {
         success: true,

@@ -1,4 +1,4 @@
-import { CustomException, executeQuery } from "lightdata-tools"
+import { CustomException, executeQuery, Status } from "lightdata-tools"
 
 export async function deleteInsumo(dbConnection, req) {
     const { insumoId } = req.params;
@@ -19,7 +19,15 @@ export async function deleteInsumo(dbConnection, req) {
     });
 
     const deleteQuery = "UPDATE insumos SET elim = 1 WHERE did = ? AND superado = 0";
-    await executeQuery(dbConnection, deleteQuery, [insumoId]);
+    const result = await executeQuery(dbConnection, deleteQuery, [insumoId]);
+    if (result.affectedRows === 0) {
+        throw new CustomException({
+            title: "No se pudo eliminar el atributo.",
+            message: "No se pudo eliminar el atributo. Puede que no exista o ya esté eliminado.",
+            status: Status.notFound
+        });
+    }
+
 
     return {
         success: true,
