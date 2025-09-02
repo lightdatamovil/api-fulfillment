@@ -33,14 +33,14 @@ export async function getFilteredUsuarios(connection, req) {
         apellido: toStr(q.apellido),
         email: toStr(q.email ?? q.mail),
         perfil: toInt(q.perfil, undefined),
-        pagina: toInt(q.pagina, 1),
         habilitado: toBool(q.habilitado, undefined), // 0/1 o undefined
-        cantidad: toInt(q.cantidad, 10),
+        page: toInt(q.page, 1),
+        page_size: toInt(q.page_size, 10),
     };
 
     // clamp de paginación
-    const page = Math.max(1, filtros.pagina || 1);
-    const pageSize = Math.max(1, Math.min(filtros.cantidad || 10, 100));
+    const page = Math.max(1, filtros.page || 1);
+    const pageSize = Math.max(1, Math.min(filtros.page_size || 10, 100));
     const offset = (page - 1) * pageSize;
 
     // ---------- excluir usuario actual ----------
@@ -66,17 +66,15 @@ export async function getFilteredUsuarios(connection, req) {
 
     // ---------- orden seguro (whitelist) ----------
     const sortBy = toStr(q.sortBy);
-    const sortDir = (toStr(q.sortDir) || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
+    const sortDir = (toStr(q.sortDir) || "asc").toLowerCase() === "asc" ? "ASC" : "DESC";
     const sortMap = {
-        did: "did",
         nombre: "nombre",
         apellido: "apellido",
-        usuario: "usuario",
         mail: "mail",
         perfil: "perfil",
         habilitado: "habilitado",
     };
-    const orderSql = `ORDER BY ${sortMap[sortBy] || "did"} ${sortDir}`;
+    const orderSql = `ORDER BY ${sortMap[sortBy] || "nombre"} ${sortDir}`;
 
     // ---------- data ----------
     const dataSql = `
@@ -89,7 +87,7 @@ export async function getFilteredUsuarios(connection, req) {
         LIMIT ? OFFSET ?
     `;
     const dataParams = [...params, pageSize, offset];
-    const results = await executeQuery(connection, dataSql, dataParams);
+    const results = await executeQuery(connection, dataSql, dataParams, true);
 
     // ---------- count ----------
     const countSql = `SELECT COUNT(*) AS total FROM usuarios ${whereSql}`;
