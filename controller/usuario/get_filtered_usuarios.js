@@ -65,8 +65,8 @@ export async function getFilteredUsuarios(connection, req) {
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
     // ---------- orden seguro (whitelist) ----------
-    const sortBy = toStr(q.sortBy);
-    const sortDir = (toStr(q.sortDir) || "asc").toLowerCase() === "asc" ? "ASC" : "DESC";
+    const sortBy = toStr(q.sort_by);
+    const sortDir = (toStr(q.sort_dir) || "asc").toLowerCase() === "asc" ? "ASC" : "DESC";
     const sortMap = {
         nombre: "nombre",
         apellido: "apellido",
@@ -85,6 +85,7 @@ export async function getFilteredUsuarios(connection, req) {
         ${whereSql}
         ${orderSql}
         LIMIT ? OFFSET ?
+    
     `;
     const dataParams = [...params, pageSize, offset];
     const results = await executeQuery(connection, dataSql, dataParams);
