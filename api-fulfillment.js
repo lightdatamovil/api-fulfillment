@@ -21,7 +21,7 @@ app.use(cors());
 
 const PORT = process.env.PORT;
 
-app.use("/api/bootstrap", bootstrap);
+app.use("/api/preload", bootstrap);
 app.use("/api/auth", auth);
 app.use("/api/atributos", atributo);
 app.use("/api/clientes", clientes);
