@@ -73,6 +73,7 @@ export async function getFilteredUsuarios(connection, req) {
         mail: "mail",
         perfil: "perfil",
         habilitado: "habilitado",
+        usuario: "usuario"
     };
     const orderSql = `ORDER BY ${sortMap[sortBy] || "nombre"} ${sortDir}`;
 
