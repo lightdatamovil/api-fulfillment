@@ -80,7 +80,7 @@ export async function getFilteredUsuarios(connection, req) {
     // ---------- data ----------
     const dataSql = `
         SELECT
-          did, perfil, nombre, apellido, mail, usuario, habilitado,
+          did, perfil, nombre, apellido, mail as email, usuario, habilitado,
           modulo_inicial, app_habilitada, telefono, codigo_cliente
         FROM usuarios
         ${whereSql}
