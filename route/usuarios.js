@@ -17,7 +17,7 @@ usuarios.post("/", verifyToken(jwtSecret), async (req, res) => {
         verifyHeaders(req, []);
         verifyAll(req, [], {
             required: ['nombre', 'apellido', 'usuario', 'password', 'perfil'],
-            optional: ['email', 'habilitado', 'telofono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada']
+            optional: ['email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada']
         });
 
         const { companyId } = req.user;
