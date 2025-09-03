@@ -89,7 +89,7 @@ usuarios.put("/:userId", verifyToken(jwtSecret), async (req, res) => {
         verifyHeaders(req, []);
         verifyAll(req, ['userId'], {
             required: [],
-            optional: ['nombre', 'apellido', 'usuario', 'password', 'perfil', 'email', 'habilitado', 'telofono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada']
+            optional: ['nombre', 'apellido', 'usuario', 'password', 'perfil', 'email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada']
         });
 
         const { companyId } = req.user;
