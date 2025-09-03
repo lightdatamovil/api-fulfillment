@@ -56,7 +56,7 @@ export async function loginApp(dbConnection, req) {
             perfil: user.perfil,
             nombre: user.nombre,
             apellido: user.apellido,
-            mail: user.mail,
+            email: user.mail,
             username: user.usuario,
             token: token,
         },

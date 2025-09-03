@@ -25,7 +25,7 @@ export async function createUsuario(dbConnection, req) {
     // --- normalización básica ---
     const nombre = toStr(b.nombre);
     const apellido = toStr(b.apellido);
-    const mail = toStr(b.mail ?? b.email);
+    const email = toStr(b.email);
     const usuario = toStr(b.usuario);
     const passRaw = toStr(b.contrasena ?? b["contraseña"] ?? b.pass ?? b.password);
     const perfil = toInt(b.perfil, undefined);
@@ -37,11 +37,11 @@ export async function createUsuario(dbConnection, req) {
     const modulo_inicial = toStr(b.modulo_inicial);
 
     // --- validaciones mínimas ---
-    if (!usuario || !passRaw || !mail || !nombre || perfil === undefined) {
+    if (!usuario || !passRaw || !email || !nombre || perfil === undefined) {
         throw new CustomException({
             status: Status.badRequest,
             title: "Datos incompletos",
-            message: "Campos obligatorios: nombre, mail, usuario, contraseña y perfil."
+            message: "Campos obligatorios: nombre, email, usuario, contraseña y perfil."
         });
     }
 
@@ -67,7 +67,7 @@ export async function createUsuario(dbConnection, req) {
     const existsMail = await executeQuery(
         dbConnection,
         `SELECT 1 FROM usuarios WHERE LOWER(mail)=LOWER(?) AND superado=0 AND elim=0 LIMIT 1`,
-        [mail]
+        [email]
     );
     if (existsMail?.length) {
         throw new CustomException({ status: Status.conflict, message: "El email ya está registrado." });
@@ -89,7 +89,7 @@ export async function createUsuario(dbConnection, req) {
     const insertParams = [
         nombre,
         emptyToNull(apellido),
-        mail,
+        email,
         usuario,
         pass,
         perfil,
@@ -130,7 +130,7 @@ export async function createUsuario(dbConnection, req) {
         message: "Usuario creado correctamente",
         data: row ?? {
             did: insertedId,
-            perfil, nombre, apellido: apellido ?? null, mail, usuario, habilitado,
+            perfil, nombre, apellido: apellido ?? null, email: email, usuario, habilitado,
             modulo_inicial: modulo_inicial ?? null,
             app_habilitada,
             telefono: telefono ?? null,

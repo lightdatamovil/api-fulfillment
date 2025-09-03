@@ -2,7 +2,7 @@ import { executeQuery } from "lightdata-tools";
 
 /**
  * GET /usuarios
- * Filtros soportados (query): nombre, usuario, apellido, email|mail, perfil, pagina, habilitado, cantidad
+ * Filtros soportados (query): nombre, usuario, apellido, email, perfil, pagina, habilitado, cantidad
  */
 export async function getFilteredUsuarios(connection, req) {
     // ---------- helpers de parseo ----------
@@ -31,7 +31,7 @@ export async function getFilteredUsuarios(connection, req) {
         nombre: toStr(q.nombre),
         usuario: toStr(q.usuario),
         apellido: toStr(q.apellido),
-        email: toStr(q.email ?? q.mail),
+        email: toStr(q.email),
         perfil: toInt(q.perfil, undefined),
         habilitado: toBool(q.habilitado, undefined), // 0/1 o undefined
         page: toInt(q.page, 1),
@@ -70,7 +70,7 @@ export async function getFilteredUsuarios(connection, req) {
     const sortMap = {
         nombre: "nombre",
         apellido: "apellido",
-        mail: "mail",
+        email: "email",
         perfil: "perfil",
         habilitado: "habilitado",
         usuario: "usuario"

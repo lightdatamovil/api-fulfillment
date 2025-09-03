@@ -43,7 +43,7 @@ export async function getUsuarioById(dbConnection, req) {
             perfil: row.perfil,
             nombre: row.nombre,
             apellido: row.apellido,
-            mail: row.mail,
+            email: row.mail,
             usuario: row.usuario,
             habilitado: row.habilitado,
             modulo_inicial: row.modulo_inicial,
