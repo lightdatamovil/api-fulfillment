@@ -16,8 +16,8 @@ usuarios.post("/", verifyToken(jwtSecret), async (req, res) => {
     try {
         verifyHeaders(req, []);
         verifyAll(req, [], {
-            required: ['nombre', 'apellido', 'email', 'email', 'usuario', 'password', 'perfil', 'habilitado', 'app_habilitada', 'modulo_inicial', 'telefono', 'codigo_cliente'],
-            optional: []
+            required: ['nombre', 'apellido', 'usuario', 'password', 'perfil'],
+            optional: ['email', 'habilitado', 'telofono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada']
         });
 
         const { companyId } = req.user;
@@ -88,8 +88,8 @@ usuarios.put("/:userId", verifyToken(jwtSecret), async (req, res) => {
     try {
         verifyHeaders(req, []);
         verifyAll(req, ['userId'], {
-            required: ['nombre', 'apellido', 'email', 'email', 'usuario', 'password', 'perfil', 'habilitado', 'app_habilitada', 'modulo_inicial', 'telefono', 'codigo_cliente'],
-            optional: []
+            required: [],
+            optional: ['nombre', 'apellido', 'usuario', 'password', 'perfil', 'email', 'habilitado', 'telofono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada']
         });
 
         const { companyId } = req.user;
