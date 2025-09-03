@@ -73,6 +73,7 @@ export async function getFilteredUsuarios(connection, req) {
         mail: "mail",
         perfil: "perfil",
         habilitado: "habilitado",
+        usuario: "usuario"
     };
     const orderSql = `ORDER BY ${sortMap[sortBy] || "nombre"} ${sortDir}`;
 
@@ -85,6 +86,7 @@ export async function getFilteredUsuarios(connection, req) {
         ${whereSql}
         ${orderSql}
         LIMIT ? OFFSET ?
+    
     `;
     const dataParams = [...params, pageSize, offset];
     const results = await executeQuery(connection, dataSql, dataParams);
