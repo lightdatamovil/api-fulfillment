@@ -2,7 +2,11 @@ import { executeQuery } from "lightdata-tools";
 
 /**
  * GET /usuarios
- * Filtros soportados (query): nombre, usuario, apellido, email, perfil, pagina, habilitado, cantidad
+ * Filtros soportados (query):
+ *  - nombre, usuario, apellido, email
+ *  - perfil (uno o varios): ?perfil=1&perfil=2   |   ?perfil=1,2,3
+ *  - page, page_size
+ *  - habilitado (true/false/1/0/si/no/on/off)
  */
 export async function getFilteredUsuarios(connection, req) {
     // ---------- helpers de parseo ----------
@@ -26,13 +30,38 @@ export async function getFilteredUsuarios(connection, req) {
         return def;
     };
 
+    // Acepta: ?perfil=1&perfil=2  |  ?perfil=1,2,3  |  ?perfil=[1,2,3]
+    const toIntList = (v) => {
+        if (v === undefined || v === null) return undefined;
+
+        // Unificar en array de strings
+        let parts = [];
+        if (Array.isArray(v)) {
+            // Mezcla: ["1", "2,3", "4"] => split por coma cada elemento
+            parts = v.flatMap((p) => String(p).split(","));
+        } else {
+            parts = String(v).split(",");
+        }
+
+        // Parse a enteros válidos, únicos
+        const nums = Array.from(
+            new Set(
+                parts
+                    .map((s) => parseInt(String(s).trim(), 10))
+                    .filter((n) => Number.isFinite(n))
+            )
+        );
+
+        return nums.length ? nums : undefined;
+    };
+
     // ---------- filtros normalizados ----------
     const filtros = {
         nombre: toStr(q.nombre),
         usuario: toStr(q.usuario),
         apellido: toStr(q.apellido),
         email: toStr(q.email),
-        perfil: toInt(q.perfil, undefined),
+        perfiles: toIntList(q.perfil), // << ahora múltiples
         habilitado: toBool(q.habilitado, undefined), // 0/1 o undefined
         page: toInt(q.page, 1),
         page_size: toInt(q.page_size, 10),
@@ -50,12 +79,19 @@ export async function getFilteredUsuarios(connection, req) {
     const where = ["superado = 0", "elim = 0", "did <> ?"];
     const params = [didActual];
 
-    const add = (cond, val) => {
+    const add = (cond, ...vals) => {
         where.push(cond);
-        params.push(val);
+        params.push(...vals);
     };
 
-    if (filtros.perfil !== undefined) add("perfil = ?", filtros.perfil);
+    // perfiles: 1 => "perfil = ?" ; [1,2,3] => "perfil IN (?,?,?)"
+    if (Array.isArray(filtros.perfiles) && filtros.perfiles.length === 1) {
+        add("perfil = ?", filtros.perfiles[0]);
+    } else if (Array.isArray(filtros.perfiles) && filtros.perfiles.length > 1) {
+        const marks = filtros.perfiles.map(() => "?").join(",");
+        add(`perfil IN (${marks})`, ...filtros.perfiles);
+    }
+
     if (filtros.nombre) add("LOWER(nombre)  LIKE ?", `%${filtros.nombre.toLowerCase()}%`);
     if (filtros.apellido) add("LOWER(apellido) LIKE ?", `%${filtros.apellido.toLowerCase()}%`);
     if (filtros.email) add("LOWER(mail)    LIKE ?", `%${filtros.email.toLowerCase()}%`);
@@ -73,21 +109,20 @@ export async function getFilteredUsuarios(connection, req) {
         email: "email",
         perfil: "perfil",
         habilitado: "habilitado",
-        usuario: "usuario"
+        usuario: "usuario",
     };
     const orderSql = `ORDER BY ${sortMap[sortBy] || "nombre"} ${sortDir}`;
 
     // ---------- data ----------
     const dataSql = `
-        SELECT
-          did, perfil, nombre, apellido, mail as email, usuario, habilitado,
-          modulo_inicial, app_habilitada, telefono, codigo_cliente
-        FROM usuarios
-        ${whereSql}
-        ${orderSql}
-        LIMIT ? OFFSET ?
-    
-    `;
+    SELECT
+      did, perfil, nombre, apellido, mail as email, usuario, habilitado,
+      modulo_inicial, app_habilitada, telefono, codigo_cliente
+    FROM usuarios
+    ${whereSql}
+    ${orderSql}
+    LIMIT ? OFFSET ?
+  `;
     const dataParams = [...params, pageSize, offset];
     const results = await executeQuery(connection, dataSql, dataParams);
 
@@ -98,10 +133,13 @@ export async function getFilteredUsuarios(connection, req) {
 
     // ---------- filters en meta (solo definidos y útiles) ----------
     const filtersForMeta = {};
-    for (const k of ["nombre", "usuario", "apellido", "email", "perfil", "habilitado"]) {
+    for (const k of ["nombre", "usuario", "apellido", "email", "habilitado"]) {
         if (filtros[k] !== undefined && filtros[k] !== null && String(filtros[k]).length) {
             filtersForMeta[k] = filtros[k];
         }
+    }
+    if (Array.isArray(filtros.perfiles) && filtros.perfiles.length) {
+        filtersForMeta.perfiles = filtros.perfiles;
     }
 
     // ---------- respuesta estándar ----------
@@ -115,7 +153,7 @@ export async function getFilteredUsuarios(connection, req) {
             pageSize,
             totalPages,
             totalItems,
-            ...(Object.keys(filtersForMeta).length > 0 ? { filters: filtersForMeta } : {})
-        }
+            ...(Object.keys(filtersForMeta).length > 0 ? { filters: filtersForMeta } : {}),
+        },
     };
 }
