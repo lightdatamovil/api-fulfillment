@@ -1,134 +1,67 @@
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, Status, verifyToken, verifyAll, verifyHeaders } from "lightdata-tools";
-import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import { createUsuario } from "../controller/usuario/create_usuario.js";
 import { deleteUsuario } from "../controller/usuario/delete_usuario.js";
 import { getUsuarioById } from "../controller/usuario/get_usuario_by_id.js";
 import { getFilteredUsuarios } from "../controller/usuario/get_filtered_usuarios.js";
-import mysql2 from "mysql2";
 import { editUsuario } from "../controller/usuario/edit_usuario.js";
+import { buildHandler } from "./_handler.js";
 
 const usuarios = Router();
 
-usuarios.post("/", verifyToken(jwtSecret), async (req, res) => {
-    let dbConnection;
+usuarios.post(
+    '/',
+    buildHandler({
+        required: ['nombre', 'apellido', 'usuario', 'password', 'perfil'],
+        optional: ['email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada'],
+        controller: async ({ db, req }) => {
+            const result = await createUsuario(db, req);
+            return result;
+        },
+    })
+);
 
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, [], {
-            required: ['nombre', 'apellido', 'usuario', 'password', 'perfil'],
-            optional: ['email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada']
-        });
+usuarios.get(
+    '/',
+    buildHandler({
+        controller: async ({ db, req }) => {
+            const result = await getFilteredUsuarios(db, req);
+            return result;
+        },
+    })
+);
 
-        const { companyId } = req.user;
+usuarios.get(
+    '/:userId',
+    buildHandler({
+        requiredParams: ['userId'],
+        controller: async ({ db, req }) => {
+            const result = await getUsuarioById(db, req);
+            return result;
+        },
+    })
+);
 
-        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-        dbConnection = mysql2.createConnection(dbConfig);
-        dbConnection.connect();
+usuarios.put(
+    '/:userId',
+    buildHandler({
+        requiredParams: ['userId'],
+        optional: ['nombre', 'apellido', 'usuario', 'password', 'perfil', 'email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada'],
+        controller: async ({ db, req }) => {
+            const result = await editUsuario(db, req);
+            return result;
+        },
+    })
+);
 
-        const result = await createUsuario(dbConnection, req);
-
-        res.status(Status.created).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        if (dbConnection) dbConnection.end();
-    }
-});
-
-usuarios.get("/", verifyToken(jwtSecret), async (req, res) => {
-    let dbConnection;
-
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, [], {});
-
-        const { companyId } = req.user;
-
-        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-        dbConnection = mysql2.createConnection(dbConfig);
-        dbConnection.connect();
-
-        const result = await getFilteredUsuarios(dbConnection, req);
-
-        res.status(Status.ok).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        if (dbConnection) dbConnection.end();
-    }
-});
-
-usuarios.get("/:userId", verifyToken(jwtSecret), async (req, res) => {
-    let dbConnection;
-
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, ['userId'], {});
-
-        const { companyId } = req.user;
-
-        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-        dbConnection = mysql2.createConnection(dbConfig);
-        dbConnection.connect();
-
-        const result = await getUsuarioById(dbConnection, req);
-
-        res.status(Status.ok).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        if (dbConnection) dbConnection.end();
-    }
-});
-
-usuarios.put("/:userId", verifyToken(jwtSecret), async (req, res) => {
-    let dbConnection;
-
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, ['userId'], {
-            required: [],
-            optional: ['nombre', 'apellido', 'usuario', 'password', 'perfil', 'email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada']
-        });
-
-        const { companyId } = req.user;
-
-        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-        dbConnection = mysql2.createConnection(dbConfig);
-        dbConnection.connect();
-
-        const result = await editUsuario(dbConnection, req);
-
-        res.status(Status.ok).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        if (dbConnection) dbConnection.end();
-    }
-});
-
-usuarios.delete("/:userId", verifyToken(jwtSecret), async (req, res) => {
-    let dbConnection;
-
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, ['userId'], {});
-
-        const { companyId } = req.user;
-
-        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-        dbConnection = mysql2.createConnection(dbConfig);
-        dbConnection.connect();
-
-        const result = await deleteUsuario(dbConnection, req);
-
-        res.status(Status.ok).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        if (dbConnection) dbConnection.end();
-    }
-});
+usuarios.delete(
+    '/:userId',
+    buildHandler({
+        requiredParams: ['userId'],
+        controller: async ({ db, req }) => {
+            const result = await deleteUsuario(db, req);
+            return result;
+        },
+    })
+);
 
 export default usuarios;

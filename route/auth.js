@@ -1,80 +1,49 @@
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders } from "lightdata-tools";
-import { companiesService, hostFulFillement, portFulFillement } from "../db.js";
+import { companiesService } from "../db.js";
 import { loginApp } from "../controller/auth/login_app.js";
 import { loginWeb } from "../controller/auth/login_web.js";
 import { identification } from "../controller/auth/identification.js";
-import mysql2 from "mysql2";
+import { buildHandler } from "./_handler.js";
 
 const auth = Router();
 
-auth.get('/company-identification/:companyCode', async (req, res) => {
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, ['companyCode'], {});
+auth.get(
+    '/company-identification/:companyCode',
+    buildHandler({
+        requiredParams: ['companyCode'],
+        needsDb: false,
+        companyResolver: async ({ req }) => {
+            const { companyCode } = req.params;
+            const company = await companiesService.getByCode(companyCode);
+            return company;
+        },
+        controller: async ({ company }) => {
+            const result = await identification(company);
+            return result;
+        },
+    })
+);
 
-        const { companyCode } = req.params;
+auth.get(
+    '/login-app',
+    buildHandler({
+        required: ['username', 'password', 'companyId'],
+        controller: async ({ db, req }) => {
+            const result = await loginApp(db, req);
+            return result;
+        },
+    })
+);
 
-        const company = await companiesService.getByCode(companyCode);
-
-        const result = await identification(company);
-
-        res.status(Status.ok).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    }
-});
-
-auth.post("/login-app", async (req, res) => {
-    let dbConnection;
-
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, [], {
-            required: ['username', 'password', 'companyId'],
-            optional: []
-        });
-
-        const { companyId } = req.body;
-
-        const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-        dbConnection = mysql2.createConnection(dbConfig);
-        dbConnection.connect();
-
-        const result = await loginApp(dbConnection, req);
-
-        res.status(Status.ok).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        if (dbConnection) dbConnection.end();
-    }
-});
-
-auth.post("/login-web", async (req, res) => {
-    let dbConnection;
-
-    try {
-        verifyHeaders(req, []);
-        verifyAll(req, [], {
-            required: ['username', 'password', 'companyCode'],
-            optional: []
-        });
-
-        const company = await companiesService.getByCode(req.body.companyCode);
-
-        const dbConfig = getFFProductionDbConfig(company.did, hostFulFillement, portFulFillement);
-        dbConnection = mysql2.createConnection(dbConfig);
-        dbConnection.connect();
-
-        const result = await loginWeb(dbConnection, req);
-
-        res.status(Status.ok).json(result);
-    } catch (error) {
-        errorHandler(req, res, error);
-    } finally {
-        if (dbConnection) dbConnection.end();
-    }
-});
+auth.get(
+    '/login-web',
+    buildHandler({
+        required: ['username', 'password', 'companyCode'],
+        controller: async ({ db, req }) => {
+            const result = await loginWeb(db, req);
+            return result;
+        },
+    })
+);
 
 export default auth;

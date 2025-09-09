@@ -7,8 +7,8 @@ import producto from "./route/producto.js";
 import publicacion from "./route/route-publicaciones.js";
 import atributo from "./route/atributos.js";
 import usuarios from "./route/usuarios.js";
-import { logBlue, logRed } from "lightdata-tools";
-import redisClient from "./db.js";
+import { logBlue, logRed, verifyToken } from "lightdata-tools";
+import redisClient, { jwtSecret } from "./db.js";
 import auth from "./route/auth.js";
 import bootstrap from './route/bootstrap.js';
 
@@ -21,8 +21,9 @@ app.use(cors());
 
 const PORT = process.env.PORT;
 
-app.use("/api/preload", bootstrap);
 app.use("/api/auth", auth);
+app.use(verifyToken(jwtSecret));
+app.use("/api/preload", bootstrap);
 app.use("/api/atributos", atributo);
 app.use("/api/clientes", clientes);
 app.use("/api/insumos", insumos);

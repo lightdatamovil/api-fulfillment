@@ -29,7 +29,7 @@ export async function getUsuarioById(dbConnection, req) {
         throw new CustomException({
             title: "Usuario no encontrado",
             message: "No se encontró un usuario con el ID proporcionado.",
-            status: Status.noContent
+            status: Status.notFound
         });
     }
 
