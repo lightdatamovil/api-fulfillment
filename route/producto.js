@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
+import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders } from "lightdata-tools";
 import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import { deleteProducto } from "../controller/producto/delete_producto.js";
 import mysql2 from "mysql2";
@@ -7,7 +7,7 @@ import { getFilteredProductos } from "../controller/producto/get_filtered_produc
 
 const producto = Router();
 
-producto.post("/", verifyToken(jwtSecret), async (req, res) => {
+producto.post("/", async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa);
 
@@ -188,7 +188,7 @@ producto.post("/", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-producto.get("/", verifyToken(jwtSecret), async (req, res) => {
+producto.get("/", async (req, res) => {
   let dbConnection;
 
   try {
@@ -211,7 +211,7 @@ producto.get("/", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-producto.post("/getProductoById", verifyToken(jwtSecret), async (req, res) => {
+producto.post("/getProductoById", async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa);
   const producto = new ProductO1();
@@ -221,7 +221,7 @@ producto.post("/getProductoById", verifyToken(jwtSecret), async (req, res) => {
     data: response,
   });
 });
-producto.post("/updateProducts", verifyToken(jwtSecret), async (req, res) => {
+producto.post("/updateProducts", async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa);
   const producto = new ProductO1(
@@ -248,7 +248,7 @@ producto.post("/updateProducts", verifyToken(jwtSecret), async (req, res) => {
     productos: response,
   });
 });
-producto.post("/updateCombos", verifyToken(jwtSecret), async (req, res) => {
+producto.post("/updateCombos", async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa);
 
@@ -264,7 +264,7 @@ producto.post("/updateCombos", verifyToken(jwtSecret), async (req, res) => {
     estado: true,
   });
 });
-producto.post("/updateEcommerce", verifyToken(jwtSecret), async (req, res) => {
+producto.post("/updateEcommerce", async (req, res) => {
   const data = req.body;
   const connection = getFFProductionDbConfig(data.idEmpresa);
   for (const ecommerceItem of data.ecommerce) {
@@ -289,7 +289,7 @@ producto.post("/updateEcommerce", verifyToken(jwtSecret), async (req, res) => {
     estado: true,
   });
 });
-producto.delete("/:productoId", verifyToken(jwtSecret), async (req, res) => {
+producto.delete("/:productoId", async (req, res) => {
   let dbConnection;
 
   try {

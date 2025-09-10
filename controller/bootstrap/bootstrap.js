@@ -1,6 +1,6 @@
 import { executeQuery } from "lightdata-tools"
 
-export async function bootstrap(dbConnection) {
+export async function preloader(dbConnection) {
 
     const queryProductos = `
           SELECT p.did AS did, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo, p.cm3
@@ -103,7 +103,7 @@ export async function bootstrap(dbConnection) {
 
     return {
         success: true,
-        message: "Inicio de sesión exitoso",
+        message: "Datos pre-cargados correctamente",
         data: {
             productos,
             atributos,

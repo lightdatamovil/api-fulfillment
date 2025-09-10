@@ -10,7 +10,7 @@ import usuarios from "./route/usuarios.js";
 import { logBlue, logRed, verifyToken } from "lightdata-tools";
 import redisClient, { jwtSecret } from "./db.js";
 import auth from "./route/auth.js";
-import bootstrap from './route/bootstrap.js';
+import preload from './route/preload.js';
 
 const app = express();
 
@@ -23,13 +23,12 @@ const PORT = process.env.PORT;
 
 app.use("/api/auth", auth);
 app.use(verifyToken(jwtSecret));
-app.use("/api/preload", bootstrap);
+app.use("/api/preload", preload);
 app.use("/api/atributos", atributo);
 app.use("/api/clientes", clientes);
 app.use("/api/insumos", insumos);
 app.use("/api/pedidos", pedido);
 app.use("/api/productos", producto);
-
 app.use("/api/publicaciones", publicacion);
 app.use("/api/usuarios", usuarios);
 

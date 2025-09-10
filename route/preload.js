@@ -1,17 +1,17 @@
 import { Router } from "express";
-import { bootstrap } from "../controller/bootstrap/bootstrap.js";
+import { preloader } from "../controller/bootstrap/bootstrap.js";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 
-const init = Router();
+const preload = Router();
 
-init.get(
+preload.get(
     '/',
     buildHandlerWrapper({
         controller: async ({ db, req }) => {
-            const result = await bootstrap(db, req);
+            const result = await preloader(db, req);
             return result;
         },
     })
 );
 
-export default init;
+export default preload;

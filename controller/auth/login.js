@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { CustomException, executeQuery, generateToken, Status } from "lightdata-tools";
 import { companiesService } from "../../db.js";
 
-export async function loginWeb(dbConnection, req) {
+export async function login(dbConnection, req) {
     const { username, password, companyCode } = req.body;
 
     const userSql = `
