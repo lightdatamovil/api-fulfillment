@@ -4,13 +4,13 @@ import { deleteUsuario } from "../controller/usuario/delete_usuario.js";
 import { getUsuarioById } from "../controller/usuario/get_usuario_by_id.js";
 import { getFilteredUsuarios } from "../controller/usuario/get_filtered_usuarios.js";
 import { editUsuario } from "../controller/usuario/edit_usuario.js";
-import { buildHandler } from "./_handler.js";
+import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 
 const usuarios = Router();
 
 usuarios.post(
     '/',
-    buildHandler({
+    buildHandlerWrapper({
         required: ['nombre', 'apellido', 'usuario', 'password', 'perfil'],
         optional: ['email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada'],
         controller: async ({ db, req }) => {
@@ -22,7 +22,7 @@ usuarios.post(
 
 usuarios.get(
     '/',
-    buildHandler({
+    buildHandlerWrapper({
         controller: async ({ db, req }) => {
             const result = await getFilteredUsuarios(db, req);
             return result;
@@ -32,7 +32,7 @@ usuarios.get(
 
 usuarios.get(
     '/:userId',
-    buildHandler({
+    buildHandlerWrapper({
         requiredParams: ['userId'],
         controller: async ({ db, req }) => {
             const result = await getUsuarioById(db, req);
@@ -43,7 +43,7 @@ usuarios.get(
 
 usuarios.put(
     '/:userId',
-    buildHandler({
+    buildHandlerWrapper({
         requiredParams: ['userId'],
         optional: ['nombre', 'apellido', 'usuario', 'password', 'perfil', 'email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada'],
         controller: async ({ db, req }) => {
@@ -55,7 +55,7 @@ usuarios.put(
 
 usuarios.delete(
     '/:userId',
-    buildHandler({
+    buildHandlerWrapper({
         requiredParams: ['userId'],
         controller: async ({ db, req }) => {
             const result = await deleteUsuario(db, req);

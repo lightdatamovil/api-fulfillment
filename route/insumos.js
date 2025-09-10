@@ -4,13 +4,13 @@ import { getInsumosById } from "../controller/insumo/get_insumo_by_id.js";
 import { deleteInsumo } from "../controller/insumo/delete_insumo.js";
 import { getFilteredInsumos } from "../controller/insumo/get_filtered_insumos.js";
 import { editInsumo } from "../controller/insumo/edit_insumo.js";
-import { buildHandler } from "./_handler.js";
+import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 
 const insumos = Router();
 
 insumos.post(
     '/',
-    buildHandler({
+    buildHandlerWrapper({
         required: ['codigo', 'habilitado', 'clientes', 'nombre', 'unidad'],
         controller: async ({ db, req }) => {
             const result = await createInsumo(db, req);
@@ -21,7 +21,7 @@ insumos.post(
 
 insumos.put(
     '/:insumoId',
-    buildHandler({
+    buildHandlerWrapper({
         optional: ['codigo', 'habilitado', 'clientes', 'nombre', 'unidad'],
         controller: async ({ db, req }) => {
             const result = await editInsumo(db, req);
@@ -32,7 +32,7 @@ insumos.put(
 
 insumos.get(
     '/',
-    buildHandler({
+    buildHandlerWrapper({
         controller: async ({ db, req }) => {
             const result = await getFilteredInsumos(db, req);
             return result;
@@ -42,7 +42,7 @@ insumos.get(
 
 insumos.get(
     '/:insumoId',
-    buildHandler({
+    buildHandlerWrapper({
         requiredParams: ['insumoId'],
         controller: async ({ db, req }) => {
             const result = await getInsumosById(db, req);
@@ -53,7 +53,7 @@ insumos.get(
 
 insumos.delete(
     '/:insumoId',
-    buildHandler({
+    buildHandlerWrapper({
         requiredParams: ['insumoId'],
         controller: async ({ db, req }) => {
             const result = await deleteInsumo(db, req);
