@@ -1,7 +1,17 @@
 import { executeQuery } from "lightdata-tools";
 
+
+
+
 export async function getFilteredInsumos(dbConnection, req) {
-    const filtros = Object.keys(req.query || {}).length ? req.query : req.body || {};
+    const filtros = req.query;
+    const pick = (v) => (Array.isArray(v) ? v[0] : v);
+    const toStr = (v) => {
+        const s = pick(v);
+        if (s === undefined || s === null) return undefined;
+        const t = String(s).trim();
+        return t.length ? t : undefined;
+    };
 
     const conditions = ["i.elim = 0", "i.superado = 0"];
     const values = [];
@@ -35,11 +45,23 @@ export async function getFilteredInsumos(dbConnection, req) {
     const totalItems = Number(totalResult?.[0]?.total || 0);
     const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize);
 
+    // ---------- orden seguro (whitelist) ----------
+    const sortBy = toStr(filtros.sort_by);
+    const sortDir = (toStr(filtros.sort_dir) || "asc").toLowerCase() === "asc" ? "ASC" : "DESC";
+    const sortMap = {
+        nombre: "nombre",
+        codigo: "codigo",
+        descripcion: "descripcion",
+        habilitado: "habilitado",
+    };
+    const orderSql = `ORDER BY ${sortMap[sortBy] || "codigo"} ${sortDir}`;
+
+
     const dataQuery = `
     SELECT i.did, i.nombre, i.codigo, i.habilitado
     FROM insumos i
     ${whereClause}
-    ORDER BY i.did DESC
+    ${orderSql}
     LIMIT ? OFFSET ?
   `;
     const dataValues = [...values, Number(pageSize), Number(offset)];
