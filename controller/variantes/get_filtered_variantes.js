@@ -61,7 +61,7 @@ export async function getFilteredVariantes(connection, req) {
         descripcion: "descripcion",
         habilitado: "habilitado",
     };
-    const orderSql = `ORDER BY ${sortMap[sortBy] || "nombre"} ${sortDir}`;
+    const orderSql = `ORDER BY ${sortMap[sortBy] || "codigo"} ${sortDir}`;
 
     // ---------- total ----------
     const countSql = `SELECT COUNT(*) AS total FROM atributos ${whereSql}`;
