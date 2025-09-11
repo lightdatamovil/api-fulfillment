@@ -51,7 +51,6 @@ export async function getFilteredInsumos(dbConnection, req) {
     const sortMap = {
         nombre: "nombre",
         codigo: "codigo",
-        descripcion: "descripcion",
         habilitado: "habilitado",
     };
     const orderSql = `ORDER BY ${sortMap[sortBy] || "codigo"} ${sortDir}`;
