@@ -1,7 +1,7 @@
 import { CustomException, executeQuery } from "lightdata-tools";
 
-export async function getAtributoById(dbConnection, req) {
-    const { atributoId } = req.params;
+export async function getVarianteById(dbConnection, req) {
+    const { varianteId } = req.params;
 
     const selectQuery = `
     SELECT 
@@ -24,18 +24,18 @@ export async function getAtributoById(dbConnection, req) {
     ORDER BY av.did ASC
   `;
 
-    const rows = await executeQuery(dbConnection, selectQuery, [atributoId]);
+    const rows = await executeQuery(dbConnection, selectQuery, [varianteId]);
 
     if (!rows || rows.length === 0) {
         throw new CustomException({
-            title: "Atributo no encontrado",
-            message: `No se encontró un atributo activo con el ID ${atributoId}`,
+            title: "Variante no encontrada",
+            message: `No se encontró una variante activa con el ID ${varianteId}`,
         });
     }
 
-    // Armamos el objeto del atributo con sus valores
+    // Armamos el objeto del variante con sus valores
     const first = rows[0];
-    const atributo = {
+    const variante = {
         did: first.atributo_id,
         nombre: first.atributo_nombre,
         codigo: first.atributo_codigo,
@@ -46,7 +46,7 @@ export async function getAtributoById(dbConnection, req) {
 
     for (const r of rows) {
         if (r.valor_id) {
-            atributo.valores.push({
+            variante.valores.push({
                 did: r.valor_id,
                 codigo: r.valor_codigo,
                 valor: r.valor_nombre
@@ -56,8 +56,8 @@ export async function getAtributoById(dbConnection, req) {
 
     return {
         success: true,
-        message: "Atributo obtenido correctamente",
-        data: atributo,
+        message: "Variante obtenida correctamente",
+        data: variante,
         meta: {
             timestamp: new Date().toISOString(),
         },

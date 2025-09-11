@@ -1,19 +1,19 @@
 import { CustomException, executeQuery, Status } from "lightdata-tools";
 
 /**
- * Edita un atributo existente (versionado por did) y procesa 'data' con acciones sobre atributos_valores.
+ * Edita una variante existente (versionado por did) y procesa 'data' con acciones sobre variantes_valores.
  * Body:
  * {
  *   codigo?, nombre?, descripcion?, habilitado?(0/1), orden?,
  *   data?: [
- *     { action: "create", valor, codigo?, habilitado?(0/1), didProducto?, atributoId? },
- *     { action: "delete", atributoValorId } // atributoValorId = did del valor
+ *     { action: "create", valor, codigo?, habilitado?(0/1), didProducto?, varianteId? },
+ *     { action: "delete", varianteValorId } // varianteValorId = did del valor
  *   ]
  * }
- * Param: atributoId (did del atributo)
+ * Param: varianteId (did de la variante)
  */
-export async function editAtributo(dbConnection, req) {
-    const { atributoId } = req.params;
+export async function editVariante(dbConnection, req) {
+    const { varianteId } = req.params;
     const { userId } = req.user ?? {};
     const { codigo, nombre, descripcion, habilitado, orden, data } = req.body ?? {};
 
@@ -24,11 +24,11 @@ export async function editAtributo(dbConnection, req) {
     WHERE did = ? AND elim = 0 AND superado = 0
     LIMIT 1
   `;
-    const rows = await executeQuery(dbConnection, qGet, [atributoId]);
+    const rows = await executeQuery(dbConnection, qGet, [varianteId]);
     if (!rows || rows.length === 0) {
         throw new CustomException({
-            title: "Atributo no encontrado",
-            message: `No existe atributo con did=${atributoId}`,
+            title: "Variante no encontrada",
+            message: `No existe variante con did=${varianteId}`,
             status: Status.notFound,
         });
     }
@@ -43,17 +43,17 @@ export async function editAtributo(dbConnection, req) {
       WHERE codigo = ? AND elim = 0 AND superado = 0 AND did <> ?
       LIMIT 1
     `;
-        const dup = await executeQuery(dbConnection, qDup, [newCodigo, atributoId]);
+        const dup = await executeQuery(dbConnection, qDup, [newCodigo, varianteId]);
         if (dup?.length) {
             throw new CustomException({
                 title: "Código duplicado",
-                message: `Ya existe un atributo activo con código "${newCodigo}"`,
+                message: `Ya existe una variante activa con código "${newCodigo}"`,
                 status: Status.conflict,
             });
         }
     }
 
-    // 3) Nuevos valores del atributo
+    // 3) Nuevos valores de la variante
     const newNombre = isNonEmpty(nombre) ? String(nombre).trim() : current.nombre;
     const newDesc = isDefined(descripcion) ? (isNonEmpty(descripcion) ? String(descripcion).trim() : null) : current.descripcion;
 
@@ -71,11 +71,11 @@ export async function editAtributo(dbConnection, req) {
     }
     const newOrden = Number.isFinite(Number(orden)) ? Number(orden) : (current.orden ?? 0);
 
-    // 4) Versionar atributo (supero actual + nueva versión)
+    // 4) Versionar variante (supero actual + nueva versión)
     await executeQuery(
         dbConnection,
         `UPDATE atributos SET superado = 1 WHERE did = ? AND elim = 0 AND superado = 0`,
-        [atributoId]
+        [varianteId]
     );
 
     const insAttr = await executeQuery(
@@ -84,13 +84,13 @@ export async function editAtributo(dbConnection, req) {
       INSERT INTO atributos (did, codigo, nombre, descripcion, habilitado, orden, quien, superado, elim)
       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
     `,
-        [atributoId, newCodigo, newNombre, newDesc, newHab, newOrden, userId]
+        [varianteId, newCodigo, newNombre, newDesc, newHab, newOrden, userId]
     );
 
     if (!insAttr || insAttr.affectedRows === 0) {
         throw new CustomException({
-            title: "Error al versionar atributo",
-            message: "No se pudo crear la nueva versión del atributo",
+            title: "Error al versionar variante",
+            message: "No se pudo crear la nueva versión de la variante",
             status: Status.internalServerError,
         });
     }
@@ -104,7 +104,7 @@ export async function editAtributo(dbConnection, req) {
             const action = String(item?.action || "").toLowerCase();
 
             if (action === "create") {
-                const didAttr = Number(item?.atributoId ?? atributoId) || Number(atributoId);
+                const didVar = Number(item?.atributoId ?? varianteId) || Number(varianteId);
                 const valValor = isNonEmpty(item?.valor) ? String(item.valor).trim() : null;
                 if (!valValor) {
                     throw new CustomException({
@@ -137,7 +137,7 @@ export async function editAtributo(dbConnection, req) {
               (didProducto, didAtributo, valor, codigo, habilitado, quien, superado, elim)
             VALUES (?, ?, ?, ?, ?, ?, 0, 0)
           `,
-                    [didProducto, didAttr, valValor, valCodigo, valHab, userId],
+                    [didProducto, didVar, valValor, valCodigo, valHab, userId],
                     true
                 );
 
@@ -153,7 +153,7 @@ export async function editAtributo(dbConnection, req) {
                 await executeQuery(dbConnection, `UPDATE atributos_valores SET did = ? WHERE id = ?`, [id, id], true);
 
                 created.push({
-                    id, did: id, didAtributo: didAttr, didProducto, valor: valValor, codigo: valCodigo, habilitado: valHab
+                    id, did: id, didVar, didProducto, valor: valValor, codigo: valCodigo, habilitado: valHab
                 });
             }
 
@@ -162,7 +162,7 @@ export async function editAtributo(dbConnection, req) {
                 if (!Number.isFinite(didVal) || didVal <= 0) {
                     throw new CustomException({
                         title: "Dato inválido",
-                        message: "atributoValorId inválido en data.delete",
+                        message: "varianteValorId inválido en data.delete",
                         status: Status.badRequest,
                     });
                 }
@@ -187,9 +187,9 @@ export async function editAtributo(dbConnection, req) {
 
     return {
         success: true,
-        message: "Atributo actualizado correctamente",
+        message: "Variante actualizada correctamente",
         data: {
-            did: Number(atributoId),
+            did: Number(varianteId),
             created: created.length ? created : undefined,
             deleted: deleted.length ? deleted : undefined
         },

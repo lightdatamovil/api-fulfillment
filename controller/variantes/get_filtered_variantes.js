@@ -1,11 +1,11 @@
 import { executeQuery } from "lightdata-tools";
 
 /**
- * GET /atributos (con filtros y paginación)
+ * GET /variantes (con filtros y paginación)
  * Query params: nombre, codigo, habilitado, pagina, cantidad, sortBy, sortDir
  * Estructura de respuesta: { success, message, data, meta }
  */
-export async function getFilteredAtributos(connection, req) {
+export async function getFilteredVariantes(connection, req) {
     // ---------- helpers de parseo ----------
     const q = req.query;
 
@@ -67,7 +67,7 @@ export async function getFilteredAtributos(connection, req) {
     LIMIT ? OFFSET ?
   `;
     const dataParams = [...params, pageSize, offset];
-    const atributos = await executeQuery(connection, dataSql, dataParams);
+    const variantes = await executeQuery(connection, dataSql, dataParams);
 
     // ---------- meta.filters solo si hay ----------
     const filtersForMeta = pickNonEmpty({
@@ -78,8 +78,8 @@ export async function getFilteredAtributos(connection, req) {
 
     return {
         success: true,
-        message: "Atributos obtenidos correctamente",
-        data: atributos,
+        message: "Variantes obtenidas correctamente",
+        data: variantes,
         meta: {
             timestamp: new Date().toISOString(),
             page,

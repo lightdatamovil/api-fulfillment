@@ -1,12 +1,12 @@
 import { CustomException, executeQuery, Status } from "lightdata-tools";
 
 /**
- * Crea un atributo y (opcional) sus valores sin transacciones/rollback.
+ * Crea una variante y (opcional) sus valores sin transacciones/rollback.
  * Requiere: codigo, nombre.
- * Opcionales: descripcion, habilitado (0/1), orden, atributoValores[]
+ * Opcionales: descripcion, habilitado (0/1), orden, varianteValores[]
  */
-export async function createAtributo(dbConnection, req) {
-    const { codigo, nombre, descripcion, habilitado, orden, atributoValores } = req.body;
+export async function createVariante(dbConnection, req) {
+    const { codigo, nombre, descripcion, habilitado, orden, varianteValores } = req.body;
     const { userId } = req.user;
 
     const codigoTrim = String(codigo).trim();
@@ -67,11 +67,11 @@ export async function createAtributo(dbConnection, req) {
     const updDidSql = `UPDATE atributos SET did = ? WHERE id = ?`;
     await executeQuery(dbConnection, updDidSql, [id, id], true);
 
-    const didAtributo = id;
+    const didVariante = id;
 
     const insertedValores = [];
-    if (Array.isArray(atributoValores) && atributoValores.length > 0) {
-        for (const v of atributoValores) {
+    if (Array.isArray(varianteValores) && varianteValores.length > 0) {
+        for (const v of varianteValores) {
             const valValor = isNonEmpty(v?.valor) ? String(v.valor).trim() : null;
             const valCodigo = isNonEmpty(v?.codigo) ? String(v.codigo).trim() : null;
 
@@ -80,7 +80,7 @@ export async function createAtributo(dbConnection, req) {
                 const h = number01(v.habilitado);
                 if (h !== 0 && h !== 1) {
                     throw new CustomException({
-                        title: "Valor inválido en atributoValores",
+                        title: "Valor inválido en varianteValores",
                         message: "habilitado debe ser 0 o 1",
                         status: Status.badRequest,
                     });
@@ -90,7 +90,7 @@ export async function createAtributo(dbConnection, req) {
 
             if (!isNonEmpty(valValor)) {
                 throw new CustomException({
-                    title: "Datos incompletos en atributoValores",
+                    title: "Datos incompletos en varianteValores",
                     message: "Cada item debe incluir 'valor'",
                     status: Status.badRequest,
                 });
@@ -103,13 +103,13 @@ export async function createAtributo(dbConnection, req) {
             const insVal = await executeQuery(
                 dbConnection,
                 insValSql,
-                [didAtributo, valValor, valCodigo, valHab, userId]
+                [didVariante, valValor, valCodigo, valHab, userId]
             );
 
             if (!insVal || insVal.affectedRows === 0) {
                 throw new CustomException({
                     title: "Error al crear valor",
-                    message: "No se pudo insertar un valor de atributo",
+                    message: "No se pudo insertar un valor de variante",
                     status: Status.internalServerError,
                 });
             }
@@ -125,7 +125,7 @@ export async function createAtributo(dbConnection, req) {
             insertedValores.push({
                 id: idVal,
                 did: idVal,
-                didAtributo,
+                didVariante: didVariante,
                 valor: valValor,
                 codigo: valCodigo,
                 habilitado: valHab
@@ -135,8 +135,8 @@ export async function createAtributo(dbConnection, req) {
 
     return {
         success: true,
-        message: "Atributo creado correctamente",
-        data: { id, did: didAtributo, valores: insertedValores },
+        message: "Variante creada correctamente",
+        data: { id, did: didVariante, valores: insertedValores },
         meta: { timestamp: new Date().toISOString() },
     };
 }

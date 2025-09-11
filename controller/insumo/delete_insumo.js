@@ -22,8 +22,8 @@ export async function deleteInsumo(dbConnection, req) {
     const result = await executeQuery(dbConnection, deleteQuery, [insumoId]);
     if (result.affectedRows === 0) {
         throw new CustomException({
-            title: "No se pudo eliminar el atributo.",
-            message: "No se pudo eliminar el atributo. Puede que no exista o ya esté eliminado.",
+            title: "No se pudo eliminar la variante.",
+            message: "No se pudo eliminar la variante. Puede que no exista o ya esté eliminada.",
             status: Status.notFound
         });
     }

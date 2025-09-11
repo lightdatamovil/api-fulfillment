@@ -28,11 +28,11 @@ export async function preloader(dbConnection) {
     `;
     const results = await executeQuery(dbConnection, selectQuery, []);
 
-    const atributosMap = new Map();
+    const variantesMap = new Map();
 
     for (const row of results) {
-        if (!atributosMap.has(row.atributo_id)) {
-            atributosMap.set(row.atributo_id, {
+        if (!variantesMap.has(row.atributo_id)) {
+            variantesMap.set(row.atributo_id, {
                 nombre: row.nombre,
                 codigo: row.atributo_codigo,
                 did: row.atributo_id,
@@ -43,7 +43,7 @@ export async function preloader(dbConnection) {
         }
 
         if (row.valor_id) {
-            atributosMap.get(row.atributo_id).valores.push({
+            variantesMap.get(row.atributo_id).valores.push({
                 did: row.valor_id,
                 codigo: row.valor_codigo,
                 valor: row.valor_nombre,
@@ -51,7 +51,7 @@ export async function preloader(dbConnection) {
         }
     }
 
-    const atributos = Array.from(atributosMap.values());
+    const variantes = Array.from(variantesMap.values());
 
     const queryInsumos = ` SELECT * FROM insumos
         WHERE elim = 0 AND superado = 0
@@ -106,7 +106,7 @@ export async function preloader(dbConnection) {
         message: "Datos pre-cargados correctamente",
         data: {
             productos,
-            atributos,
+            variantes,
             insumos,
             clientes
         },
