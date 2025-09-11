@@ -32,13 +32,13 @@ export async function getFilteredVariantes(connection, req) {
         nombre: toStr(q.nombre),
         codigo: toStr(q.codigo),
         habilitado: toBool01(q.habilitado), // 0/1 o undefined
-        pagina: toInt(q.pagina, 1),
-        cantidad: toInt(q.cantidad, 10),
+        page: toInt(q.page, 1),
+        page_size: toInt(q.page_size, 10),
     };
 
     // ---------- paginación ----------
-    const page = Math.max(1, filtros.pagina || 1);
-    const pageSize = Math.max(1, Math.min(filtros.cantidad || 10, 100));
+    const page = Math.max(1, filtros.page || 1);
+    const pageSize = Math.max(1, Math.min(filtros.page_size || 10, 100));
     const offset = (page - 1) * pageSize;
 
     // ---------- builder de condiciones ----------
