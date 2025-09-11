@@ -52,7 +52,16 @@ export async function getFilteredVariantes(connection, req) {
 
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-
+    // ---------- orden seguro (whitelist) ----------
+    const sortBy = toStr(q.sort_by);
+    const sortDir = (toStr(q.sort_dir) || "asc").toLowerCase() === "asc" ? "ASC" : "DESC";
+    const sortMap = {
+        nombre: "nombre",
+        codigo: "codigo",
+        descripcion: "descripcion",
+        habilitado: "habilitado",
+    };
+    const orderSql = `ORDER BY ${sortMap[sortBy] || "nombre"} ${sortDir}`;
 
     // ---------- total ----------
     const countSql = `SELECT COUNT(*) AS total FROM atributos ${whereSql}`;
@@ -64,6 +73,7 @@ export async function getFilteredVariantes(connection, req) {
     SELECT id, did, nombre, codigo, descripcion, habilitado, autofecha, orden
     FROM atributos
     ${whereSql}
+    ${orderSql}
     LIMIT ? OFFSET ?
   `;
     const dataParams = [...params, pageSize, offset];
