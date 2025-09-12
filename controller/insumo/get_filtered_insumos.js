@@ -7,10 +7,10 @@ export async function getFilteredInsumos(dbConnection, req) {
     // paginación (notar pageSize camelCase)
     const { page, pageSize, offset } = makePagination(q, {
         pageKey: "page",
-        pageSizeKey: "pageSize",
+        pageSizeKey: "page_size",
         defaultPage: 1,
         defaultPageSize: 10,
-        maxPageSize: 200,
+        maxPageSize: 100,
     });
 
     // orden seguro
@@ -19,7 +19,7 @@ export async function getFilteredInsumos(dbConnection, req) {
         codigo: "i.codigo",
         habilitado: "i.habilitado",
     };
-    const { orderSql } = makeSort(q, sortMap, { defaultKey: "codigo", byKey: "sort_by", dirKey: "sort_dir" });
+    const { orderSql } = makeSort(q, sortMap, { defaultKey: "nombre", byKey: "sort_by", dirKey: "sort_dir" });
 
     // WHERE
     const where = new SqlWhere()
