@@ -1,23 +1,4 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
-import crypto from "crypto";
-
-const toStr = (v) => {
-    if (v === undefined || v === null) return undefined;
-    const s = String(v).trim();
-    return s.length ? s : undefined;
-};
-const toInt = (v, def) => {
-    const n = parseInt(v ?? "", 10);
-    return Number.isFinite(n) ? n : def;
-};
-const toBool01 = (v, def) => {
-    const s = String(v ?? "").toLowerCase();
-    if (["true", "1", "yes", "si", "on"].includes(s)) return 1;
-    if (["false", "0", "no", "off"].includes(s)) return 0;
-    return def;
-};
-const emptyToNull = (v) => (typeof v === "string" && v.trim() === "" ? null : v);
-const hashPassword = (plain) => crypto.createHash("sha256").update(String(plain)).digest("hex");
+import { CustomException, executeQuery, Status, toStr, toBool01, toInt, hashPassword, emptyToNull } from "lightdata-tools";
 
 export async function createUsuario(dbConnection, req) {
     const b = req?.body ?? {};

@@ -1,4 +1,4 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
+import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
 
 /**
  * Edita una variante existente (versionado por did) y procesa 'data' con acciones sobre variantes_valores.
@@ -196,12 +196,3 @@ export async function editVariante(dbConnection, req) {
         meta: { timestamp: new Date().toISOString() },
     };
 }
-
-/* ---------------- Helpers ---------------- */
-const isDefined = (v) => v !== undefined && v !== null;
-const isNonEmpty = (v) => isDefined(v) && (typeof v !== "string" || v.trim() !== "");
-const number01 = (v) => {
-    const n = Number(v);
-    if (Number.isNaN(n)) return -1;
-    return n === 1 ? 1 : n === 0 ? 0 : -1;
-};

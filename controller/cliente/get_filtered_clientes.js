@@ -1,4 +1,4 @@
-import { executeQuery } from "lightdata-tools";
+import { executeQuery, toStr, toBool, toInt, pickNonEmpty } from "lightdata-tools";
 
 /**
  * GET /clientes (con filtros, orden y paginación)
@@ -13,25 +13,6 @@ import { executeQuery } from "lightdata-tools";
 export async function getFilteredClientes(connection, req) {
     // -------- helpers de parseo (alineado a /usuarios) --------
     const q = req.query;
-
-    const pick = (v) => (Array.isArray(v) ? v[0] : v);
-    const toStr = (v) => {
-        const s = pick(v);
-        if (s === undefined || s === null) return undefined;
-        const t = String(s).trim();
-        return t.length ? t : undefined;
-    };
-    const toInt = (v, def) => {
-        const n = parseInt(pick(v) ?? "", 10);
-        return Number.isFinite(n) ? n : def;
-    };
-    // Tri-estado: 1 / 0 / undefined (todos)
-    const toBool = (v, def) => {
-        const s = String(pick(v) ?? "").toLowerCase().trim();
-        if (["true", "1", "yes", "si", "on"].includes(s)) return 1;
-        if (["false", "0", "no", "off"].includes(s)) return 0;
-        return def; // vacío, "todos", undefined => sin filtro
-    };
 
     // -------- filtros normalizados --------
     const filtros = {
@@ -158,15 +139,4 @@ export async function getFilteredClientes(connection, req) {
             ...(Object.keys(filtersForMeta).length > 0 ? { filters: filtersForMeta } : {}),
         },
     };
-}
-
-// ------------- helper meta -------------
-function pickNonEmpty(obj) {
-    const out = {};
-    for (const [k, v] of Object.entries(obj)) {
-        if (v === null || v === undefined) continue;
-        if (typeof v === "string" && v.trim() === "") continue;
-        out[k] = v;
-    }
-    return out;
 }

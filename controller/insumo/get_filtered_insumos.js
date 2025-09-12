@@ -1,4 +1,4 @@
-import { executeQuery } from "lightdata-tools";
+import { executeQuery, toInt, isNonEmptyString, escapeLike, pickNonEmpty } from "lightdata-tools";
 
 
 
@@ -87,28 +87,4 @@ export async function getFilteredInsumos(dbConnection, req) {
             ...(Object.keys(filtersForMeta).length > 0 ? { filters: filtersForMeta } : {})
         }
     };
-}
-
-const toInt = (v, def) => {
-    const n = Number.parseInt(v, 10);
-    return Number.isFinite(n) && n > 0 ? n : def;
-};
-
-const escapeLike = (s) =>
-    String(s)
-        .replace(/\\/g, "\\\\")
-        .replace(/%/g, "\\%")
-        .replace(/_/g, "\\_");
-
-const isNonEmptyString = (v) => typeof v === "string" && v.trim() !== "";
-
-// Devuelve un objeto con solo claves cuyo valor no es null/undefined/"".
-function pickNonEmpty(obj) {
-    const out = {};
-    for (const [k, v] of Object.entries(obj)) {
-        if (v === null || v === undefined) continue;
-        if (typeof v === "string" && v.trim() === "") continue;
-        out[k] = v;
-    }
-    return out;
 }

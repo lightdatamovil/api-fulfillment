@@ -2,6 +2,7 @@ import { executeQuery } from "lightdata-tools";
 
 export async function getClienteById(connection, req) {
     const { clienteId } = req.params;
+
     const query = `
         SELECT 
           c.*, 
@@ -73,8 +74,6 @@ export async function getClienteById(connection, req) {
             });
         }
     }
-
-
 
     return cliente;
 }

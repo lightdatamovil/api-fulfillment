@@ -1,4 +1,4 @@
-import { executeQuery } from "lightdata-tools";
+import { executeQuery, toStr, toBool, toInt, toIntList } from "lightdata-tools";
 
 /**
  * GET /usuarios
@@ -12,48 +12,8 @@ export async function getFilteredUsuarios(connection, req) {
     // ---------- helpers de parseo ----------
     const q = req.query;
 
-    const pick = (v) => (Array.isArray(v) ? v[0] : v);
-    const toStr = (v) => {
-        const s = pick(v);
-        if (s === undefined || s === null) return undefined;
-        const t = String(s).trim();
-        return t.length ? t : undefined;
-    };
-    const toInt = (v, def) => {
-        const n = parseInt(pick(v) ?? "", 10);
-        return Number.isFinite(n) ? n : def;
-    };
-    const toBool = (v, def) => {
-        const s = String(pick(v) ?? "").toLowerCase();
-        if (["true", "1", "yes", "si", "on"].includes(s)) return 1;
-        if (["false", "0", "no", "off"].includes(s)) return 0;
-        return def;
-    };
-
     // Acepta: ?perfil=1&perfil=2  |  ?perfil=1,2,3  |  ?perfil=[1,2,3]
-    const toIntList = (v) => {
-        if (v === undefined || v === null) return undefined;
 
-        // Unificar en array de strings
-        let parts = [];
-        if (Array.isArray(v)) {
-            // Mezcla: ["1", "2,3", "4"] => split por coma cada elemento
-            parts = v.flatMap((p) => String(p).split(","));
-        } else {
-            parts = String(v).split(",");
-        }
-
-        // Parse a enteros válidos, únicos
-        const nums = Array.from(
-            new Set(
-                parts
-                    .map((s) => parseInt(String(s).trim(), 10))
-                    .filter((n) => Number.isFinite(n))
-            )
-        );
-
-        return nums.length ? nums : undefined;
-    };
 
     // ---------- filtros normalizados ----------
     const filtros = {
@@ -101,8 +61,8 @@ export async function getFilteredUsuarios(connection, req) {
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
     // ---------- orden seguro (whitelist) ----------
-    const sortBy = toStr(q.sort_by);
-    const sortDir = (toStr(q.sort_dir) || "asc").toLowerCase() === "asc" ? "ASC" : "DESC";
+    const sortBy = toString(q.sort_by);
+    const sortDir = (toString(q.sort_dir) || "asc").toLowerCase() === "asc" ? "ASC" : "DESC";
     const sortMap = {
         nombre: "nombre",
         apellido: "apellido",

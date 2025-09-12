@@ -1,4 +1,4 @@
-import { executeQuery } from "lightdata-tools";
+import { executeQuery, toStr, toBool01, toInt, pickNonEmpty } from "lightdata-tools";
 
 /**
  * GET /variantes (con filtros y paginación)
@@ -9,23 +9,6 @@ export async function getFilteredVariantes(connection, req) {
     // ---------- helpers de parseo ----------
     const q = req.query;
 
-    const pick = (v) => (Array.isArray(v) ? v[0] : v);
-    const toStr = (v) => {
-        const s = pick(v);
-        if (s === undefined || s === null) return undefined;
-        const t = String(s).trim();
-        return t.length ? t : undefined;
-    };
-    const toInt = (v, def) => {
-        const n = parseInt(pick(v) ?? "", 10);
-        return Number.isFinite(n) ? n : def;
-    };
-    const toBool01 = (v) => {
-        const s = String(pick(v) ?? "").toLowerCase();
-        if (["true", "1"].includes(s)) return 1;
-        if (["false", "0"].includes(s)) return 0;
-        return undefined; // sin filtro
-    };
 
     // ---------- filtros normalizados ----------
     const filtros = {
@@ -99,15 +82,4 @@ export async function getFilteredVariantes(connection, req) {
             ...(Object.keys(filtersForMeta).length > 0 ? { filters: filtersForMeta } : {}),
         },
     };
-}
-
-// ---------------- helpers ----------------
-function pickNonEmpty(obj) {
-    const out = {};
-    for (const [k, v] of Object.entries(obj)) {
-        if (v === null || v === undefined) continue;
-        if (typeof v === "string" && v.trim() === "") continue;
-        out[k] = v;
-    }
-    return out;
 }
