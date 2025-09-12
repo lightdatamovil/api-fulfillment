@@ -1,68 +1,82 @@
-import { executeQuery, toStr, toBool01, toInt, pickNonEmpty } from "lightdata-tools";
+// variantes.controller.js
+import { toStr, toBool01, pickNonEmpty } from "lightdata-tools";
+import {
+    SqlWhere,
+    makePagination,
+    makeSort,
+    runPagedQuery,
+    buildMeta,
+} from "../../src/functions/query_utils.js";
 
 /**
- * GET /variantes (con filtros y paginación)
- * Query params: nombre, codigo, habilitado, pagina, cantidad, sortBy, sortDir
- * Estructura de respuesta: { success, message, data, meta }
+ * GET /variantes
+ * Query: nombre, codigo, habilitado, (page|pagina), (page_size|cantidad), (sort_by|sortBy), (sort_dir|sortDir)
+ * Tabla: atributos
  */
 export async function getFilteredVariantes(connection, req) {
-    // ---------- helpers de parseo ----------
     const q = req.query;
 
+    // Aliases para paginación y orden
+    const qp = {
+        ...q,
+        page: q.page ?? q.pagina,
+        page_size: q.page_size ?? q.cantidad,
+        sort_by: q.sort_by ?? q.sortBy,
+        sort_dir: q.sort_dir ?? q.sortDir,
+    };
 
-    // ---------- filtros normalizados ----------
+    // Filtros normalizados
     const filtros = {
         nombre: toStr(q.nombre),
         codigo: toStr(q.codigo),
-        habilitado: toBool01(q.habilitado), // 0/1 o undefined
-        page: toInt(q.page, 1),
-        page_size: toInt(q.page_size, 10),
+        habilitado: toBool01(q.habilitado, undefined), // 0/1 o undefined
     };
 
-    // ---------- paginación ----------
-    const page = Math.max(1, filtros.page || 1);
-    const pageSize = Math.max(1, Math.min(filtros.page_size || 10, 100));
-    const offset = (page - 1) * pageSize;
+    // Paginación
+    const { page, pageSize, offset } = makePagination(qp, {
+        pageKey: "page",
+        pageSizeKey: "page_size",
+        defaultPage: 1,
+        defaultPageSize: 10,
+        maxPageSize: 100,
+    });
 
-    // ---------- builder de condiciones ----------
-    const where = ["elim = 0", "superado = 0"];
-    const params = [];
-    const add = (cond, val) => { where.push(cond); params.push(val); };
-
-    if (filtros.habilitado !== undefined) add("habilitado = ?", filtros.habilitado);
-    if (filtros.codigo) add("LOWER(codigo) LIKE ?", `%${filtros.codigo.toLowerCase()}%`);
-    if (filtros.nombre) add("LOWER(nombre) LIKE ?", `%${filtros.nombre.toLowerCase()}%`);
-
-    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-
-    // ---------- orden seguro (whitelist) ----------
-    const sortBy = toStr(q.sort_by);
-    const sortDir = (toStr(q.sort_dir) || "asc").toLowerCase() === "asc" ? "ASC" : "DESC";
+    // Orden (whitelist)
     const sortMap = {
-        nombre: "nombre",
-        codigo: "codigo",
-        descripcion: "descripcion",
-        habilitado: "habilitado",
+        nombre: "a.nombre",
+        codigo: "a.codigo",
+        descripcion: "a.descripcion",
+        habilitado: "a.habilitado",
     };
-    const orderSql = `ORDER BY ${sortMap[sortBy] || "codigo"} ${sortDir}`;
+    const { orderSql } = makeSort(qp, sortMap, {
+        defaultKey: "codigo",
+        byKey: "sort_by",
+        dirKey: "sort_dir",
+    });
 
-    // ---------- total ----------
-    const countSql = `SELECT COUNT(*) AS total FROM atributos ${whereSql}`;
-    const [{ total: totalItems = 0 } = {}] = await executeQuery(connection, countSql, params);
-    const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize);
+    // WHERE (incluye ESCAPE para LIKE)
+    const where = new SqlWhere()
+        .add("a.elim = 0")
+        .add("a.superado = 0");
 
-    // ---------- data ----------
-    const dataSql = `
-    SELECT id, did, nombre, codigo, descripcion, habilitado, autofecha, orden
-    FROM atributos
-    ${whereSql}
-    ${orderSql}
-    LIMIT ? OFFSET ?
-  `;
-    const dataParams = [...params, pageSize, offset];
-    const variantes = await executeQuery(connection, dataSql, dataParams);
+    if (filtros.habilitado !== undefined) where.eq("a.habilitado", filtros.habilitado);
+    if (filtros.codigo) where.likeEscaped("a.codigo", filtros.codigo, { caseInsensitive: true });
+    if (filtros.nombre) where.likeEscaped("a.nombre", filtros.nombre, { caseInsensitive: true });
 
-    // ---------- meta.filters solo si hay ----------
+    const { whereSql, params } = where.finalize();
+
+    // SELECT + COUNT con los mismos WHERE/PARAMS
+    const { rows, total } = await runPagedQuery(connection, {
+        select: "a.id, a.did, a.nombre, a.codigo, a.descripcion, a.habilitado, a.autofecha, a.orden",
+        from: "FROM atributos a",
+        whereSql,
+        orderSql,
+        params,
+        pageSize,
+        offset,
+    });
+
+    // Meta + filtros
     const filtersForMeta = pickNonEmpty({
         nombre: filtros.nombre,
         codigo: filtros.codigo,
@@ -72,14 +86,7 @@ export async function getFilteredVariantes(connection, req) {
     return {
         success: true,
         message: "Variantes obtenidas correctamente",
-        data: variantes,
-        meta: {
-            timestamp: new Date().toISOString(),
-            page,
-            pageSize,
-            totalPages,
-            totalItems,
-            ...(Object.keys(filtersForMeta).length > 0 ? { filters: filtersForMeta } : {}),
-        },
+        data: rows,
+        meta: buildMeta({ page, pageSize, totalItems: total, filters: filtersForMeta }),
     };
 }
