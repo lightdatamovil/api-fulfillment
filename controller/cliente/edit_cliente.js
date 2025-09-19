@@ -1,4 +1,4 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
+import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
 
 /**
  * Edita un cliente (versionado por did) y procesa acciones sueltas en direcciones, contactos y cuentas.
@@ -356,12 +356,3 @@ export async function editCliente(db, req) {
         meta: { timestamp: new Date().toISOString() }
     };
 }
-
-/* ---------------- Helpers ---------------- */
-const isDefined = (v) => v !== undefined && v !== null;
-const isNonEmpty = (v) => isDefined(v) && (typeof v !== "string" || v.trim() !== "");
-const number01 = (v) => {
-    const n = Number(v);
-    if (Number.isNaN(n)) return -1;
-    return n === 1 ? 1 : n === 0 ? 0 : -1;
-};

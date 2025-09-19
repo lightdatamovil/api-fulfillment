@@ -8,12 +8,11 @@ export async function deleteUsuario(dbConnection, req) {
 
     if (result.affectedRows === 0) {
         throw new CustomException({
-            title: "No se pudo eliminar el atributo.",
-            message: "No se pudo eliminar el atributo. Puede que no exista o ya esté eliminado.",
+            title: "No se pudo eliminar el usuario.",
+            message: "No se pudo eliminar el usuario. Puede que no exista o ya esté eliminado.",
             status: Status.notFound
         });
     }
-
 
     return {
         success: true,

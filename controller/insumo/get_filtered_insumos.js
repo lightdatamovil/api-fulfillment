@@ -1,93 +1,66 @@
-import { executeQuery } from "lightdata-tools";
+import { pickNonEmpty } from "lightdata-tools";
+import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta, } from "../../src/functions/query_utils.js";
 
 export async function getFilteredInsumos(dbConnection, req) {
-    const filtros = Object.keys(req.query || {}).length ? req.query : req.body || {};
+    const q = req.query;
 
-    const conditions = ["i.elim = 0", "i.superado = 0"];
-    const values = [];
+    // paginación (notar pageSize camelCase)
+    const { page, pageSize, offset } = makePagination(q, {
+        pageKey: "page",
+        pageSizeKey: "page_size",
+        defaultPage: 1,
+        defaultPageSize: 10,
+        maxPageSize: 100,
+    });
 
-    const page = toInt(filtros.page, 1);
-    const pageSize = Math.min(toInt(filtros.pageSize, 10), 200);
-    const offset = (page - 1) * pageSize;
+    // orden seguro
+    const sortMap = {
+        nombre: "i.nombre",
+        codigo: "i.codigo",
+        habilitado: "i.habilitado",
+    };
+    const { orderSql } = makeSort(q, sortMap, { defaultKey: "nombre", byKey: "sort_by", dirKey: "sort_dir" });
 
-    if (isNonEmptyString(filtros.codigo)) {
-        conditions.push("i.codigo LIKE ? ESCAPE '\\\\'");
-        values.push(`%${escapeLike(filtros.codigo)}%`);
+    // WHERE
+    const where = new SqlWhere()
+        .add("i.elim = 0")
+        .add("i.superado = 0");
+
+    // filtros
+    if (q.codigo) where.likeEscaped("i.codigo", q.codigo);
+    if (q.nombre) where.likeEscaped("i.nombre", q.nombre);
+
+    const habRaw = q.habilitado;
+    if (habRaw !== null && habRaw !== undefined && habRaw !== "todos" && habRaw !== "") {
+        const hab = Number(habRaw);
+        if (hab === 0 || hab === 1) where.eq("i.habilitado", hab);
     }
 
-    if (isNonEmptyString(filtros.nombre)) {
-        conditions.push("i.nombre LIKE ? ESCAPE '\\\\'");
-        values.push(`%${escapeLike(filtros.nombre)}%`);
-    }
+    const { whereSql, params } = where.finalize();
 
-    if (filtros.habilitado !== null && filtros.habilitado !== undefined && filtros.habilitado !== "todos" && filtros.habilitado !== "") {
-        const hab = Number(filtros.habilitado);
-        if (hab === 0 || hab === 1) {
-            conditions.push("i.habilitado = ?");
-            values.push(hab);
-        }
-    }
-
-    const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-
-    const totalQuery = `SELECT COUNT(*) AS total FROM insumos i ${whereClause}`;
-    const totalResult = await executeQuery(dbConnection, totalQuery, values);
-    const totalItems = Number(totalResult?.[0]?.total || 0);
-    const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize);
-
-    const dataQuery = `
-    SELECT i.did, i.nombre, i.codigo, i.habilitado
-    FROM insumos i
-    ${whereClause}
-    ORDER BY i.did DESC
-    LIMIT ? OFFSET ?
-  `;
-    const dataValues = [...values, Number(pageSize), Number(offset)];
-    const results = await executeQuery(dbConnection, dataQuery, dataValues);
+    // SELECT + COUNT
+    const { rows, total } = await runPagedQuery(dbConnection, {
+        select: "i.did, i.nombre, i.codigo, i.habilitado",
+        from: "FROM insumos i",
+        whereSql,
+        orderSql,
+        params,
+        pageSize,
+        offset,
+    });
 
     const filtersForMeta = pickNonEmpty({
-        nombre: filtros.nombre,
-        codigo: filtros.codigo,
-        ...(filtros.habilitado !== "todos" && filtros.habilitado !== "" && filtros.habilitado !== undefined
-            ? { habilitado: isFinite(Number(filtros.habilitado)) ? Number(filtros.habilitado) : filtros.habilitado }
-            : {})
+        nombre: q.nombre,
+        codigo: q.codigo,
+        ...(habRaw !== "todos" && habRaw !== "" && habRaw !== undefined
+            ? { habilitado: Number.isFinite(Number(habRaw)) ? Number(habRaw) : habRaw }
+            : {}),
     });
 
     return {
         success: true,
         message: "Insumos obtenidos correctamente",
-        data: results,
-        meta: {
-            timestamp: new Date().toISOString(),
-            page,
-            pageSize,
-            totalPages,
-            totalItems,
-            ...(Object.keys(filtersForMeta).length > 0 ? { filters: filtersForMeta } : {})
-        }
+        data: rows,
+        meta: buildMeta({ page, pageSize, totalItems: total, filters: filtersForMeta }),
     };
-}
-
-const toInt = (v, def) => {
-    const n = Number.parseInt(v, 10);
-    return Number.isFinite(n) && n > 0 ? n : def;
-};
-
-const escapeLike = (s) =>
-    String(s)
-        .replace(/\\/g, "\\\\")
-        .replace(/%/g, "\\%")
-        .replace(/_/g, "\\_");
-
-const isNonEmptyString = (v) => typeof v === "string" && v.trim() !== "";
-
-// Devuelve un objeto con solo claves cuyo valor no es null/undefined/"".
-function pickNonEmpty(obj) {
-    const out = {};
-    for (const [k, v] of Object.entries(obj)) {
-        if (v === null || v === undefined) continue;
-        if (typeof v === "string" && v.trim() === "") continue;
-        out[k] = v;
-    }
-    return out;
 }

@@ -1,5 +1,4 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
-import crypto from "crypto";
+import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01, sha256, emptyToNull } from "lightdata-tools";
 
 /**
  * Edita un usuario existente (versionado por did):
@@ -174,14 +173,3 @@ export async function editUsuario(dbConnection, req) {
         meta: { timestamp: new Date().toISOString() },
     };
 }
-
-// ---------------- Helpers ----------------
-const isDefined = (v) => v !== undefined && v !== null;
-const isNonEmpty = (v) => isDefined(v) && (typeof v !== "string" || v.trim() !== "");
-const emptyToNull = (v) => (typeof v === "string" && v.trim() === "" ? null : v);
-const number01 = (v) => {
-    const n = Number(v);
-    if (Number.isNaN(n)) return -1;
-    return n === 1 ? 1 : n === 0 ? 0 : -1;
-};
-const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");

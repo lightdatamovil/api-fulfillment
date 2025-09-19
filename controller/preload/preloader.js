@@ -1,6 +1,6 @@
 import { executeQuery } from "lightdata-tools"
 
-export async function bootstrap(dbConnection) {
+export async function preloader(dbConnection) {
 
     const queryProductos = `
           SELECT p.did AS did, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo, p.cm3
@@ -28,11 +28,11 @@ export async function bootstrap(dbConnection) {
     `;
     const results = await executeQuery(dbConnection, selectQuery, []);
 
-    const atributosMap = new Map();
+    const variantesMap = new Map();
 
     for (const row of results) {
-        if (!atributosMap.has(row.atributo_id)) {
-            atributosMap.set(row.atributo_id, {
+        if (!variantesMap.has(row.atributo_id)) {
+            variantesMap.set(row.atributo_id, {
                 nombre: row.nombre,
                 codigo: row.atributo_codigo,
                 did: row.atributo_id,
@@ -43,7 +43,7 @@ export async function bootstrap(dbConnection) {
         }
 
         if (row.valor_id) {
-            atributosMap.get(row.atributo_id).valores.push({
+            variantesMap.get(row.atributo_id).valores.push({
                 did: row.valor_id,
                 codigo: row.valor_codigo,
                 valor: row.valor_nombre,
@@ -51,7 +51,7 @@ export async function bootstrap(dbConnection) {
         }
     }
 
-    const atributos = Array.from(atributosMap.values());
+    const variantes = Array.from(variantesMap.values());
 
     const queryInsumos = ` SELECT * FROM insumos
         WHERE elim = 0 AND superado = 0
@@ -103,10 +103,10 @@ export async function bootstrap(dbConnection) {
 
     return {
         success: true,
-        message: "Inicio de sesión exitoso",
+        message: "Datos pre-cargados correctamente",
         data: {
             productos,
-            atributos,
+            variantes,
             insumos,
             clientes
         },

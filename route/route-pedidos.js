@@ -1,11 +1,11 @@
 import { Router } from "express"
-import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools"
-import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js"
+import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders } from "lightdata-tools"
+import { hostFulFillement, portFulFillement } from "../db.js"
 import mysql2 from "mysql2"
 
 const pedido = Router()
 
-pedido.post("/subida-masiva", verifyToken, async (req, res) => {
+pedido.post("/subida-masiva", async (req, res) => {
   const data = req.body
   const connection = getFFProductionDbConfig(data.idEmpresa, hostFulFillement, portFulFillement);
   const estadoRepetido = await Ordenes.esEstadoRepetido(connection, data.numero_venta, "pendiente")
@@ -88,7 +88,7 @@ pedido.post("/subida-masiva", verifyToken, async (req, res) => {
   }
 });
 
-pedido.post("/masivo", verifyToken(jwtSecret), async (req, res) => {
+pedido.post("/masivo", async (req, res) => {
   let dbConnection;
 
   try {
@@ -111,7 +111,7 @@ pedido.post("/masivo", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-pedido.get("/", verifyToken(jwtSecret), async (req, res) => {
+pedido.get("/", async (req, res) => {
   let dbConnection;
 
   try {
@@ -134,7 +134,7 @@ pedido.get("/", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-pedido.get("/:pedidoId", verifyToken(jwtSecret), async (req, res) => {
+pedido.get("/:pedidoId", async (req, res) => {
   let dbConnection;
 
   try {
@@ -157,7 +157,7 @@ pedido.get("/:pedidoId", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-pedido.put("/:pedidoId", verifyToken(jwtSecret), async (req, res) => {
+pedido.put("/:pedidoId", async (req, res) => {
   let dbConnection;
 
   try {
@@ -180,7 +180,7 @@ pedido.put("/:pedidoId", verifyToken(jwtSecret), async (req, res) => {
   }
 });
 
-pedido.delete("/:pedidoId", verifyToken(jwtSecret), async (req, res) => {
+pedido.delete("/:pedidoId", async (req, res) => {
   let dbConnection;
 
   try {

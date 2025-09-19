@@ -5,12 +5,12 @@ import pedido from "./route/route-pedidos.js";
 import insumos from "./route/insumos.js";
 import producto from "./route/producto.js";
 import publicacion from "./route/route-publicaciones.js";
-import atributo from "./route/atributos.js";
+import variantes from "./route/variantes.js";
 import usuarios from "./route/usuarios.js";
-import { logBlue, logRed } from "lightdata-tools";
-import redisClient from "./db.js";
+import { logBlue, logRed, verifyToken } from "lightdata-tools";
+import redisClient, { jwtSecret } from "./db.js";
 import auth from "./route/auth.js";
-import bootstrap from './route/bootstrap.js';
+import preload from './route/preload.js';
 
 const app = express();
 
@@ -21,14 +21,14 @@ app.use(cors());
 
 const PORT = process.env.PORT;
 
-app.use("/api/preload", bootstrap);
 app.use("/api/auth", auth);
-app.use("/api/atributos", atributo);
+app.use(verifyToken(jwtSecret));
+app.use("/api/preload", preload);
+app.use("/api/variantes", variantes);
 app.use("/api/clientes", clientes);
 app.use("/api/insumos", insumos);
 app.use("/api/pedidos", pedido);
 app.use("/api/productos", producto);
-
 app.use("/api/publicaciones", publicacion);
 app.use("/api/usuarios", usuarios);
 
