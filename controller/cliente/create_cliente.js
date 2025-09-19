@@ -25,6 +25,7 @@ export async function createCliente(db, req) {
         direcciones,
         contactos,
         cuentas,
+        depositos
     } = req.body || {};
     const { userId } = req.user ?? {};
 
@@ -107,21 +108,26 @@ export async function createCliente(db, req) {
     const insertedDirecciones = [];
     if (Array.isArray(direcciones) && direcciones.length > 0) {
         for (const d of direcciones) {
-            const dataStr = JSON.stringify(d ?? {});
+            const pais = isNonEmpty(d?.pais) ? String(d.pais).trim() : null;
+            const localidad = isNonEmpty(d?.localidad) ? String(d.localidad).trim() : null;
+            const calle = isNonEmpty(d?.calle) ? String(d.calle).trim() : null;
+            const numero = isNonEmpty(d?.numero) ? String(d.numero).trim() : null;
+            const cp = isNonEmpty(d?.cp) ? String(d.cp).trim() : null;
+
             const insDir = await executeQuery(
                 db,
                 `
           INSERT INTO clientes_direcciones
-            (didCliente, data, quien, superado, elim, autofecha)
+            (did_cliente, pais, localidad, calle, numero, cp, quien, superado, elim, autofecha)
           VALUES
-            (?, ?, ?, 0, 0, NOW())
+            (?, ?, ?,?, ?, ?, ?, 0, 0, NOW())
         `,
-                [clienteId, dataStr, userId],
+                [clienteId, pais, localidad, calle, numero, cp, userId],
                 true
             );
             const dirId = insDir.insertId;
             await executeQuery(db, `UPDATE clientes_direcciones SET did = ? WHERE id = ?`, [dirId, dirId], true);
-            insertedDirecciones.push({ id: dirId, did: dirId, didCliente: clienteId, data: JSON.parse(dataStr || "{}") });
+            insertedDirecciones.push({ id: dirId, did: dirId, did_cliente: clienteId, pais, localidad, calle, numero, cp, quien: userId, });
         }
     }
 
@@ -129,40 +135,36 @@ export async function createCliente(db, req) {
     const insertedContactos = [];
     if (Array.isArray(contactos) && contactos.length > 0) {
         for (const c of contactos) {
-            const tipo = Number(c?.tipo) || 0;
-            const valor = (c?.valor ?? "").toString().trim();
-            if (valor === "") {
-                throw new CustomException({
-                    title: "Datos de contacto inválidos",
-                    message: "Cada contacto debe incluir 'valor' (no vacío)",
-                    status: Status.badRequest,
-                });
-            }
+
+            const telefono = c.telefono ? String(c.telefono).trim() : null;
+            const email = c.email ? String(c.email).trim() : null;
+
             const insCont = await executeQuery(
                 db,
                 `
           INSERT INTO clientes_contactos
-            (didCliente, tipo, valor, quien, superado, elim, autofecha)
+            (did_cliente, telefono, email, quien, superado, elim, autofecha)
           VALUES
             (?, ?, ?, ?, 0, 0, NOW())
         `,
-                [clienteId, tipo, valor, userId],
+                [clienteId, telefono, email, userId],
                 true
             );
             const contId = insCont.insertId;
             await executeQuery(db, `UPDATE clientes_contactos SET did = ? WHERE id = ?`, [contId, contId], true);
-            insertedContactos.push({ id: contId, did: contId, didCliente: clienteId, tipo, valor });
+            insertedContactos.push({ id: contId, did: contId, did_cliente: clienteId, telefono, email });
         }
     }
 
     // ========= Cuentas (solo ALTA) =========
+    let ctaId;
     const insertedCuentas = [];
     if (Array.isArray(cuentas) && cuentas.length > 0) {
         for (const c of cuentas) {
             const flex = Number(c?.flex ?? c?.tipo) || 0; // tu modelo usa 'flex' como tipo
             const rawData = c?.data ?? {};
             const dataStr = JSON.stringify(rawData);
-            const depositos = (c?.depositos ?? "").toString();
+
             const titulo = (c?.titulo ?? "").toString();
 
             const ml_id_vendedor =
@@ -174,28 +176,50 @@ export async function createCliente(db, req) {
                 db,
                 `
           INSERT INTO clientes_cuentas
-            (didCliente, flex, data, depositos, titulo, ml_id_vendedor, ml_user, quien, superado, elim, autofecha)
+            (did_cliente, flex, data, titulo, ml_id_vendedor, ml_user, quien, superado, elim, autofecha)
           VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NOW())
+            (?, ?, ?, ?, ?, ?, ?,  0, 0, NOW())
         `,
-                [clienteId, flex, dataStr, depositos, titulo, ml_id_vendedor, ml_user, userId],
+                [clienteId, flex, dataStr, titulo, ml_id_vendedor, ml_user, userId],
                 true
             );
-            const ctaId = insCta.insertId;
+            ctaId = insCta.insertId;
             await executeQuery(db, `UPDATE clientes_cuentas SET did = ? WHERE id = ?`, [ctaId, ctaId], true);
             insertedCuentas.push({
                 id: ctaId,
                 did: ctaId,
-                didCliente: clienteId,
+                did_cliente: clienteId,
                 flex,
                 data: rawData,
-                depositos,
                 titulo,
                 ml_id_vendedor,
                 ml_user,
             });
         }
+
+        const insertDepositos = [];
+        if (Array.isArray(depositos) && depositos.length > 0) {
+            for (const d of depositos) {
+                const did_deposito = Number(d?.did_deposito) || 0;
+
+                await executeQuery(
+                    db,
+                    `
+              INSERT INTO clientes_cuentas_depositos
+                (did_cliente_cuenta, did_deposito, quien, superado, elim, autofecha)
+              VALUES
+                (?, ?, ?, 0, 0, NOW())
+            `,
+                    [ctaId, did_deposito, userId],
+
+                );
+                insertDepositos.push({ did_cliente_cuenta: ctaId, did_deposito, });
+            }
+        }
     }
+
+
+
 
     // ---------- Respuesta ----------
     return {

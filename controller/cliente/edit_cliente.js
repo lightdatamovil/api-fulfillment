@@ -36,6 +36,7 @@ export async function editCliente(db, req) {
         direccionesData,
         contactosData,
         cuentasData,
+        depositosData
     } = req.body ?? {};
 
     if (!isDefined(userId)) {
@@ -150,19 +151,24 @@ export async function editCliente(db, req) {
             const action = String(item?.action || "").toLowerCase();
 
             if (action === "create") {
-                const dataStr = JSON.stringify(item ?? {});
+                const pais = item?.pais ? String(item.pais).trim() : null;
+                const localidad = item?.localidad ? String(item.localidad).trim() : null;
+                const calle = item?.calle ? String(item.calle).trim() : null;
+                const numero = item?.numero ? String(item.numero).trim() : null;
+                const cp = item?.cp ? String(item.cp).trim() : null;
+                const address_line = calle && numero ? `${calle} ${numero}` : calle || null;
                 const ins = await executeQuery(
                     db,
                     `
-            INSERT INTO clientes_direcciones (didCliente, data, quien, superado, elim, autofecha)
-            VALUES (?, ?, ?, 0, 0, NOW())
+            INSERT INTO clientes_direcciones (didCliente ,pais,localidad , calle,numero ,cp,  address_line, quien, superado, elim, autofecha)
+            VALUES (?, ?, ?,?, ?, ?, ?, ?, 0, 0, NOW())
           `,
-                    [Number(clienteId), dataStr, userId],
+                    [Number(clienteId), pais, localidad, address_line, cp, userId],
                     true
                 );
                 const id = ins.insertId;
                 await executeQuery(db, `UPDATE clientes_direcciones SET did = ? WHERE id = ?`, [id, id], true);
-                dirCreated.push({ id, did: id, didCliente: Number(clienteId), data: JSON.parse(dataStr || "{}") });
+                dirCreated.push({ id, did: id, didCliente: Number(clienteId), pais, localidad, calle, numero, cp });
             }
             else if (action === "delete") {
                 const didVal = Number(item?.did);
@@ -199,27 +205,21 @@ export async function editCliente(db, req) {
             const action = String(item?.action || "").toLowerCase();
 
             if (action === "create") {
-                const tipo = Number(item?.tipo) || 0;
-                const valor = (item?.valor ?? "").toString().trim();
-                if (valor === "") {
-                    throw new CustomException({
-                        title: "Datos de contacto inválidos",
-                        message: "contactosData.create requiere 'valor' no vacío",
-                        status: Status.badRequest,
-                    });
-                }
+                const telefono = item?.telefono ? String(item.telefono).trim() : null;
+                const email = item?.email ? String(item.email).trim() : null;
+
                 const ins = await executeQuery(
                     db,
                     `
-            INSERT INTO clientes_contactos (didCliente, tipo, valor, quien, superado, elim, autofecha)
+            INSERT INTO clientes_contactos (didCliente, telefono, email, quien, superado, elim, autofecha)
             VALUES (?, ?, ?, ?, 0, 0, NOW())
           `,
-                    [Number(clienteId), tipo, valor, userId],
+                    [Number(clienteId), telefono, email, userId],
                     true
                 );
                 const id = ins.insertId;
                 await executeQuery(db, `UPDATE clientes_contactos SET did = ? WHERE id = ?`, [id, id], true);
-                contCreated.push({ id, did: id, didCliente: Number(clienteId), tipo, valor });
+                contCreated.push({ id, did: id, didCliente: Number(clienteId), telefono, email });
             }
             else if (action === "delete") {
                 const didVal = Number(item?.did);
@@ -259,7 +259,7 @@ export async function editCliente(db, req) {
                 const flex = Number(item?.flex ?? item?.tipo) || 0; // tu modelo usa 'flex' como tipo
                 const rawData = item?.data ?? {};
                 const dataStr = JSON.stringify(rawData);
-                const depositos = (item?.depositos ?? "").toString();
+
                 const titulo = (item?.titulo ?? "").toString();
 
                 const ml_id_vendedor =
@@ -271,18 +271,18 @@ export async function editCliente(db, req) {
                     db,
                     `
             INSERT INTO clientes_cuentas
-              (didCliente, flex, data, depositos, titulo, ml_id_vendedor, ml_user, quien, superado, elim, autofecha)
+              (didCliente, flex, data, titulo, ml_id_vendedor, ml_user, quien, superado, elim, autofecha)
             VALUES
-              (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NOW())
+              (?, ?, ?, ?, ?,  ?, ?, 0, 0, NOW())
           `,
-                    [Number(clienteId), flex, dataStr, depositos, titulo, ml_id_vendedor, ml_user, userId],
+                    [Number(clienteId), flex, dataStr, titulo, ml_id_vendedor, ml_user, userId],
                     true
                 );
                 const id = ins.insertId;
                 await executeQuery(db, `UPDATE clientes_cuentas SET did = ? WHERE id = ?`, [id, id], true);
                 ctaCreated.push({
                     id, did: id, didCliente: Number(clienteId), flex,
-                    data: rawData, depositos, titulo, ml_id_vendedor, ml_user
+                    data: rawData, titulo, ml_id_vendedor, ml_user
                 });
             }
             else if (action === "delete") {
@@ -311,6 +311,25 @@ export async function editCliente(db, req) {
             }
         }
     }
+    const insertDepositos = [];
+    if (Array.isArray(depositosData) && depositosData.length > 0) {
+        for (const d of depositosData) {
+            const did_cliente_cuenta = Number(d?.did_cliente_cuenta) || 0;
+            const did_deposito = Number(d?.did_deposito) || 0;
+
+            const resultDep = await executeQuery(db, `INSERT INTO clientes_cuentas_depositos (did_cliente_cuenta, did_deposito) VALUES (?, ?)`, [did_cliente_cuenta, did_deposito], true);
+
+            const resultDepId = resultDep.insertId;
+
+            await executeQuery(db, `UPDATE clientes_cuentas_depositos SET did = ? WHERE id = ?`, [resultDepId, resultDepId], true);
+            await executeQuery(db, `UPDATE clientes_cuentas_depositos SET superado = 1 where did_deposito = ? AND did_cliente_cuenta = ?   AND id <> ?`, [did_deposito, did_cliente_cuenta, resultDepId], true);
+            insertDepositos.push({ did_cliente_cuenta, did_deposito, id: resultDepId, did: resultDepId });//id y did son iguales
+
+
+
+
+        }
+    }
 
     // 8) Respuesta
     return {
@@ -331,6 +350,8 @@ export async function editCliente(db, req) {
                 created: ctaCreated.length ? ctaCreated : undefined,
                 deleted: ctaDeleted.length ? ctaDeleted : undefined
             }
+            ,
+            depositosData: insertDepositos.length ? insertDepositos : undefined
         },
         meta: { timestamp: new Date().toISOString() }
     };

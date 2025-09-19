@@ -2,11 +2,11 @@ import { Router } from "express";
 import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders, verifyToken } from "lightdata-tools";
 import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
 import mysql2 from "mysql2";
-import { getFilteredAtributos } from "../controller/atributo/get_filtered_atributos.js";
-import { getAtributoById } from "../controller/atributo/get_atributo_by_id.js";
-import { deleteAtributo } from "../controller/atributo/delete_atributo.js";
-import { createAtributo } from "../controller/atributo/create_atributo.js";
-import { editAtributo } from "../controller/atributo/edit_atributo.js";
+import { getFilteredAtributos } from "../controller/variantes/get_filtered_atributos.js";
+import { getAtributoById } from "../controller/variantes/get_atributo_by_id.js";
+import { deleteAtributo } from "../controller/variantes/delete_atributo.js";
+import { createAtributo } from "../controller/variantes/create-variante.js";
+import { editAtributo } from "../controller/variantes/edit_atributo.js";
 
 const atributos = Router();
 

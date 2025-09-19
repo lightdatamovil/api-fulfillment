@@ -141,13 +141,20 @@ export async function createAtributo(dbConnection, req) {
     };
 }
 
-// ---------------- Helpers ----------------
-const isDefined = (v) => v !== undefined && v !== null;
-const isNonEmpty = (v) =>
-    isDefined(v) && (typeof v !== "string" || v.trim() !== "");
 
-const number01 = (v) => {
-    const n = Number(v);
-    if (Number.isNaN(n)) return -1;
-    return n === 1 ? 1 : n === 0 ? 0 : -1;
-};
+export async function createVariante(dbConnection, req) {
+    const { codigo, nombre, descripcion, habilitado, orden, atributoValores } = req.body;
+    const { userId } = req.user;
+
+
+
+    // ---------------- Helpers ----------------
+    const isDefined = (v) => v !== undefined && v !== null;
+    const isNonEmpty = (v) =>
+        isDefined(v) && (typeof v !== "string" || v.trim() !== "");
+
+    const number01 = (v) => {
+        const n = Number(v);
+        if (Number.isNaN(n)) return -1;
+        return n === 1 ? 1 : n === 0 ? 0 : -1;
+    };

@@ -14,12 +14,13 @@ clientes.post("/", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
   try {
+    /*
     verifyHeaders(req, []);
     verifyAll(req, [], {
       required: ['nombre_fantasia', 'razon_social', 'codigo'],
       optional: []
     });
-
+*/
     const { companyId } = req.user;
 
     const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
@@ -39,13 +40,13 @@ clientes.post("/", verifyToken(jwtSecret), async (req, res) => {
 clientes.put("/:clienteId", verifyToken(jwtSecret), async (req, res) => {
   let dbConnection;
 
-  try {
+  try {/*
     verifyHeaders(req, []);
     verifyAll(req, ['clienteId'], {
       required: ['nombre_fantasia', 'habilitado', 'observaciones', 'direccionesData', 'contactosData', 'cuentasData'],
       optional: []
     });
-
+*/
     const { companyId } = req.user;
 
     const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
