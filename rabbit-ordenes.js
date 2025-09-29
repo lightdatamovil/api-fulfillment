@@ -1,10 +1,7 @@
-// worker_pedidos_consumer.js (ESM)
-// Ejecuta: node worker_pedidos_consumer.js
 
 import amqp from "amqplib";
 import { createClient as createRedisClient } from "redis";
 import axios from "axios";
-import mysql from "mysql2/promise";
 import { connectMySQL, executeQuery } from "lightdata-tools";
 import { getFFProductionDbConfig } from "lightdata-tools";
 import { hostFulFillement, portFulFillement } from "./db.js";
@@ -27,10 +24,8 @@ export async function openEmpresaConnection(idempresa) {
 
   return conn;
 }
-
 const RABBITMQ_URL = "amqp://lightdata:QQyfVBKRbw6fBb@158.69.131.226:5672";
 
-// ---------- Redis ----------
 const redisClient = createRedisClient({
   socket: { host: "192.99.190.137", port: 50301 },
   password: "sdJmdxXC8luknTrqmHceJS48NTyzExQg",
@@ -39,7 +34,7 @@ redisClient.on("error", (err) =>
   console.error("[redis:error]", { err: err?.message || err })
 );
 
-// ---------- Redis getters ----------
+
 async function getTokenForSeller(seller_id) {
   if (!redisClient.isOpen) await redisClient.connect();
   const token = await redisClient.hGet("token", String(seller_id));
@@ -51,7 +46,7 @@ async function getSellerData(seller_id) {
   return raw ? JSON.parse(raw) : null;
 }
 
-// ---------- ML fetch ----------
+
 async function obtenerDatosEnvioML(resource, token, corrId) {
   try {
     const url = `https://api.mercadolibre.com${resource}`;
@@ -71,15 +66,13 @@ async function obtenerDatosEnvioML(resource, token, corrId) {
   }
 }
 
-// ---------- Cache simple ----------
-const ORDENES_CACHE = Object.create(null); // { `${seller_id}_${number}`: { did } }
-const ESTADOS_CACHE = Object.create(null); // { did: status }
+const ORDENES_CACHE = Object.create(null);
+const ESTADOS_CACHE = Object.create(null);
 setInterval(() => {
   for (const k of Object.keys(ESTADOS_CACHE)) delete ESTADOS_CACHE[k];
   console.log("[cache:estados:cleared]");
 }, 1000 * 60 * 60 * 24 * 14);
 
-// ---------- Queries básicas ----------
 async function getPedidoDidByNumber(db, number, corrId) {
   console.log("[pedido:byNumber:start]", { corrId, number });
 
@@ -110,7 +103,6 @@ async function getStatusVigente(db, did, corrId) {
   return s;
 }
 
-// ---------- Mapper ML → payload pedido ----------
 function mapMlToPedidoPayload(ml, sellerData) {
   const firstItem = ml?.order_items?.[0];
   const variation_attributes = firstItem?.item?.variation_attributes || null;
@@ -153,7 +145,6 @@ function mapMlToPedidoPayload(ml, sellerData) {
   };
 }
 
-// ---------- CREATE pedido ----------
 async function createPedido(db, payload, userId, corrId) {
   try {
     console.log("[pedido:create:start]", { corrId, number: payload?.number });
@@ -271,8 +262,6 @@ async function createPedido(db, payload, userId, corrId) {
   }
 }
 
-
-// ---------- UPDATE status in-place + historial versionado ----------
 async function updatePedidoStatusWithHistory(db, did, newStatus, userId, fecha = new Date(), alsoInsertItemsPayload = null, corrId) {
   try {
     console.log("[pedido:status:update:start]", { corrId, did, to: newStatus });
@@ -294,7 +283,7 @@ async function updatePedidoStatusWithHistory(db, did, newStatus, userId, fecha =
         ];
         const iph = icol.map(() => "?");
         const ival = [
-          did, it.seller_sku ?? "", it.codigo ?? null, it.descripcion ?? null, it.ml_id ?? null,
+          did, it.seller_sku ?? "", it.codigo ?? null, it.descripcion ?? null, it.ml_id ?? "",
           it.dimensions ?? null, it.variacion ?? null, it.id_variacion ?? null,
           it.user_product_id ?? null, Number(it.cantidad),
           it.variation_attributes ? JSON.stringify(it.variation_attributes) : null,
@@ -340,7 +329,7 @@ async function updatePedidoStatusWithHistory(db, did, newStatus, userId, fecha =
   }
 }
 
-// ---------- Proceso por mensaje ----------
+
 async function processOrderMessage(rawMsg) {
   const t0 = Date.now();
   let corrId = "unknown";
@@ -447,7 +436,7 @@ async function processOrderMessage(rawMsg) {
   }
 }
 
-// ---------- Listener RabbitMQ ----------
+
 async function listenToChannel(channelName) {
   let connection = null;
   let channel = null;
@@ -508,7 +497,7 @@ async function listenToChannel(channelName) {
   await connect();
 }
 
-// ---------- main ----------
+
 (async function main() {
   try {
     await redisClient.connect();
