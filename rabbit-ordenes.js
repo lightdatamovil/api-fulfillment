@@ -232,7 +232,7 @@ async function createPedido(db, payload, userId, corrId) {
         it.descripcion ?? null,
         mlItemIdFinal, // <= nunca null
         it.dimensions ?? null,
-        it.variacion ?? null,
+        it.variacion ?? "",
         it.id_variacion ?? null,
         it.user_product_id ?? null,
         Number(it.cantidad),
