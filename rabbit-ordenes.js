@@ -389,7 +389,7 @@ async function processOrderMessage(rawMsg) {
     });
     throw e;
   } finally {
-    try { await db?.end(); console.log("[db:closed]", { corrId, ms: Date.now() - t0 }); } catch (e) {
+    try { await db?.end(); } catch (e) {
       //    console.warn("[db:close:warn]", { corrId, err: e?.message || e });
     }
   }
