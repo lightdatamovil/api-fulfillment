@@ -368,6 +368,8 @@ async function processOrderMessage(rawMsg) {
 
     const mlOrder = await obtenerDatosEnvioML(resource, token, corrId);
     if (!mlOrder) {
+      console.log("[ml:order:not-found]", { corrId, resource });
+
       console.warn("[pedidos:skip:ml-order-null]", { corrId });
       return { ok: false, error: "ml-order-null" };
     }
