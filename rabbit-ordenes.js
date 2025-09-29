@@ -280,7 +280,6 @@ async function processOrderMessage(rawMsg) {
 
   try {
     const mlOrder = await obtenerDatosEnvioML(resource, token);
-    console.log("obtenner dastosssss:", { seller_id, resource });
     if (!mlOrder) return { ok: false, error: "ml-order-null" };
 
     const number = String(mlOrder.id);
@@ -290,6 +289,7 @@ async function processOrderMessage(rawMsg) {
     // ¿Existe?
     let did = ORDENES_CACHE[keyCache]?.did || (await getPedidoDidByNumber(db, number));
     const isNew = !did;
+    console.log("no existe diddddd:", { seller_id, resource });
 
     if (isNew) {
       console.log("9999999999999:", { seller_id, resource });
