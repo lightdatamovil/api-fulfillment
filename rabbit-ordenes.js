@@ -110,86 +110,21 @@ setInterval(() => {
   console.log("[cache:estados:cleared]");
 }, 1000 * 60 * 60 * 24 * 14);
 
-async function qWithTimeout(db, sql, params = [], label = "query", timeoutMs = 12000) {
-  const p = executeQuery(db, sql, params);
-  const to = new Promise((_, rej) =>
-    setTimeout(() => rej(new Error(`Timeout ${label} after ${timeoutMs}ms`)), timeoutMs)
-  );
-  try {
-    return await Promise.race([p, to]);
-  } catch (e) {
-    // 🔎 EXTRA DEBUG al fallar
-    try {
-      const [procs] = await db.query(`SHOW PROCESSLIST`);
-      console.error("[db:processlist:on-timeout]", {
-        label,
-        rows: procs?.length,
-        sample: procs?.slice(0, 10) // primeras 10
-      });
-      const [openTbl] = await db.query(`SHOW OPEN TABLES WHERE \`Table\`='pedidos'`);
-      console.error("[db:open_tables:on-timeout]", openTbl);
-    } catch (e2) {
-      console.warn("[db:debug:failed]", e2?.message || e2);
-    }
-    throw e;
-  }
-}
-
-
-// ✅ chequeo rápido de conexión y contexto
-async function checkDbConnection(db, corrId = "") {
-  const t0 = Date.now();
-  const [pingRows] = await db.query("SELECT 1 AS ok");
-  console.log("[db:ping]", { corrId, ok: pingRows?.[0]?.ok === 1, ms: Date.now() - t0 });
-
-  const [dbRows] = await db.query("SELECT DATABASE() AS db");
-  console.log("[db:database]", { corrId, database: dbRows?.[0]?.db });
-
-  const [userRows] = await db.query("SELECT CURRENT_USER() AS user");
-  console.log("[db:user]", { corrId, user: userRows?.[0]?.user });
-
-  const [verRows] = await db.query("SHOW VARIABLES LIKE 'version'");
-  const version = Array.isArray(verRows) && verRows[0] ? (verRows[0].Value || verRows[0].value) : null;
-  console.log("[db:version]", { corrId, version });
-}
-
+// ---------- Queries básicas ----------
 async function getPedidoDidByNumber(db, number, corrId) {
-  const numStr = String(number).trim();
-  console.log("[pedido:byNumber:start]", { corrId, number: numStr });
+  console.log("[pedido:byNumber:start]", { corrId, number });
 
-  // 👇 chequeo de conexión (te confirma DB/usuario y latencia)
-  try {
-    await checkDbConnection(db, corrId);
-  } catch (e) {
-    console.warn("[db:check:warn]", { corrId, err: e?.message || e });
-  }
-
-  // Evitar esperas por locks de escritura
-  try {
-    await db.query(`SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED`);
-    await db.query(`SET SESSION innodb_lock_wait_timeout = 3`);
-  } catch (e) {
-    console.warn("[db:session:warn]", { corrId, err: e?.message || e });
-  }
-
-  // 🚀 Hotfix: usamos MAX(did) en vez de ORDER BY
-  const rows = await qWithTimeout(
+  const rows = await executeQuery(
     db,
-    `/*+ MAX_EXECUTION_TIME(8000) */
-     SELECT MAX(did) AS did
-       FROM pedidos
-      WHERE number = ?
-        AND elim = 0`,
-    [numStr],
-    "getPedidoDidByNumber",
-    12000
+    `SELECT did FROM pedidos WHERE number = ? AND elim = 0 ORDER BY autofecha DESC LIMIT 1`,
+    [number], true
   );
+  const did = rows[0].did || 0;
+  console.log("[db:pedido:byNumber]", { corrId, number, did });
+  console.log("[diddddddddddddddddddddddddd]", did)
 
-  const did = rows?.length && rows[0]?.did ? Number(rows[0].did) : 0;
-  console.log("[db:pedido:byNumber]", { corrId, number: numStr, did });
   return did;
 }
-
 async function getStatusVigente(db, did, corrId) {
   if (ESTADOS_CACHE[did]) {
     console.log("[cache:status:hit]", { corrId, did, status: ESTADOS_CACHE[did] });
