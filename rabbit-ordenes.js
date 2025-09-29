@@ -268,7 +268,7 @@ async function processOrderMessage(rawMsg) {
   if (!sellersPermitidos.includes(seller_id)) {
     return { ok: true, skipped: "seller-no-permitido" };
   }
-  console.log("Mensaje recibido:", { seller_id, resource });
+  console.log("Msadasdasdasdasdasdsa:", { seller_id, resource });
 
   const token = await getTokenForSeller(seller_id);
   if (!token) return { ok: false, error: "token-not-found" };
