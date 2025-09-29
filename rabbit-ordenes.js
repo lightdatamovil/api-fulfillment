@@ -352,7 +352,7 @@ async function processOrderMessage(rawMsg) {
       console.warn("[pedidos:skip:token-not-found]", { corrId });
       return { ok: false, error: "token-not-found" };
     }
-    console.log("[token:ok]", { corrId });
+    console.log("[token:ok]", { token });
 
     const sellerData = await getSellerData(seller_id);
     if (!sellerData) {
