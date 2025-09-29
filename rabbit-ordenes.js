@@ -272,14 +272,15 @@ async function processOrderMessage(rawMsg) {
 
   const token = await getTokenForSeller(seller_id);
   if (!token) return { ok: false, error: "token-not-found" };
-
+  console.log("tokkkkeeeen:", { seller_id, resource });
   const sellerData = await getSellerData(seller_id);
   if (!sellerData) return { ok: false, error: "seller-data-not-found" };
-
+  console.log("sellerdataaaa:", { seller_id, resource });
   const db = await getConnectionLocal(sellerData.idempresa);
 
   try {
     const mlOrder = await obtenerDatosEnvioML(resource, token);
+    console.log("obtenner dastosssss:", { seller_id, resource });
     if (!mlOrder) return { ok: false, error: "ml-order-null" };
 
     const number = String(mlOrder.id);
