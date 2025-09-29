@@ -14,7 +14,9 @@ const redisClient = createRedisClient({
   socket: { host: "192.99.190.137", port: 50301 },
   password: "sdJmdxXC8luknTrqmHceJS48NTyzExQg",
 });
-redisClient.on("error", (err) => console.error("Redis error:", err));
+redisClient.on("error", (err) =>
+  console.error("[redis:error]", { err: err?.message || err })
+);
 
 // ---------- Conexión DB por empresa ----------
 async function getConnectionLocal(idempresa) {
@@ -54,15 +56,21 @@ async function getSellerData(seller_id) {
 }
 
 // ---------- ML fetch ----------
-async function obtenerDatosEnvioML(resource, token) {
+async function obtenerDatosEnvioML(resource, token, corrId) {
   try {
     const url = `https://api.mercadolibre.com${resource}`;
+    console.log("[ml:fetch:start]", { corrId, url });
     const { data } = await axios.get(url, {
       headers: { Authorization: `Bearer ${token}` },
+      timeout: 15000,
     });
+    console.log("[ml:fetch:ok]", { corrId, hasId: !!data?.id });
     return data?.id ? data : null;
   } catch (e) {
-    console.error("ML fetch error:", e?.message || e);
+    console.error("[ml:fetch:error]", {
+      corrId,
+      err: e?.message || e,
+    });
     return null;
   }
 }
@@ -72,25 +80,32 @@ const ORDENES_CACHE = Object.create(null); // { `${seller_id}_${number}`: { did 
 const ESTADOS_CACHE = Object.create(null); // { did: status }
 setInterval(() => {
   for (const k of Object.keys(ESTADOS_CACHE)) delete ESTADOS_CACHE[k];
+  console.log("[cache:estados:cleared]");
 }, 1000 * 60 * 60 * 24 * 14);
 
 // ---------- Queries básicas ----------
-async function getPedidoDidByNumber(db, number) {
+async function getPedidoDidByNumber(db, number, corrId) {
   const rows = await executeQuery(
     db,
     `SELECT did FROM pedidos WHERE number = ? AND elim = 0 ORDER BY autofecha DESC LIMIT 1`,
     [number]
   );
-  return rows?.length ? Number(rows[0].did) : 0;
+  const did = rows?.length ? Number(rows[0].did) : 0;
+  console.log("[db:pedido:byNumber]", { corrId, number, did });
+  return did;
 }
-async function getStatusVigente(db, did) {
-  if (ESTADOS_CACHE[did]) return ESTADOS_CACHE[did];
+async function getStatusVigente(db, did, corrId) {
+  if (ESTADOS_CACHE[did]) {
+    console.log("[cache:status:hit]", { corrId, did, status: ESTADOS_CACHE[did] });
+    return ESTADOS_CACHE[did];
+  }
   const rows = await executeQuery(
     db,
     `SELECT status FROM pedidos WHERE did = ? AND superado = 0 AND elim = 0 LIMIT 1`,
     [did]
   );
   const s = rows?.length ? rows[0].status : null;
+  console.log("[db:pedido:status]", { corrId, did, status: s });
   if (s != null) ESTADOS_CACHE[did] = s;
   return s;
 }
@@ -138,82 +153,37 @@ function mapMlToPedidoPayload(ml, sellerData) {
 }
 
 // ---------- CREATE pedido ----------
-async function createPedido(db, payload, userId) {
-  const cols = [
-    "did_cuenta", "status", "number", "fecha_venta", "buyer_id", "buyer_nickname",
-    "buyer_name", "buyer_last_name", "total_amount", "ml_shipment_id", "ml_id",
-    "ml_pack_id", "site_id", "currency_id", "observaciones", "armado", "descargado",
-    "quien_armado", "quien", "superado", "elim"
-  ];
-  const ph = cols.map(() => "?");
-  const vals = [
-    payload.did_cuenta, payload.status, payload.number, payload.fecha_venta,
-    payload.buyer_id, payload.buyer_nickname, payload.buyer_name, payload.buyer_last_name,
-    payload.total_amount, payload.ml_shipment_id, payload.ml_id, payload.ml_pack_id,
-    payload.site_id, payload.currency_id, payload.observaciones ?? "",
-    payload.armado ?? 0, payload.descargado ?? 0, payload.quien_armado ?? 0,
-    userId ?? null, 0, 0
-  ];
-  const ins = await executeQuery(
-    db,
-    `INSERT INTO pedidos (${cols.join(",")}) VALUES (${ph.join(",")})`,
-    vals,
-    true
-  );
-  if (!ins?.insertId) throw new Error("No se pudo insertar pedido");
-  const id = ins.insertId;
-
-  await executeQuery(db, `UPDATE pedidos SET did = ? WHERE id = ?`, [id, id], true);
-  const did = id;
-
-  // Items
-  for (const it of (payload.items || [])) {
-    if (!it || Number(it.cantidad) <= 0) continue;
-    const icol = [
-      "did_pedido", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
-      "variacion", "id_variacion", "user_product_id", "cantidad", "variation_attributes",
-      "imagen", "quien", "superado", "elim"
+async function createPedido(db, payload, userId, corrId) {
+  try {
+    console.log("[pedido:create:start]", { corrId, number: payload?.number });
+    const cols = [
+      "did_cuenta", "status", "number", "fecha_venta", "buyer_id", "buyer_nickname",
+      "buyer_name", "buyer_last_name", "total_amount", "ml_shipment_id", "ml_id",
+      "ml_pack_id", "site_id", "currency_id", "observaciones", "armado", "descargado",
+      "quien_armado", "quien", "superado", "elim"
     ];
-    const iph = icol.map(() => "?");
-    const ival = [
-      did, it.seller_sku ?? "", it.codigo ?? null, it.descripcion ?? null, it.ml_id ?? null,
-      it.dimensions ?? null, it.variacion ?? null, it.id_variacion ?? null,
-      it.user_product_id ?? null, Number(it.cantidad),
-      it.variation_attributes ? JSON.stringify(it.variation_attributes) : null,
-      it.imagen ?? null, userId ?? null, 0, 0
+    const ph = cols.map(() => "?");
+    const vals = [
+      payload.did_cuenta, payload.status, payload.number, payload.fecha_venta,
+      payload.buyer_id, payload.buyer_nickname, payload.buyer_name, payload.buyer_last_name,
+      payload.total_amount, payload.ml_shipment_id, payload.ml_id, payload.ml_pack_id,
+      payload.site_id, payload.currency_id, payload.observaciones ?? "",
+      payload.armado ?? 0, payload.descargado ?? 0, payload.quien_armado ?? 0,
+      userId ?? null, 0, 0
     ];
-    await executeQuery(
+    const ins = await executeQuery(
       db,
-      `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph.join(",")})`,
-      ival,
+      `INSERT INTO pedidos (${cols.join(",")}) VALUES (${ph.join(",")})`,
+      vals,
       true
     );
-  }
+    if (!ins?.insertId) throw new Error("No se pudo insertar pedido");
+    const id = ins.insertId;
+    await executeQuery(db, `UPDATE pedidos SET did = ? WHERE id = ?`, [id, id], true);
+    const did = id;
 
-  // Historial inicial
-  await executeQuery(
-    db,
-    `INSERT INTO pedidos_historial (did_pedido, estado, quien, superado, elim) VALUES (?, ?, ?, 0, 0)`,
-    [did, payload.status || "created", userId ?? null],
-    true
-  );
-
-  return did;
-}
-
-// ---------- UPDATE status in-place + historial versionado ----------
-async function updatePedidoStatusWithHistory(db, did, newStatus, userId, fecha = new Date(), alsoInsertItemsPayload = null) {
-  // UPDATE in-place del status
-  await executeQuery(
-    db,
-    `UPDATE pedidos SET status = ?, quien = ? WHERE did = ? AND superado = 0 AND elim = 0`,
-    [newStatus, userId ?? null, did],
-    true
-  );
-
-  // (Opcional) insertar items también en cambio de estado (como tu script viejo)
-  if (alsoInsertItemsPayload && Array.isArray(alsoInsertItemsPayload.items)) {
-    for (const it of alsoInsertItemsPayload.items) {
+    console.log("[pedido:create:items:start]", { corrId, did, items: (payload.items || []).length });
+    for (const it of (payload.items || [])) {
       if (!it || Number(it.cantidad) <= 0) continue;
       const icol = [
         "did_pedido", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
@@ -235,75 +205,163 @@ async function updatePedidoStatusWithHistory(db, did, newStatus, userId, fecha =
         true
       );
     }
-  }
 
-  // Historial versionado (supera vigente e inserta nuevo)
-  await executeQuery(
-    db,
-    `UPDATE pedidos_historial SET superado = 1 WHERE did_pedido = ? AND superado = 0 AND elim = 0`,
-    [did],
-    true
-  );
-  const insH = await executeQuery(
-    db,
-    `INSERT INTO pedidos_historial (did, did_pedido, estado, fecha, quien, superado, elim)
-     VALUES (0, ?, ?, ?, ?, 0, 0)`,
-    [did, newStatus, fecha, userId ?? null],
-    true
-  );
-  const idh = insH?.insertId;
-  if (idh) {
-    await executeQuery(db, `UPDATE pedidos_historial SET did = ? WHERE id = ?`, [idh, idh], true);
+    await executeQuery(
+      db,
+      `INSERT INTO pedidos_historial (did_pedido, estado, quien, superado, elim) VALUES (?, ?, ?, 0, 0)`,
+      [did, payload.status || "created", userId ?? null],
+      true
+    );
+
+    console.log("[pedido:create:ok]", { corrId, did, number: payload.number });
+    return did;
+  } catch (e) {
+    console.error("[pedido:create:error]", {
+      corrId,
+      number: payload?.number,
+      err: e?.message || e,
+      stack: e?.stack,
+    });
+    throw e;
+  }
+}
+
+// ---------- UPDATE status in-place + historial versionado ----------
+async function updatePedidoStatusWithHistory(db, did, newStatus, userId, fecha = new Date(), alsoInsertItemsPayload = null, corrId) {
+  try {
+    console.log("[pedido:status:update:start]", { corrId, did, to: newStatus });
+    await executeQuery(
+      db,
+      `UPDATE pedidos SET status = ?, quien = ? WHERE did = ? AND superado = 0 AND elim = 0`,
+      [newStatus, userId ?? null, did],
+      true
+    );
+
+    if (alsoInsertItemsPayload && Array.isArray(alsoInsertItemsPayload.items)) {
+      console.log("[pedido:status:update:items:start]", { corrId, did, items: alsoInsertItemsPayload.items.length });
+      for (const it of alsoInsertItemsPayload.items) {
+        if (!it || Number(it.cantidad) <= 0) continue;
+        const icol = [
+          "did_pedido", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
+          "variacion", "id_variacion", "user_product_id", "cantidad", "variation_attributes",
+          "imagen", "quien", "superado", "elim"
+        ];
+        const iph = icol.map(() => "?");
+        const ival = [
+          did, it.seller_sku ?? "", it.codigo ?? null, it.descripcion ?? null, it.ml_id ?? null,
+          it.dimensions ?? null, it.variacion ?? null, it.id_variacion ?? null,
+          it.user_product_id ?? null, Number(it.cantidad),
+          it.variation_attributes ? JSON.stringify(it.variation_attributes) : null,
+          it.imagen ?? null, userId ?? null, 0, 0
+        ];
+        await executeQuery(
+          db,
+          `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph.join(",")})`,
+          ival,
+          true
+        );
+      }
+    }
+
+    await executeQuery(
+      db,
+      `UPDATE pedidos_historial SET superado = 1 WHERE did_pedido = ? AND superado = 0 AND elim = 0`,
+      [did],
+      true
+    );
+    const insH = await executeQuery(
+      db,
+      `INSERT INTO pedidos_historial (did, did_pedido, estado, fecha, quien, superado, elim)
+       VALUES (0, ?, ?, ?, ?, 0, 0)`,
+      [did, newStatus, fecha, userId ?? null],
+      true
+    );
+    const idh = insH?.insertId;
+    if (idh) {
+      await executeQuery(db, `UPDATE pedidos_historial SET did = ? WHERE id = ?`, [idh, idh], true);
+    }
+
+    console.log("[pedido:status:update:ok]", { corrId, did, to: newStatus });
+  } catch (e) {
+    console.error("[pedido:status:update:error]", {
+      corrId,
+      did,
+      to: newStatus,
+      err: e?.message || e,
+      stack: e?.stack,
+    });
+    throw e;
   }
 }
 
 // ---------- Proceso por mensaje ----------
 async function processOrderMessage(rawMsg) {
-  const datain = JSON.parse(rawMsg);
-  const seller_id = String(datain.sellerid);
-  const resource = datain.resource;
-
-  // Filtro de sellers permitidos
-  const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
-  if (!sellersPermitidos.includes(seller_id)) {
-    return { ok: true, skipped: "seller-no-permitido" };
-  }
-
-
-  const token = await getTokenForSeller(seller_id);
-  if (!token) return { ok: false, error: "token-not-found" };
-  console.log("tokkkkeeeen:", { seller_id, resource });
-  const sellerData = await getSellerData(seller_id);
-  if (!sellerData) return { ok: false, error: "seller-data-not-found" };
-  console.log("sellerdataaaa:", { seller_id, resource });
-  const db = await getConnectionLocal(sellerData.idempresa);
+  const t0 = Date.now();
+  let corrId = "unknown";
+  let db;
 
   try {
-    const mlOrder = await obtenerDatosEnvioML(resource, token);
-    if (!mlOrder) return { ok: false, error: "ml-order-null" };
+    let datain;
+    try {
+      datain = JSON.parse(rawMsg);
+    } catch (e) {
+      console.error("[msg:parse:error]", { err: e?.message || e, raw: String(rawMsg).slice(0, 800) });
+      return { ok: false, error: "json-parse" };
+    }
+
+    const seller_id = String(datain.sellerid);
+    const resource = datain.resource;
+    corrId = `${seller_id}|${resource}`;
+    console.log("[msg:received]", { corrId });
+
+    const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
+    if (!sellersPermitidos.includes(seller_id)) {
+      console.warn("[pedidos:skip:seller-no-permitido]", { corrId });
+      return { ok: true, skipped: "seller-no-permitido" };
+    }
+
+    const token = await getTokenForSeller(seller_id);
+    if (!token) {
+      console.warn("[pedidos:skip:token-not-found]", { corrId });
+      return { ok: false, error: "token-not-found" };
+    }
+    console.log("[token:ok]", { corrId });
+
+    const sellerData = await getSellerData(seller_id);
+    if (!sellerData) {
+      console.warn("[pedidos:skip:seller-data-not-found]", { corrId });
+      return { ok: false, error: "seller-data-not-found" };
+    }
+    console.log("[sellerData:ok]", { corrId, idempresa: sellerData.idempresa });
+
+    db = await getConnectionLocal(sellerData.idempresa);
+    console.log("[db:connected]", { corrId });
+
+    const mlOrder = await obtenerDatosEnvioML(resource, token, corrId);
+    if (!mlOrder) {
+      console.warn("[pedidos:skip:ml-order-null]", { corrId });
+      return { ok: false, error: "ml-order-null" };
+    }
 
     const number = String(mlOrder.id);
     const keyCache = `${seller_id}_${number}`;
     const payload = mapMlToPedidoPayload(mlOrder, sellerData);
 
-    // ¿Existe?
-    let did = ORDENES_CACHE[keyCache]?.did || (await getPedidoDidByNumber(db, number));
+    let did = ORDENES_CACHE[keyCache]?.did || (await getPedidoDidByNumber(db, number, corrId));
     const isNew = !did;
-    console.log("no existe diddddd:", { seller_id, resource });
-    console.log("payload:", payload);
-    console.log("esnuevo:", isNew);
-
-
+    console.log("[pedido:existence]", { corrId, number, isNew, did });
 
     if (isNew) {
-      console.log("9999999999999:", { seller_id, resource });
-      did = await createPedido(db, payload, sellerData?.quien ?? null);
+      did = await createPedido(db, payload, sellerData?.quien ?? null, corrId);
       ORDENES_CACHE[keyCache] = { did };
       ESTADOS_CACHE[did] = payload.status;
+      console.log("[pedidos:created]", { corrId, did, ms: Date.now() - t0 });
       return { ok: true, created: did };
     } else {
-      const prevStatus = await getStatusVigente(db, did);
+      const prevStatus = await getStatusVigente(db, did, corrId);
       const hasStatusChange = prevStatus !== payload.status;
+      console.log("[pedido:status:compare]", { corrId, did, prevStatus, newStatus: payload.status, hasStatusChange });
+
       if (hasStatusChange) {
         await updatePedidoStatusWithHistory(
           db,
@@ -311,17 +369,29 @@ async function processOrderMessage(rawMsg) {
           payload.status,
           sellerData?.quien ?? null,
           new Date(),
-          payload // insertar items también en cambio de estado (como tu script antiguo)
+          payload,
+          corrId
         );
         ESTADOS_CACHE[did] = payload.status;
         ORDENES_CACHE[keyCache] = { did };
+        console.log("[pedidos:status_updated]", { corrId, did, ms: Date.now() - t0 });
         return { ok: true, status_updated: did };
       } else {
+        console.warn("[pedidos:noop:status-igual]", { corrId, did, status: prevStatus });
         return { ok: true, noop: did };
       }
     }
+  } catch (e) {
+    console.error("[pedidos:process:error]", {
+      corrId,
+      err: e?.message || e,
+      stack: e?.stack,
+    });
+    throw e;
   } finally {
-    try { await db.end(); } catch { }
+    try { await db?.end(); console.log("[db:closed]", { corrId, ms: Date.now() - t0 }); } catch (e) {
+      console.warn("[db:close:warn]", { corrId, err: e?.message || e });
+    }
   }
 }
 
@@ -336,8 +406,12 @@ async function listenToChannel(channelName) {
     isConnecting = true;
 
     try {
-      if (channel) try { await channel.close(); } catch { }
-      if (connection) try { await connection.close(); } catch { }
+      if (channel) try { await channel.close(); } catch (e) {
+        console.warn("[amqp:channel:close:warn]", { err: e?.message || e });
+      }
+      if (connection) try { await connection.close(); } catch (e) {
+        console.warn("[amqp:conn:close:warn]", { err: e?.message || e });
+      }
 
       connection = await amqp.connect(RABBITMQ_URL);
       channel = await connection.createChannel();
@@ -353,23 +427,27 @@ async function listenToChannel(channelName) {
             await processOrderMessage(msg.content.toString());
             channel.ack(msg);
           } catch (e) {
-            console.error("Error procesando mensaje:", e);
-
-            channel.nack(msg, false, false); // descartamos para evitar loops
+            console.error("[consume:error]", {
+              err: e?.message || e,
+              stack: e?.stack,
+              msg: msg.content?.toString?.()?.slice(0, 800),
+            });
+            // descartamos para evitar loops; si querés DLQ, cambiá el requeue y manejalo aparte
+            channel.nack(msg, false, false);
           }
         },
         { noAck: false }
       );
 
       connection.on("close", () => {
-        console.warn("⚠️ Conexión cerrada. Reintentando en 1s...");
+        console.warn("[amqp:conn:close]", { note: "Reintentando en 1s..." });
         isConnecting = false;
         setTimeout(connect, 1000);
       });
 
       isConnecting = false;
     } catch (error) {
-      console.error(`❌ Error al conectar canal ${channelName}:`, error);
+      console.error("[amqp:connect:error]", { err: error?.message || error });
       isConnecting = false;
       setTimeout(connect, 1000);
     }
@@ -382,13 +460,12 @@ async function listenToChannel(channelName) {
 (async function main() {
   try {
     await redisClient.connect();
+    console.log("[redis:connected]");
     await listenToChannel("ordenesFF");
   } catch (e) {
-    console.error("Error en main:", e);
+    console.error("[main:error]", { err: e?.message || e, stack: e?.stack });
   } finally {
-    try { await redisClient.disconnect(); }
-    catch {
-
-    }
+    try { await redisClient.disconnect(); console.log("[redis:disconnected]"); }
+    catch (e) { console.warn("[redis:disconnect:warn]", { err: e?.message || e }); }
   }
 })();
