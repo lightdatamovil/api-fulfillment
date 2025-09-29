@@ -5,7 +5,7 @@ import amqp from "amqplib";
 import { createClient as createRedisClient } from "redis";
 import axios from "axios";
 import mysql from "mysql2/promise";
-import { executeQuery } from "lightdata-tools";
+import { connectMySQL, executeQuery } from "lightdata-tools";
 import { getFFProductionDbConfig } from "lightdata-tools";
 import { hostFulFillement, portFulFillement } from "./db.js";
 export async function openEmpresaConnection(idempresa) {
@@ -22,13 +22,7 @@ export async function openEmpresaConnection(idempresa) {
   // cfg esperado: { host, port, user, password, database }
 
   // Conexión “short lived”: abrir → usar → cerrar
-  const conn = await mysql.createConnection({
-    ...cfg,
-    multipleStatements: true,
-    connectTimeout: 10000,       // para que no cuelgue
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 5000,
-  });
+  const conn = await connectMySQL(cfg);
   console.log("[db:conn:opened]", { idempresa });
 
   return conn;
