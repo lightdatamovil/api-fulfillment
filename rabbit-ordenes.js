@@ -384,6 +384,8 @@ async function processOrderMessage(rawMsg) {
 
     let did = ORDENES_CACHE[keyCache]?.did || (await getPedidoDidByNumber(db, number, corrId));
     const isNew = !did;
+    console.log("isnewwww", isNew);
+
     console.log("[pedido:existence]", { corrId, number, isNew, did });
 
     if (isNew) {
