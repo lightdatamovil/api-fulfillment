@@ -160,7 +160,7 @@ async function createPedido(db, payload, userId, corrId) {
     const cols = [
       "did_cuenta", "status", "number", "fecha_venta", "buyer_id", "buyer_nickname",
       "buyer_name", "buyer_last_name", "total_amount", "ml_shipment_id", "ml_id",
-      "ml_pack_id", "site_id", "currency_id", "observaciones", "armado", "descargado",
+      "ml_pack_id", "observaciones", "armado", "descargado",
       "quien_armado", "quien", "superado", "elim"
     ];
     const ph = cols.map(() => "?");
@@ -168,7 +168,7 @@ async function createPedido(db, payload, userId, corrId) {
       payload.did_cuenta, payload.status, payload.number, payload.fecha_venta,
       payload.buyer_id, payload.buyer_nickname, payload.buyer_name, payload.buyer_last_name,
       payload.total_amount, payload.ml_shipment_id, payload.ml_id, payload.ml_pack_id,
-      payload.site_id, payload.currency_id, payload.observaciones ?? "",
+      payload.observaciones ?? "",
       payload.armado ?? 0, payload.descargado ?? 0, payload.quien_armado ?? 0,
       userId ?? null, 0, 0
     ];
