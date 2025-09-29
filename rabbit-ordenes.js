@@ -45,31 +45,6 @@ redisClient.on("error", (err) =>
   console.error("[redis:error]", { err: err?.message || err })
 );
 
-// ---------- Conexión DB por empresa ----------
-async function getConnectionLocal(idempresa) {
-  if (typeof idempresa !== "string" && typeof idempresa !== "number") {
-    throw new Error(`idempresa debe ser string|number, es: ${typeof idempresa}`);
-  }
-  const baseCfg = {
-    host: "149.56.182.49",
-    port: 44347,
-    user: `ue${idempresa}`,
-    password: `78451296_${idempresa}`,
-  };
-  const dbName = `empresa_${idempresa}`;
-
-  const serverConn = await mysql.createConnection(baseCfg);
-  await serverConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
-  await serverConn.end();
-
-  const dbConn = await mysql.createConnection({
-    ...baseCfg,
-    database: dbName,
-    multipleStatements: true,
-  });
-  return dbConn;
-}
-
 // ---------- Redis getters ----------
 async function getTokenForSeller(seller_id) {
   if (!redisClient.isOpen) await redisClient.connect();
@@ -113,6 +88,7 @@ setInterval(() => {
 // ---------- Queries básicas ----------
 async function getPedidoDidByNumber(db, number, corrId) {
   console.log("[pedido:byNumber:start]", { corrId, number });
+  console.log(db);
 
   const rows = await executeQuery(
     db,
