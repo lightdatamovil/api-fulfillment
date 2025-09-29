@@ -316,7 +316,7 @@ async function processOrderMessage(rawMsg) {
 
     const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
     if (!sellersPermitidos.includes(seller_id)) {
-      console.warn("[pedidos:skip:seller-no-permitido]", { corrId });
+      // console.warn("[pedidos:skip:seller-no-permitido]", { corrId });
       return { ok: true, skipped: "seller-no-permitido" };
     }
 
