@@ -114,6 +114,7 @@ async function getStatusVigente(db, did, corrId) {
 function mapMlToPedidoPayload(ml, sellerData) {
   const firstItem = ml?.order_items?.[0];
   const variation_attributes = firstItem?.item?.variation_attributes || null;
+  console.log(ml, "mlllllllllllll");
 
   return {
     did_cuenta: sellerData?.idcuenta ?? 0,
