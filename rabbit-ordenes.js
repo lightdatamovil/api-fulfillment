@@ -29,6 +29,7 @@ export async function openEmpresaConnection(idempresa) {
     enableKeepAlive: true,
     keepAliveInitialDelay: 5000,
   });
+  console.log("[db:conn:opened]", { idempresa });
 
   return conn;
 }
