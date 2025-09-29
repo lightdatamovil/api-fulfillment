@@ -126,7 +126,7 @@ function mapMlToPedidoPayload(ml, sellerData) {
     buyer_last_name: ml?.buyer?.last_name ?? "",
     total_amount: ml?.total_amount ?? 0,
     ml_shipment_id: ml?.shipping?.id ? String(ml.shipping.id) : "",
-    ml_id: ml?.id ? String(ml.id) : "",
+    ml_id: ml.id || 0,
     ml_pack_id: ml?.pack_id ? String(ml.pack_id) : "",
     site_id: ml?.site_id || "",
     currency_id: ml?.currency_id || "",
