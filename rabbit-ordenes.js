@@ -117,7 +117,7 @@ async function getPedidoDidByNumber(db, number, corrId) {
   const rows = await executeQuery(
     db,
     `SELECT did FROM pedidos WHERE number = ? AND elim = 0 ORDER BY autofecha DESC LIMIT 1`,
-    [number]
+    [number], true
   );
   const did = rows?.length ? Number(rows[0].did) : 0;
   console.log("[db:pedido:byNumber]", { corrId, number, did });
