@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { createUsuario } from "../controller/usuario/create_usuario.js";
-import { deleteUsuario } from "../controller/usuario/delete_usuario.js";
-import { getUsuarioById } from "../controller/usuario/get_usuario_by_id.js";
-import { getFilteredUsuarios } from "../controller/usuario/get_filtered_usuarios.js";
-import { editUsuario } from "../controller/usuario/edit_usuario.js";
+import { createUsuario } from "../controller/usuarios/create_usuario.js";
+import { deleteUsuario } from "../controller/usuarios/delete_usuario.js";
+import { getUsuarioById } from "../controller/usuarios/get_usuario_by_id.js";
+import { getFilteredUsuarios } from "../controller/usuarios/get_filtered_usuarios.js";
+import { editUsuario } from "../controller/usuarios/edit_usuario.js";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 
 const usuarios = Router();

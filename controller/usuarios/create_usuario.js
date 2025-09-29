@@ -17,15 +17,6 @@ export async function createUsuario(dbConnection, req) {
     const codigo_cliente = toStr(b.codigo_cliente);
     const modulo_inicial = toStr(b.modulo_inicial);
 
-    // --- validaciones mínimas ---
-    if (!usuario || !passRaw || !email || !nombre || perfil === undefined) {
-        throw new CustomException({
-            status: Status.badRequest,
-            title: "Datos incompletos",
-            message: "Campos obligatorios: nombre, email, usuario, contraseña y perfil."
-        });
-    }
-
     const usuarioRegex = /^[a-zA-Z0-9_]+$/;
     if (!usuarioRegex.test(usuario)) {
         throw new CustomException({
@@ -55,7 +46,7 @@ export async function createUsuario(dbConnection, req) {
     }
 
     // --- INSERT (no permito setear did/superado/elim/accesos/quien desde el front) ---
-    const pass = hashPassword(passRaw);
+    const pass = await hashPassword(passRaw);
 
     const insertSql = `
     INSERT INTO usuarios

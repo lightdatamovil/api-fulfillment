@@ -10,7 +10,7 @@ import usuarios from "./route/usuarios.js";
 import curvas from './route/curva.js';
 import ordenesTrabajo from './route/ordenes_trabajo.js';
 import { logBlue, logRed, verifyToken } from "lightdata-tools";
-import redisClient, { jwtSecret } from "./db.js";
+import redisClient, { jwtSecret, jwtIssuer, jwtAudience } from "./db.js";
 import auth from "./route/auth.js";
 import preload from './route/preload.js';
 
@@ -24,7 +24,7 @@ app.use(cors());
 const PORT = process.env.PORT;
 
 app.use("/api/auth", auth);
-app.use(verifyToken(jwtSecret));
+app.use(verifyToken({ jwtSecret, jwtIssuer, jwtAudience }));
 app.use("/api/preload", preload);
 app.use("/api/variantes", variantes);
 app.use("/api/clientes", clientes);
