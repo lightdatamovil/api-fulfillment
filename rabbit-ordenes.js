@@ -82,7 +82,7 @@ setInterval(() => {
 // ---------- Queries básicas ----------
 async function getPedidoDidByNumber(db, number, corrId) {
   console.log("[pedido:byNumber:start]", { corrId, number });
-  console.log(db);
+
 
   const rows = await executeQuery(
     db,
@@ -90,8 +90,7 @@ async function getPedidoDidByNumber(db, number, corrId) {
     [number], true
   );
   const did = rows.did || 0;
-  console.log("[db:pedido:byNumber]", { corrId, number, did });
-  console.log("[diddddddddddddddddddddddddd]", did)
+
 
   return did;
 }
@@ -170,7 +169,7 @@ async function createPedido(db, payload, userId, corrId) {
       payload.total_amount, payload.ml_shipment_id, payload.ml_id, payload.ml_pack_id,
       payload.observaciones ?? "",
       payload.armado ?? 0, payload.descargado ?? 0, payload.quien_armado ?? 0,
-      userId ?? null, 0, 0
+      userId ?? 0, 0, 0
     ];
     const ins = await executeQuery(
       db,
