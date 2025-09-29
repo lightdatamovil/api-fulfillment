@@ -268,7 +268,7 @@ async function processOrderMessage(rawMsg) {
   if (!sellersPermitidos.includes(seller_id)) {
     return { ok: true, skipped: "seller-no-permitido" };
   }
-  console.log("Msadasdasdasdasdasdsa:", { seller_id, resource });
+
 
   const token = await getTokenForSeller(seller_id);
   if (!token) return { ok: false, error: "token-not-found" };
@@ -291,6 +291,7 @@ async function processOrderMessage(rawMsg) {
     const isNew = !did;
 
     if (isNew) {
+      console.log("9999999999999:", { seller_id, resource });
       did = await createPedido(db, payload, sellerData?.quien ?? null);
       ORDENES_CACHE[keyCache] = { did };
       ESTADOS_CACHE[did] = payload.status;
@@ -298,7 +299,6 @@ async function processOrderMessage(rawMsg) {
     } else {
       const prevStatus = await getStatusVigente(db, did);
       const hasStatusChange = prevStatus !== payload.status;
-
       if (hasStatusChange) {
         await updatePedidoStatusWithHistory(
           db,
