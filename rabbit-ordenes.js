@@ -262,6 +262,7 @@ async function processOrderMessage(rawMsg) {
   const datain = JSON.parse(rawMsg);
   const seller_id = String(datain.sellerid);
   const resource = datain.resource;
+  console.log("Mensaje recibido:", { seller_id, resource });
 
   // Filtro de sellers permitidos
   const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
@@ -348,6 +349,7 @@ async function listenToChannel(channelName) {
             channel.ack(msg);
           } catch (e) {
             console.error("Error procesando mensaje:", e);
+
             channel.nack(msg, false, false); // descartamos para evitar loops
           }
         },
