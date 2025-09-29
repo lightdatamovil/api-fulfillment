@@ -121,6 +121,8 @@ async function getPedidoDidByNumber(db, number, corrId) {
   );
   const did = rows?.length ? Number(rows[0].did) : 0;
   console.log("[db:pedido:byNumber]", { corrId, number, did });
+  console.log("[diddddddddddddddddddddddddd]", did)
+
   return did;
 }
 async function getStatusVigente(db, did, corrId) {
