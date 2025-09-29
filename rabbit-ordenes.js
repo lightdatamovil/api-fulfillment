@@ -112,6 +112,8 @@ setInterval(() => {
 
 // ---------- Queries básicas ----------
 async function getPedidoDidByNumber(db, number, corrId) {
+  console.log("[pedido:byNumber:start]", { corrId, number });
+
   const rows = await executeQuery(
     db,
     `SELECT did FROM pedidos WHERE number = ? AND elim = 0 ORDER BY autofecha DESC LIMIT 1`,
