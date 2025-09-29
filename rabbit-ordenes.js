@@ -110,31 +110,20 @@ setInterval(() => {
   console.log("[cache:estados:cleared]");
 }, 1000 * 60 * 60 * 24 * 14);
 
-// ---------- Queries básicas ----------
-// Helper: query con timeout y logs (pegalo una sola vez)
+// helper de timeout (si ya lo tenés, dejá el tuyo)
 async function qWithTimeout(db, sql, params = [], label = "query", timeoutMs = 12000) {
-  const t0 = Date.now();
-  console.log("[db:q:start]", { label, params });
   const p = executeQuery(db, sql, params);
   const to = new Promise((_, rej) =>
     setTimeout(() => rej(new Error(`Timeout ${label} after ${timeoutMs}ms`)), timeoutMs)
   );
-  try {
-    const res = await Promise.race([p, to]);
-    console.log("[db:q:ok]", { label, ms: Date.now() - t0 });
-    return res;
-  } catch (e) {
-    console.error("[db:q:error]", { label, err: e?.message || e, ms: Date.now() - t0 });
-    throw e;
-  }
+  return Promise.race([p, to]);
 }
 
-// Reemplazo directo
 async function getPedidoDidByNumber(db, number, corrId) {
-  const numStr = String(number).trim(); // normalizamos
+  const numStr = String(number).trim();
   console.log("[pedido:byNumber:start]", { corrId, number: numStr });
 
-  // Evita quedar esperando locks de escritura
+  // Evitar esperas por locks de escritura
   try {
     await db.query(`SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED`);
     await db.query(`SET SESSION innodb_lock_wait_timeout = 3`);
@@ -142,26 +131,19 @@ async function getPedidoDidByNumber(db, number, corrId) {
     console.warn("[db:session:warn]", { corrId, err: e?.message || e });
   }
 
-  // IMPORTANTE: asegurate de tener índice sobre (number, elim, autofecha)
-  // CREATE INDEX idx_pedidos_number_elim_fecha ON pedidos (number(32), elim, autofecha);
-
-  // Si 'number' fuera BIGINT, podrías usar:
-  // WHERE number = CAST(? AS UNSIGNED)
+  // 🚀 Hotfix: usamos MAX(did) en vez de ORDER BY autofecha DESC LIMIT 1
   const rows = await qWithTimeout(
     db,
     `/*+ MAX_EXECUTION_TIME(8000) */
-     SELECT did
+     SELECT MAX(did) AS did
        FROM pedidos
       WHERE number = ?
-        AND elim = 0
-      ORDER BY autofecha DESC
-      LIMIT 1`,
+        AND elim = 0`,
     [numStr],
-    "getPedidoDidByNumber",
-    12000
+    "getPedidoDidByNumber"
   );
 
-  const did = rows?.length ? Number(rows[0].did) : 0;
+  const did = rows?.length && rows[0]?.did ? Number(rows[0].did) : 0;
   console.log("[db:pedido:byNumber]", { corrId, number: numStr, did });
   return did;
 }
