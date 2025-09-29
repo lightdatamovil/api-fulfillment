@@ -110,18 +110,53 @@ setInterval(() => {
   console.log("[cache:estados:cleared]");
 }, 1000 * 60 * 60 * 24 * 14);
 
-// helper de timeout (si ya lo tenés, dejá el tuyo)
 async function qWithTimeout(db, sql, params = [], label = "query", timeoutMs = 12000) {
+  const t0 = Date.now();
   const p = executeQuery(db, sql, params);
   const to = new Promise((_, rej) =>
     setTimeout(() => rej(new Error(`Timeout ${label} after ${timeoutMs}ms`)), timeoutMs)
   );
-  return Promise.race([p, to]);
+  try {
+    const res = await Promise.race([p, to]);
+    return res;
+  } finally {
+    const ms = Date.now() - t0;
+    if (ms > timeoutMs) {
+      console.warn("[db:q:timeout]", { label, ms, timeoutMs });
+    } else {
+      // Log suave para no saturar
+      // console.log("[db:q:ok]", { label, ms });
+    }
+  }
+}
+
+// ✅ chequeo rápido de conexión y contexto
+async function checkDbConnection(db, corrId = "") {
+  const t0 = Date.now();
+  const [pingRows] = await db.query("SELECT 1 AS ok");
+  console.log("[db:ping]", { corrId, ok: pingRows?.[0]?.ok === 1, ms: Date.now() - t0 });
+
+  const [dbRows] = await db.query("SELECT DATABASE() AS db");
+  console.log("[db:database]", { corrId, database: dbRows?.[0]?.db });
+
+  const [userRows] = await db.query("SELECT CURRENT_USER() AS user");
+  console.log("[db:user]", { corrId, user: userRows?.[0]?.user });
+
+  const [verRows] = await db.query("SHOW VARIABLES LIKE 'version'");
+  const version = Array.isArray(verRows) && verRows[0] ? (verRows[0].Value || verRows[0].value) : null;
+  console.log("[db:version]", { corrId, version });
 }
 
 async function getPedidoDidByNumber(db, number, corrId) {
   const numStr = String(number).trim();
   console.log("[pedido:byNumber:start]", { corrId, number: numStr });
+
+  // 👇 chequeo de conexión (te confirma DB/usuario y latencia)
+  try {
+    await checkDbConnection(db, corrId);
+  } catch (e) {
+    console.warn("[db:check:warn]", { corrId, err: e?.message || e });
+  }
 
   // Evitar esperas por locks de escritura
   try {
@@ -131,7 +166,7 @@ async function getPedidoDidByNumber(db, number, corrId) {
     console.warn("[db:session:warn]", { corrId, err: e?.message || e });
   }
 
-  // 🚀 Hotfix: usamos MAX(did) en vez de ORDER BY autofecha DESC LIMIT 1
+  // 🚀 Hotfix: usamos MAX(did) en vez de ORDER BY
   const rows = await qWithTimeout(
     db,
     `/*+ MAX_EXECUTION_TIME(8000) */
@@ -140,7 +175,8 @@ async function getPedidoDidByNumber(db, number, corrId) {
       WHERE number = ?
         AND elim = 0`,
     [numStr],
-    "getPedidoDidByNumber"
+    "getPedidoDidByNumber",
+    12000
   );
 
   const did = rows?.length && rows[0]?.did ? Number(rows[0].did) : 0;
