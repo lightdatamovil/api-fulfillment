@@ -262,13 +262,13 @@ async function processOrderMessage(rawMsg) {
   const datain = JSON.parse(rawMsg);
   const seller_id = String(datain.sellerid);
   const resource = datain.resource;
-  console.log("Mensaje recibido:", { seller_id, resource });
 
   // Filtro de sellers permitidos
   const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
   if (!sellersPermitidos.includes(seller_id)) {
     return { ok: true, skipped: "seller-no-permitido" };
   }
+  console.log("Mensaje recibido:", { seller_id, resource });
 
   const token = await getTokenForSeller(seller_id);
   if (!token) return { ok: false, error: "token-not-found" };
