@@ -1,12 +1,14 @@
 import express, { json, urlencoded } from 'express';
 import cors from "cors";
 import clientes from "./route/clientes.js";
-import pedido from "./route/route-pedidos.js";
+import pedido from "./route/pedidos.js";
 import insumos from "./route/insumos.js";
 import producto from "./route/producto.js";
 import publicacion from "./route/route-publicaciones.js";
 import variantes from "./route/variantes.js";
 import usuarios from "./route/usuarios.js";
+import curvas from './route/curva.js';
+import ordenesTrabajo from './route/ordenes_trabajo.js';
 import { logBlue, logRed, verifyToken } from "lightdata-tools";
 import redisClient, { jwtSecret } from "./db.js";
 import auth from "./route/auth.js";
@@ -31,6 +33,9 @@ app.use("/api/pedidos", pedido);
 app.use("/api/productos", producto);
 app.use("/api/publicaciones", publicacion);
 app.use("/api/usuarios", usuarios);
+app.use("/api/curvas", curvas);
+app.use("/api/ordenesTrabajo", ordenesTrabajo);
+
 
 (async () => {
   try {

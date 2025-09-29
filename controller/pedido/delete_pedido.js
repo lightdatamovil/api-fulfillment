@@ -1,50 +1,56 @@
+// controller/pedidos/delete_pedido.js
 import { CustomException, executeQuery, Status } from "lightdata-tools";
 
 /**
- * Elimina (soft delete) un pedido y sus derivados.
- * - Marca pedido, items e historial como elim/superado.
- * - Inserta un registro de historial con estado "eliminado".
+ * Soft-delete: marca elim=1 en pedido e ítems.
+ * (El historial lo dejamos para auditoría; si querés también marcarlo elim=1, descomentalo).
  */
-export async function deletePedido(connection, req) {
-    const { pedidoId } = req.params;
+export async function deletePedido(db, req) {
+    const didParam = req.body?.did ?? req.params?.did;
+    const did = Number(didParam);
 
-    const id = Number(pedidoId);
+    if (!Number.isFinite(did) || did <= 0) {
+        throw new CustomException({ title: "Parámetro inválido", message: "'did' debe ser numérico > 0", status: Status.badRequest });
+    }
 
-    // Verificar existencia
-    const check = await executeQuery(
-        connection,
-        "SELECT id, did FROM pedidos WHERE id = ? AND elim = 0 AND superado = 0 LIMIT 1",
-        [id],
+    const cur = await executeQuery(db, `SELECT did FROM pedidos WHERE did = ? AND elim = 0 LIMIT 1`, [did]);
+    if (!cur || cur.length === 0) {
+        throw new CustomException({ title: "No encontrado", message: `No existe pedido activo con did ${did}`, status: Status.notFound });
+    }
+
+    const updItems = await executeQuery(
+        db,
+        `UPDATE pedidos_productos SET elim = 1 WHERE did_pedido = ? AND elim = 0`,
+        [did],
         true
     );
-    if (check.length === 0) {
-        throw new CustomException({
-            title: "No encontrado",
-            message: `El pedido ${id} no existe o ya fue eliminado.`,
-            status: Status.notFound,
-        });
-    }
 
-    const didPedido = check[0].did;
+    // Si quisieras eliminar historial:
+    // const updHist = await executeQuery(
+    //   db,
+    //   `UPDATE pedidos_historial SET elim = 1 WHERE did_pedido = ? AND elim = 0`,
+    //   [did],
+    //   true
+    // );
 
-    // Marcar pedido
-    const result = await executeQuery(
-        connection,
-        "UPDATE pedidos SET elim = 1 WHERE id = ? AND superado = 0",
-        [id]
+    const updPed = await executeQuery(
+        db,
+        `UPDATE pedidos SET elim = 1 WHERE did = ? AND elim = 0`,
+        [did],
+        true
     );
-    if (result.affectedRows === 0) {
-        throw new CustomException({
-            title: "No se pudo eliminar el atributo.",
-            message: "No se pudo eliminar el atributo. Puede que no exista o ya esté eliminado.",
-            status: Status.notFound
-        });
-    }
-
 
     return {
         success: true,
-        message: `Pedido ${id} eliminado correctamente.`,
-        didPedido,
+        message: "Pedido eliminado correctamente",
+        data: {
+            did,
+            affected: {
+                pedido: updPed?.affectedRows ?? 0,
+                items: updItems?.affectedRows ?? 0,
+                // historial: updHist?.affectedRows ?? 0,
+            },
+        },
+        meta: { timestamp: new Date().toISOString() },
     };
 }

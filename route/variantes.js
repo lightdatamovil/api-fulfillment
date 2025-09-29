@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { getFilteredVariantes } from "../controller/variantes/get_filtered_variantes.js";
 import { getVarianteById } from "../controller/variantes/get_variante_by_id.js";
-import { deleteVariante } from "../controller/variantes/delete_variante.js";
-import { createVariante } from "../controller/variantes/create_variante.js";
+import { deleteVarianteCategoria } from "../controller/variantes/delete_variante.js";
+import { createVarianteCategoria } from "../controller/variantes/create_variante.js";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 
 const variantes = Router();
@@ -10,24 +10,29 @@ const variantes = Router();
 variantes.post(
   '/',
   buildHandlerWrapper({
-    required: ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'variantesValores'],
+    required: ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'subcategorias'],
     controller: async ({ db, req }) => {
-      const result = await createVariante(db, req);
+      const result = await createVarianteCategoria(db, req);
       return result;
     },
   })
 );
 
+
+// variantes.routes.js
+
 variantes.delete(
-  '/',
+  '/:did',
   buildHandlerWrapper({
-    requiredParams: ['userId'],
+    requiredParams: ['userId'],   // lo saca de req.user
+    required: ['did'],            // lo mandás en el body: { "did": 123 }
     controller: async ({ db, req }) => {
-      const result = await deleteVariante(db, req);
+      const result = await deleteVarianteCategoria(db, req);
       return result;
     },
   })
 );
+
 
 variantes.get(
   '/:varianteId',
@@ -49,7 +54,6 @@ variantes.get(
     },
   })
 );
-
 variantes.put(
   '/:varianteId',
   buildHandlerWrapper({

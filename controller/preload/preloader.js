@@ -3,7 +3,7 @@ import { executeQuery } from "lightdata-tools"
 export async function preloader(dbConnection) {
 
     const queryProductos = `
-          SELECT p.did AS did, p.didCliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo, p.cm3
+          SELECT p.did AS did, p.did_cliente, p.sku, p.titulo, p.ean, p.habilitado, p.esCombo, p.cm3
           FROM productos AS p
           WHERE p.elim = 0 AND p.superado = 0
           ORDER BY p.did DESC
@@ -71,7 +71,7 @@ export async function preloader(dbConnection) {
         cc.titulo
 
       FROM clientes c
-      LEFT JOIN clientes_cuentas cc ON c.did = cc.didCliente AND cc.elim = 0 and cc.superado = 0
+      LEFT JOIN clientes_cuentas cc ON c.did = cc.did_cliente AND cc.elim = 0 and cc.superado = 0
       WHERE c.elim = 0 AND c.superado = 0
       ORDER BY c.did DESC
     `;

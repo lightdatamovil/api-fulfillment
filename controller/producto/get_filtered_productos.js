@@ -1,124 +1,92 @@
-import { executeQuery } from "lightdata-tools";
+import { toStr, toBool01, pickNonEmpty } from "lightdata-tools";
+import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
-export async function getFilteredProductos(dbConnection, req) {
-    // acepta filtros por querystring o body
-    const filtros = Object.keys(req.query || {}).length ? req.query : req.body || {};
+/**
+ * GET /productos
+ * Query soportados:
+ *  - titulo (LIKE)
+ *  - did_cliente (EQ)
+ *  - habilitado (0/1)
+ *  - es_combo (0/1)
+ *  - (page|pagina), (page_size|cantidad), (sort_by|sortBy), (sort_dir|sortDir)
+ *
+ * Tabla: producto (vigentes y no eliminados)
+ */
+export async function getFilteredProductos(connection, req) {
+    const q = req.query;
 
-    const conditions = ["p.elim = 0", "p.superado = 0"];
-    const values = [];
+    const qp = {
+        ...q,
+        page: q.page ?? q.pagina,
+        page_size: q.page_size ?? q.cantidad,
+        sort_by: q.sort_by ?? q.sortBy,
+        sort_dir: q.sort_dir ?? q.sortDir,
+    };
 
-    const page = toInt(filtros.page, 1);
-    const pageSize = Math.min(toInt(filtros.pageSize, 10), 200);
-    const offset = (page - 1) * pageSize;
+    const filtros = {
+        titulo: toStr(q.titulo),
+        did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
+        habilitado: toBool01(q.habilitado, undefined), // 0/1 o undefined
+        es_combo: toBool01(q.es_combo, undefined),     // 0/1 o undefined
+    };
 
-    // --- filtros ---
-    // título del producto
-    if (isNonEmptyString(filtros.titulo)) {
-        conditions.push("p.titulo LIKE ? ESCAPE '\\\\'");
-        values.push(`%${escapeLike(filtros.titulo)}%`);
-    }
+    const { page, pageSize, offset } = makePagination(qp, {
+        pageKey: "page",
+        pageSizeKey: "page_size",
+        defaultPage: 1,
+        defaultPageSize: 10,
+        maxPageSize: 100,
+    });
 
-    // nombre del cliente (acepto varias claves comunes)
-    const nombreCliente =
-        firstNonEmpty(filtros.nombreCliente);
-    if (isNonEmptyString(nombreCliente)) {
-        conditions.push("c.nombre_fantasia LIKE ? ESCAPE '\\\\'");
-        values.push(`%${escapeLike(nombreCliente)}%`);
-    }
+    const sortMap = {
+        titulo: "p.titulo",
+        did: "p.did",
+        did_cliente: "p.did_cliente",
+        habilitado: "p.habilitado",
+        es_combo: "p.es_combo",
+        posicion: "p.posicion",
+    };
+    const { orderSql } = makeSort(qp, sortMap, {
+        defaultKey: "titulo",
+        byKey: "sort_by",
+        dirKey: "sort_dir",
+    });
 
-    // habilitado (0/1) o "todos"
-    if (
-        filtros.habilitado !== null &&
-        filtros.habilitado !== undefined &&
-        filtros.habilitado !== "todos" &&
-        filtros.habilitado !== ""
-    ) {
-        const hab = Number(filtros.habilitado);
-        if (hab === 0 || hab === 1) {
-            conditions.push("p.habilitado = ?");
-            values.push(hab);
-        }
-    }
+    const where = new SqlWhere()
+        .add("p.elim = 0")
+        .add("p.superado = 0");
 
-    const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    if (filtros.titulo) where.likeEscaped("p.titulo", filtros.titulo, { caseInsensitive: true });
+    if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
+    if (filtros.habilitado !== undefined) where.eq("p.habilitado", filtros.habilitado);
+    if (filtros.es_combo !== undefined) where.eq("p.es_combo", filtros.es_combo);
 
-    // --- total ---
-    const totalQuery = `
-    SELECT COUNT(*) AS total
-    FROM productos p
-    JOIN clientes c ON c.did = p.didCliente
-    ${whereClause}
-  `;
-    const totalResult = await executeQuery(dbConnection, totalQuery, values);
-    const totalItems = Number(totalResult?.[0]?.total || 0);
-    const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize);
+    const { whereSql, params } = where.finalize();
 
-    // --- data ---
-    const dataQuery = `
-    SELECT
-      p.did,
-      c.nombre_fantasia AS cliente,
-      p.titulo,
-      p.habilitado
-    FROM productos p
-    JOIN clientes c ON c.did = p.didCliente
-    ${whereClause}
-    ORDER BY p.did DESC
-    LIMIT ? OFFSET ?
-  `;
-    const dataValues = [...values, Number(pageSize), Number(offset)];
-    const results = await executeQuery(dbConnection, dataQuery, dataValues);
+    const { rows, total } = await runPagedQuery(connection, {
+        select: `
+      p.did, p.did_cliente, p.titulo, p.descripcion, p.imagen,
+      p.habilitado, p.es_combo, p.posicion, p.cm3, p.alto, p.ancho, p.profundo
+    `,
+        from: "FROM productos p",
+        whereSql,
+        orderSql,
+        params,
+        pageSize,
+        offset,
+    });
 
     const filtersForMeta = pickNonEmpty({
         titulo: filtros.titulo,
-        nombre_cliente: nombreCliente,
-        ...(filtros.habilitado !== "todos" && filtros.habilitado !== "" && filtros.habilitado !== undefined
-            ? { habilitado: isFinite(Number(filtros.habilitado)) ? Number(filtros.habilitado) : filtros.habilitado }
-            : {})
+        ...(filtros.did_cliente !== undefined ? { did_cliente: filtros.did_cliente } : {}),
+        ...(filtros.habilitado !== undefined ? { habilitado: filtros.habilitado } : {}),
+        ...(filtros.es_combo !== undefined ? { es_combo: filtros.es_combo } : {}),
     });
 
     return {
         success: true,
         message: "Productos obtenidos correctamente",
-        data: results,
-        meta: {
-            timestamp: new Date().toISOString(),
-            page,
-            pageSize,
-            totalPages,
-            totalItems,
-            ...(Object.keys(filtersForMeta).length > 0 ? { filters: filtersForMeta } : {})
-        }
+        data: rows,
+        meta: buildMeta({ page, pageSize, totalItems: total, filters: filtersForMeta }),
     };
-}
-
-// --- helpers (mismos que ya usás + uno nuevo) ---
-const toInt = (v, def) => {
-    const n = Number.parseInt(v, 10);
-    return Number.isFinite(n) && n > 0 ? n : def;
-};
-
-const escapeLike = (s) =>
-    String(s)
-        .replace(/\\/g, "\\\\")
-        .replace(/%/g, "\\%")
-        .replace(/_/g, "\\_");
-
-const isNonEmptyString = (v) => typeof v === "string" && v.trim() !== "";
-
-function pickNonEmpty(obj) {
-    const out = {};
-    for (const [k, v] of Object.entries(obj)) {
-        if (v === null || v === undefined) continue;
-        if (typeof v === "string" && v.trim() === "") continue;
-        out[k] = v;
-    }
-    return out;
-}
-
-function firstNonEmpty(...vals) {
-    for (const v of vals) {
-        if (typeof v === "string" && v.trim() !== "") return v;
-    }
-    return undefined;
 }

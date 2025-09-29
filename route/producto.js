@@ -1,319 +1,79 @@
+// rutas/productos.routes.js
 import { Router } from "express";
-import { errorHandler, getFFProductionDbConfig, Status, verifyAll, verifyHeaders } from "lightdata-tools";
-import { hostFulFillement, jwtSecret, portFulFillement } from "../db.js";
+import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
+
+import { createProducto } from "../controller/producto/create_producto.js";
+import { updateProducto } from "../controller/producto/update_producto.js";
 import { deleteProducto } from "../controller/producto/delete_producto.js";
-import mysql2 from "mysql2";
+import { getProductoById } from "../controller/producto/get_producto_by_id.js";
 import { getFilteredProductos } from "../controller/producto/get_filtered_productos.js";
 
-const producto = Router();
+const productos = Router();
 
-producto.post("/", async (req, res) => {
-  const data = req.body;
-  const connection = getFFProductionDbConfig(data.idEmpresa);
+// POST /productos  (crear producto / combo)
+productos.post(
+  "/",
+  buildHandlerWrapper({
+    requiredParams: ["userId"],
+    required: ["titulo", "posicion", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "imagen", "habilitado", "depositos", "insumos", "variantesValores", "ecommerce", "did_cliente"], // el resto es opcional (did_cliente, imagen, es_combo, depositos, insumos, variantesValores, ecommerce, combo, etc.)
+    optional: ["combo"],
+    controller: async ({ db, req }) => {
+      const result = await createProducto(db, req);
+      return result;
+    },
+  })
+);
 
-  try {
-    const producto = new ProductO1(
-      data.did ?? 0,
-      data.cliente,
-      data.sku,
-      data.titulo,
-      data.ean,
-      data.descripcion,
-      data.imagen,
-      data.habilitado,
-      data.esCombo,
-      data.posicion ?? "",
-      data.cm3 ?? 0,
-      data.largo ?? 0,
-      data.ancho ?? 0,
-      data.profundo ?? 0,
-      data.quien,
-      data.superado ?? 0,
-      data.elim ?? 0,
-      connection
-    );
+// PUT /productos/:did  (versionado de producto / combo)
+productos.put(
+  "/:did",
+  buildHandlerWrapper({
+    requiredParams: ["did"],
+    required: ["titulo", "posicion", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "imagen", "habilitado", "depositos", "insumos", "variantesValores", "ecommerce", "did_cliente"],
+    controller: async ({ db, req }) => {
+      // Pasamos el DID de params → body para el controlador
+      req.body.did = Number(req.params.did);
+      const result = await updateProducto(db, req);
+      return result;
+    },
+  })
+);
 
-    const productoResult = await producto.insert();
+// DELETE /productos/:did  (soft-delete)
+productos.delete(
+  "/:did",
+  buildHandlerWrapper({
+    requiredParams: [],
+    controller: async ({ db, req }) => {
+      // Pasamos el DID de params → body para el controlador
+      req.body.did = Number(req.params.did);
+      const result = await deleteProducto(db, req);
+      return result;
+    },
+  })
+);
 
-    if (productoResult.estado === false) {
-      return res
-        .status(400)
-        .json({ status: false, message: productoResult.message });
-    }
+// GET /productos/:did  (detalle por DID)
+productos.get(
+  "/:did",
+  buildHandlerWrapper({
+    requiredParams: ["did"],
+    controller: async ({ db, req }) => {
+      const result = await getProductoById(db, req);
+      return result;
+    },
+  })
+);
 
-    let productId = productoResult.insertId;
-    if (
-      data.did != 0 &&
-      data.did != null &&
-      data.did != undefined &&
-      data.did != ""
-    ) {
-      productId = data.did;
-    }
+// GET /productos  (listado filtrado/paginado)
+productos.get(
+  "/",
+  buildHandlerWrapper({
+    controller: async ({ db, req }) => {
+      const result = await getFilteredProductos(db, req);
+      return result;
+    },
+  })
+);
 
-    const dIdProducto = data.did;
-
-    const helperValor = new ProductoCombo();
-    const didsActuales = Array.isArray(data.combos)
-      ? data.combos
-        .filter((v) => v && typeof v.did === "number")
-        .map((v) => v.did)
-        .filter((d) => d > 0)
-      : [];
-
-    await helperValor.deleteMissing(connection, dIdProducto, didsActuales);
-
-    if (data.combos && Array.isArray(data.combos)) {
-      for (const item of data.combos) {
-        const productoCombo = new ProductoCombo(
-          item.did ?? 0, // did producto combo
-          productId, // id producto padre (el nuevo producto insertado)
-          item.did, // id del producto hijo (parte del combo)
-          parseInt(item.cantidad), // cantidad de ese producto en el combo
-          null, // data.combo ya no es necesario acá
-          data.quien,
-          0,
-          0,
-          connection
-        );
-
-        await productoCombo.insert();
-      }
-    }
-    const helperInsumo = new ProductoInsumo();
-    const didsInsumosActuales = Array.isArray(data.insumos)
-      ? data.insumos
-        .filter((v) => v && typeof v.did === "number")
-        .map((v) => v.did)
-        .filter((d) => d > 0)
-      : [];
-
-    await helperInsumo.deleteMissing(
-      connection,
-      dIdProducto,
-      didsInsumosActuales
-    );
-
-    if (data.insumos && Array.isArray(data.insumos)) {
-      for (const ins of data.insumos) {
-        const insumo = new ProductoInsumo(
-          ins.did, // did producto combo
-          productId, // id producto padre (el nuevo producto insertado)
-          ins.did, // id del producto hijo (parte del combo)
-          parseFloat(ins.cantidad), // cantidad de ese producto en el combo
-          ins.habilitado ?? 1, // data.combo ya no es necesario acá
-          data.quien,
-          0,
-          0,
-          connection
-        );
-
-        await insumo.insert();
-      }
-    }
-    const helperVariante = new ProductoVariantes();
-    const variantesActuales = Array.isArray(data.variantes)
-      ? data.variantes
-        .filter((v) => v && v.data?.did)
-        .map((v) => v.data.did)
-        .filter((d) => d > 0)
-      : [];
-
-    await helperVariante.deleteMissing(
-      connection,
-      dIdProducto,
-      variantesActuales
-    );
-
-    if (data.variantes) {
-      const varianteA = new ProductoVariantes(
-        data.variantes.did,
-        productId,
-        JSON.stringify(data.variantes.data),
-        data.quien,
-        0,
-        0,
-        connection
-      );
-
-      const resultsVariante = await varianteA.insert();
-      const variantId = resultsVariante.insertId;
-    }
-
-    const helperEcommerce = new ProductoEcommerce();
-
-    const ecommerceActuales = Array.isArray(data.ecommerce)
-      ? data.ecommerce
-        .filter((v) => v && typeof v.did === "number")
-        .map((v) => v.did)
-        .filter((d) => d > 0)
-      : [];
-
-    await helperEcommerce.deleteMissing(
-      connection,
-      dIdProducto,
-      ecommerceActuales
-    );
-    if (data.ecommerce && Array.isArray(data.ecommerce)) {
-      for (const ecommerceItem of data.ecommerce) {
-        const productoEcommerce = new ProductoEcommerce(
-          ecommerceItem.did ?? 0,
-          productId,
-          ecommerceItem.didCuenta ?? 0,
-          ecommerceItem.flex ?? 0,
-          JSON.stringify(ecommerceItem.variante) ?? "",
-          ecommerceItem.sku,
-          ecommerceItem.ean ?? "",
-          ecommerceItem.url ?? "",
-          ecommerceItem.actualizar ?? 0,
-          data.quien,
-          0,
-          0,
-          connection
-        );
-        await productoEcommerce.insert();
-      }
-    }
-    return res.status(200).json({
-      estado: true,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      estado: false,
-      error: -1,
-      message: error.message || error,
-    });
-  } finally {
-    connection.end();
-  }
-});
-
-producto.get("/", async (req, res) => {
-  let dbConnection;
-
-  try {
-    verifyHeaders(req, []);
-    verifyAll(req, [], {});
-
-    const { companyId } = req.user;
-
-    const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-    dbConnection = mysql2.createConnection(dbConfig);
-    dbConnection.connect();
-
-    const result = await getFilteredProductos(dbConnection, req);
-
-    res.status(Status.ok).json(result);
-  } catch (error) {
-    errorHandler(req, res, error);
-  } finally {
-    if (dbConnection) dbConnection.end()
-  }
-});
-
-producto.post("/getProductoById", async (req, res) => {
-  const data = req.body;
-  const connection = getFFProductionDbConfig(data.idEmpresa);
-  const producto = new ProductO1();
-  const response = await producto.traerProductoId(connection, data.did);
-  return res.status(200).json({
-    estado: true,
-    data: response,
-  });
-});
-producto.post("/updateProducts", async (req, res) => {
-  const data = req.body;
-  const connection = getFFProductionDbConfig(data.idEmpresa);
-  const producto = new ProductO1(
-    data.did ?? 0,
-    data.cliente,
-    data.sku,
-    data.titulo,
-    data.descripcion,
-    data.imagen,
-    data.habilitado,
-    data.esCombo,
-    data.posicion ?? "",
-    data.quien,
-    data.superado ?? 0,
-    data.elim ?? 0,
-    connection
-  );
-  const response = await producto.checkAndUpdateDidProducto(
-    connection,
-    data.did
-  );
-  return res.status(200).json({
-    estado: true,
-    productos: response,
-  });
-});
-producto.post("/updateCombos", async (req, res) => {
-  const data = req.body;
-  const connection = getFFProductionDbConfig(data.idEmpresa);
-
-  const combo = new ProductoCombo(
-    data.did ?? 0,
-    data.did,
-    data.cantidad ?? 0,
-    data.combo
-  );
-  await combo.checkAndUpdateDidProductoCombo(connection);
-
-  return res.status(200).json({
-    estado: true,
-  });
-});
-producto.post("/updateEcommerce", async (req, res) => {
-  const data = req.body;
-  const connection = getFFProductionDbConfig(data.idEmpresa);
-  for (const ecommerceItem of data.ecommerce) {
-    const productoEcommerce = new ProductoEcommerce(
-      data.did ?? 0,
-      data.did,
-      data.didVariante ?? 0,
-      ecommerceItem.tienda,
-
-      ecommerceItem.link,
-      ecommerceItem.habilitado,
-      ecommerceItem.sync,
-      ecommerceItem.sku,
-      data.quien,
-      0,
-      0,
-      connection
-    );
-    await productoEcommerce.checkAndUpdateDidProductoEcommerce(connection);
-  }
-  return res.status(200).json({
-    estado: true,
-  });
-});
-producto.delete("/:productoId", async (req, res) => {
-  let dbConnection;
-
-  try {
-    verifyHeaders(req, []);
-    verifyAll(req, ['productoId'], {});
-
-    const { companyId } = req.user;
-    console.log(companyId, "companyId");
-
-
-    const dbConfig = getFFProductionDbConfig(companyId, hostFulFillement, portFulFillement);
-    console.log(dbConfig, "dbConfig");
-
-    dbConnection = mysql2.createConnection(dbConfig);
-    dbConnection.connect();
-
-    const result = await deleteProducto(dbConnection, req);
-
-    res.status(Status.ok).json(result);
-  } catch (error) {
-    errorHandler(req, res, error);
-  } finally {
-    if (dbConnection) dbConnection.end();
-  }
-});
-
-export default producto;
+export default productos;
