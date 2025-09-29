@@ -6,6 +6,32 @@ import { createClient as createRedisClient } from "redis";
 import axios from "axios";
 import mysql from "mysql2/promise";
 import { executeQuery } from "lightdata-tools";
+import { getFFProductionDbConfig } from "lightdata-tools";
+import { hostFulFillement, portFulFillement } from "./db.js";
+export async function openEmpresaConnection(idempresa) {
+  if (typeof idempresa !== "string" && typeof idempresa !== "number") {
+    throw new Error(`idempresa debe ser string|number, es: ${typeof idempresa}`);
+  }
+
+  // Mismo origen de verdad que en buildHandlerWrapper
+  const cfg = getFFProductionDbConfig(
+    String(idempresa),
+    hostFulFillement,
+    portFulFillement
+  );
+  // cfg esperado: { host, port, user, password, database }
+
+  // Conexión “short lived”: abrir → usar → cerrar
+  const conn = await mysql.createConnection({
+    ...cfg,
+    multipleStatements: true,
+    connectTimeout: 10000,       // para que no cuelgue
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 5000,
+  });
+
+  return conn;
+}
 
 const RABBITMQ_URL = "amqp://lightdata:QQyfVBKRbw6fBb@158.69.131.226:5672";
 
@@ -334,7 +360,9 @@ async function processOrderMessage(rawMsg) {
     }
     console.log("[sellerData:ok]", { corrId, idempresa: sellerData.idempresa });
 
-    db = await getConnectionLocal(sellerData.idempresa);
+
+
+    db = await openEmpresaConnection(sellerData.idempresa);
     console.log("[db:connected]", { corrId });
 
     const mlOrder = await obtenerDatosEnvioML(resource, token, corrId);
