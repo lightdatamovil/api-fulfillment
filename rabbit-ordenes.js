@@ -312,7 +312,7 @@ async function processOrderMessage(rawMsg) {
     const seller_id = String(datain.sellerid);
     const resource = datain.resource;
     corrId = `${seller_id}|${resource}`;
-    console.log("[msg:received]", { corrId });
+    // console.log("[msg:received]", { corrId });
 
     const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
     if (!sellersPermitidos.includes(seller_id)) {
@@ -390,7 +390,7 @@ async function processOrderMessage(rawMsg) {
     throw e;
   } finally {
     try { await db?.end(); console.log("[db:closed]", { corrId, ms: Date.now() - t0 }); } catch (e) {
-      console.warn("[db:close:warn]", { corrId, err: e?.message || e });
+      //    console.warn("[db:close:warn]", { corrId, err: e?.message || e });
     }
   }
 }
