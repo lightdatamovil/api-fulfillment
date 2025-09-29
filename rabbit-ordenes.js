@@ -290,6 +290,10 @@ async function processOrderMessage(rawMsg) {
     let did = ORDENES_CACHE[keyCache]?.did || (await getPedidoDidByNumber(db, number));
     const isNew = !did;
     console.log("no existe diddddd:", { seller_id, resource });
+    console.log("payload:", payload);
+    console.log("esnuevo:", isNew);
+
+
 
     if (isNew) {
       console.log("9999999999999:", { seller_id, resource });
