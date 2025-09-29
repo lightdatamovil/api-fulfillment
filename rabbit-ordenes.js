@@ -114,6 +114,7 @@ async function getStatusVigente(db, did, corrId) {
 function mapMlToPedidoPayload(ml, sellerData) {
   const firstItem = ml?.order_items?.[0];
   const variation_attributes = firstItem?.item?.variation_attributes || null;
+  console.log(ml, "mlllllllllllll");
 
   return {
     did_cuenta: sellerData?.idcuenta ?? 0,
@@ -126,7 +127,7 @@ function mapMlToPedidoPayload(ml, sellerData) {
     buyer_last_name: ml?.buyer?.last_name ?? "",
     total_amount: ml?.total_amount ?? 0,
     ml_shipment_id: ml?.shipping?.id ? String(ml.shipping.id) : "",
-    ml_id: ml.id || 0,
+    ml_id: String(ml?.id || ""),
     ml_pack_id: ml?.pack_id ? String(ml.pack_id) : "",
     site_id: ml?.site_id || "",
     currency_id: ml?.currency_id || "",
@@ -156,6 +157,10 @@ function mapMlToPedidoPayload(ml, sellerData) {
 async function createPedido(db, payload, userId, corrId) {
   try {
     console.log("[pedido:create:start]", { corrId, number: payload?.number });
+
+    // aseguramos que el pedido tenga ml_id string (nunca null/undefined)
+    const pedidoMlId = String(payload?.ml_id ?? payload?.number ?? "").trim();
+
     const cols = [
       "did_cuenta", "status", "number", "fecha_venta", "buyer_id", "buyer_nickname",
       "buyer_name", "buyer_last_name", "total_amount", "ml_shipment_id", "ml_id",
@@ -164,13 +169,27 @@ async function createPedido(db, payload, userId, corrId) {
     ];
     const ph = cols.map(() => "?");
     const vals = [
-      payload.did_cuenta, payload.status, payload.number, payload.fecha_venta,
-      payload.buyer_id, payload.buyer_nickname, payload.buyer_name, payload.buyer_last_name,
-      payload.total_amount, payload.ml_shipment_id, payload.ml_id, payload.ml_pack_id,
+      payload.did_cuenta,
+      payload.status,
+      payload.number,
+      payload.fecha_venta,
+      payload.buyer_id,
+      payload.buyer_nickname,
+      payload.buyer_name,
+      payload.buyer_last_name,
+      payload.total_amount,
+      payload.ml_shipment_id,
+      pedidoMlId,                         // <= ya no será null
+      payload.ml_pack_id,
       payload.observaciones ?? "",
-      payload.armado ?? 0, payload.descargado ?? 0, payload.quien_armado ?? 0,
-      userId ?? 0, 0, 0
+      payload.armado ?? 0,
+      payload.descargado ?? 0,
+      payload.quien_armado ?? 0,
+      userId ?? 0,
+      0,
+      0
     ];
+
     const ins = await executeQuery(
       db,
       `INSERT INTO pedidos (${cols.join(",")}) VALUES (${ph.join(",")})`,
@@ -178,13 +197,28 @@ async function createPedido(db, payload, userId, corrId) {
       true
     );
     if (!ins?.insertId) throw new Error("No se pudo insertar pedido");
+
     const id = ins.insertId;
     await executeQuery(db, `UPDATE pedidos SET did = ? WHERE id = ?`, [id, id], true);
     const did = id;
 
-    console.log("[pedido:create:items:start]", { corrId, did, items: (payload.items || []).length });
+    console.log("[pedido:create:items:start]", {
+      corrId,
+      did,
+      items: (payload.items || []).length
+    });
+
     for (const it of (payload.items || [])) {
       if (!it || Number(it.cantidad) <= 0) continue;
+
+      // Fallback para ml_id de cada item:
+      // 1) it.ml_id si viene
+      // 2) it.codigo (listing id)
+      // 3) pedidoMlId (id de la orden)
+      const mlItemIdFinal = String(
+        (it.ml_id ?? it.codigo ?? pedidoMlId) ?? ""
+      ).trim();
+
       const icol = [
         "did_pedido", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
         "variacion", "id_variacion", "user_product_id", "cantidad", "variation_attributes",
@@ -192,12 +226,23 @@ async function createPedido(db, payload, userId, corrId) {
       ];
       const iph = icol.map(() => "?");
       const ival = [
-        did, it.seller_sku ?? "", it.codigo ?? null, it.descripcion ?? null, it.ml_id ?? null,
-        it.dimensions ?? null, it.variacion ?? null, it.id_variacion ?? null,
-        it.user_product_id ?? null, Number(it.cantidad),
+        did,
+        it.seller_sku ?? "",
+        it.codigo ?? null,
+        it.descripcion ?? null,
+        mlItemIdFinal, // <= nunca null
+        it.dimensions ?? null,
+        it.variacion ?? "",
+        it.id_variacion ?? null,
+        it.user_product_id ?? null,
+        Number(it.cantidad),
         it.variation_attributes ? JSON.stringify(it.variation_attributes) : null,
-        it.imagen ?? null, userId ?? null, 0, 0
+        it.imagen ?? null,
+        userId ?? 0,
+        0,
+        0
       ];
+
       await executeQuery(
         db,
         `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph.join(",")})`,
@@ -209,7 +254,7 @@ async function createPedido(db, payload, userId, corrId) {
     await executeQuery(
       db,
       `INSERT INTO pedidos_historial (did_pedido, estado, quien, superado, elim) VALUES (?, ?, ?, 0, 0)`,
-      [did, payload.status || "created", userId ?? null],
+      [did, payload.status || "created", userId ?? 0],
       true
     );
 
@@ -225,6 +270,7 @@ async function createPedido(db, payload, userId, corrId) {
     throw e;
   }
 }
+
 
 // ---------- UPDATE status in-place + historial versionado ----------
 async function updatePedidoStatusWithHistory(db, did, newStatus, userId, fecha = new Date(), alsoInsertItemsPayload = null, corrId) {
