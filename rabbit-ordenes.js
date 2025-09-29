@@ -111,24 +111,30 @@ setInterval(() => {
 }, 1000 * 60 * 60 * 24 * 14);
 
 async function qWithTimeout(db, sql, params = [], label = "query", timeoutMs = 12000) {
-  const t0 = Date.now();
   const p = executeQuery(db, sql, params);
   const to = new Promise((_, rej) =>
     setTimeout(() => rej(new Error(`Timeout ${label} after ${timeoutMs}ms`)), timeoutMs)
   );
   try {
-    const res = await Promise.race([p, to]);
-    return res;
-  } finally {
-    const ms = Date.now() - t0;
-    if (ms > timeoutMs) {
-      console.warn("[db:q:timeout]", { label, ms, timeoutMs });
-    } else {
-      // Log suave para no saturar
-      // console.log("[db:q:ok]", { label, ms });
+    return await Promise.race([p, to]);
+  } catch (e) {
+    // 🔎 EXTRA DEBUG al fallar
+    try {
+      const [procs] = await db.query(`SHOW PROCESSLIST`);
+      console.error("[db:processlist:on-timeout]", {
+        label,
+        rows: procs?.length,
+        sample: procs?.slice(0, 10) // primeras 10
+      });
+      const [openTbl] = await db.query(`SHOW OPEN TABLES WHERE \`Table\`='pedidos'`);
+      console.error("[db:open_tables:on-timeout]", openTbl);
+    } catch (e2) {
+      console.warn("[db:debug:failed]", e2?.message || e2);
     }
+    throw e;
   }
 }
+
 
 // ✅ chequeo rápido de conexión y contexto
 async function checkDbConnection(db, corrId = "") {
