@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: process.env.ENV_FILE || ".env" });
 
-// Configuración de la base de datos de fulfillment
+//sdad Configuración de la base de datos de fulfillment
 export const hostFulFillement = process.env.FULFILLMENT_DB_HOST;
 export const portFulFillement = process.env.FULFILLMENT_DB_PORT;
 export const urlRabbit = process.env.RABBITMQ_URL;
