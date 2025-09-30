@@ -48,36 +48,47 @@ export async function createPedido(db, payload, userId) {
     for (const it of (payload.items || [])) {
         if (!it || Number(it.cantidad) <= 0) continue;
 
-        // Fallback para ml_id de cada item:
-        // 1) it.ml_id si viene
-        // 2) it.codigo (listing id)
-        // 3) pedidoMlId (id de la orden)
+        // Fallbacks:
+        // ml_id ítem: it.ml_id || it.codigo (listing) || pedidoMlId (id de orden)
         const mlItemIdFinal = String(
-            (it.ml_id ?? it.codigo ?? pedidoMlId) ?? ""
+            (it.ml_id ?? it.codigo ?? pedidoMlId ?? "")
         ).trim();
 
         const icol = [
-            "did_pedido", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
-            "variacion", "id_variacion", "user_product_id", "cantidad", "variation_attributes",
-            "imagen", "quien", "superado", "elim"
+            "did_pedido",
+            "seller_sku",
+            "codigo",
+            "descripcion",
+            "ml_id",
+            "dimensions",
+            "variacion",          // <- NOT NULL en tu BD
+            "id_variacion",
+            "user_product_id",
+            "cantidad",
+            "variation_attributes",
+            "imagen",
+            "quien",
+            "superado",
+            "elim"
         ];
         const iph = icol.map(() => "?");
+
         const ival = [
             did,
-            it.seller_sku ?? "",
-            it.codigo ?? null,
-            it.descripcion ?? null,
-            mlItemIdFinal, // <= nunca null
-            it.dimensions ?? null,
-            it.variacion ?? "",
+            String(it.seller_sku ?? ""),                            // nunca null
+            it.codigo ?? null,                                      // puede ser null
+            it.descripcion ?? null,                                 // puede ser null
+            mlItemIdFinal,                                          // nunca null
+            (it.dimensions ?? "") === "" ? null : String(it.dimensions), // null si vacío
+            String(it.variacion ?? ""),                             // *** clave: nunca null ***
             it.id_variacion ?? null,
             it.user_product_id ?? null,
             Number(it.cantidad),
             it.variation_attributes ? JSON.stringify(it.variation_attributes) : null,
             it.imagen ?? null,
-            userId ?? 0,
+            Number(userId ?? 0),
             0,
-            0
+            0,
         ];
 
         await executeQuery(
