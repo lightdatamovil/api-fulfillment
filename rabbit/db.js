@@ -1,5 +1,8 @@
 import { logRed } from "lightdata-tools";
 import { createClient as createRedisClient } from "redis";
+import dotenv from "dotenv";
+
+dotenv.config({ path: process.env.ENV_FILE || ".env" });
 
 // Configuración de la base de datos de fulfillment
 export const hostFulFillement = process.env.FULFILLMENT_DB_HOST;

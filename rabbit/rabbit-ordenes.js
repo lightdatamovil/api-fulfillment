@@ -1,8 +1,8 @@
 
 import amqp from "amqplib";
+import { logRed } from "lightdata-tools";
 import { ESTADOS_CACHE, redisClient, urlRabbit } from "./db.js";
 import { processOrderMessage } from "./functions/processOrderMessage.js";
-import { logRed } from "lightdata-tools";
 
 setInterval(() => {
   for (const k of Object.keys(ESTADOS_CACHE)) delete ESTADOS_CACHE[k];
@@ -11,6 +11,8 @@ setInterval(() => {
 
 (async function main() {
   try {
+    console.log(urlRabbit, "dsada");
+
     await redisClient.connect();
     let channelName = "ordenesFF";
     let connection = null;
