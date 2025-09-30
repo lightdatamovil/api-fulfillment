@@ -1,13 +1,13 @@
 import { connectMySQL, getFFProductionDbConfig, logRed } from "lightdata-tools";
-import { obtenerDatosEnvioML } from "./obtenerDatosEnvioML";
-import { mapMlToPedidoPayload } from "./mapMLToPedidoPayload";
-import { getPedidoDidByNumber } from "./getDidPedidoByNumber";
-import { createPedido } from "./createPedido";
-import { getSellerData } from "./getSellerData";
-import { ESTADOS_CACHE, hostFulFillement, ORDENES_CACHE, portFulFillement } from "../db";
-import { getTokenBySeller } from "./getTokenBySeller";
-import { getStatusVigente } from "./getStatusVigente";
-import { updatePedidoStatusWithHistory } from "./updatePedidoStatusWithHistory";
+import { obtenerDatosEnvioML } from "./obtenerDatosEnvioML.js";
+import { mapMlToPedidoPayload } from "./mapMLToPedidoPayload.js";
+import { getPedidoDidByNumber } from "./getDidPedidoByNumber.js";
+import { createPedido } from "./createPedido.js";
+import { getSellerData } from "./getSellerData.js";
+import { ESTADOS_CACHE, hostFulFillement, ORDENES_CACHE, portFulFillement } from "../db.js";
+import { getTokenBySeller } from "./getTokenBySeller.js";
+import { getStatusVigente } from "./getStatusVigente.js";
+import { updatePedidoStatusWithHistory } from "./updatePedidoStatusWithHistory.js";
 
 export async function processOrderMessage(rawMsg) {
     let db;

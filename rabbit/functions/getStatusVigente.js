@@ -1,5 +1,5 @@
 import { executeQuery } from "lightdata-tools";
-import { ESTADOS_CACHE } from "../db";
+import { ESTADOS_CACHE } from "../db.js";
 
 export async function getStatusVigente(db, did) {
     if (ESTADOS_CACHE[did]) {

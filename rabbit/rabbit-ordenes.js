@@ -1,7 +1,7 @@
 
 import amqp from "amqplib";
-import { ESTADOS_CACHE, redisClient, urlRabbit } from "./db";
-import { processOrderMessage } from "./functions/processOrderMessage";
+import { ESTADOS_CACHE, redisClient, urlRabbit } from "./db.js";
+import { processOrderMessage } from "./functions/processOrderMessage.js";
 import { logRed } from "lightdata-tools";
 
 setInterval(() => {

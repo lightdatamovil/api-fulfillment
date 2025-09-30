@@ -1,4 +1,4 @@
-import { redisClient } from "../db";
+import { redisClient } from "../db.js";
 
 export async function getTokenBySeller(seller_id) {
     if (!redisClient.isOpen) await redisClient.connect();

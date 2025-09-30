@@ -1,3 +1,4 @@
+
 export function mapMlToPedidoPayload(ml, sellerData) {
     const firstItem = ml?.order_items?.[0];
     const variation_attributes = firstItem?.item?.variation_attributes || null;
