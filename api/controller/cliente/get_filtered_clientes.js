@@ -67,41 +67,11 @@ export async function getFilteredClientes(connection, req) {
       c.observaciones,
       c.razon_social,
       c.quien,
-      COALESCE(d.direcciones, JSON_ARRAY()) AS direcciones,
-      COALESCE(k.contactos,   JSON_ARRAY()) AS contactos
+
     FROM clientes c
-    LEFT JOIN (
-      SELECT
-        did_cliente,
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'did', did,
-            'address_line', address_line,
-            'pais', pais,
-            'numero', numero,
-            'localidad', localidad,
-            'calle', calle,
-            'cp', cp
-          )
-        ) AS direcciones
-      FROM clientes_direcciones
-      WHERE elim = 0 AND superado = 0
-      GROUP BY did_cliente
-    ) d ON d.did_cliente = c.did
-    LEFT JOIN (
-      SELECT
-        did_cliente,
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'did', did,
-            'tipo', tipo,
-            'valor', valor
-          )
-        ) AS contactos
-      FROM clientes_contactos
-      WHERE elim = 0 AND superado = 0
-      GROUP BY did_cliente
-    ) k ON k.did_cliente = c.did
+    
+      d ON d.did_cliente = c.did
+     k ON k.did_cliente = c.did
     ${whereSql}
     ${orderSql}
     LIMIT ? OFFSET ?;
