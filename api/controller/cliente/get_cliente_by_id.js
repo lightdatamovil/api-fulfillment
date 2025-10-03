@@ -18,7 +18,7 @@ export async function getClienteById(connection, req) {
       d.did AS direccion_did,
       d.titulo,
       d.localidad,
-      d.pais,
+
       d.calle,
       d.numero,
       d.provincia,
@@ -73,14 +73,14 @@ export async function getClienteById(connection, req) {
         direcciones: [],
         contactos: [],
         cuentas: [],
-        depositos: [], // a nivel raíz como pediste
+
     };
 
     // sets para evitar duplicados
     const dirSet = new Set();
     const conSet = new Set();
     const ctaSet = new Set();
-    const depSet = new Set();
+
 
     for (const r of rows) {
         // direcciones
@@ -91,7 +91,6 @@ export async function getClienteById(connection, req) {
                 address_line: r.address_line,
                 localidad: r.localidad,
                 provincia: r.provincia,
-                pais: r.pais,
                 calle: r.calle,
                 numero: r.numero,
                 cp: r.cp,
@@ -122,15 +121,7 @@ export async function getClienteById(connection, req) {
             });
         }
 
-        // depósitos (a nivel raíz)
-        if (r.deposito_did && !depSet.has(r.deposito_did)) {
-            depSet.add(r.deposito_did);
-            cliente.depositos.push({
-                did: r.deposito_did,
-                did_deposito: r.did_deposito,
-                did_cliente_cuenta: r.cuenta_did ?? null, // útil para saber a qué cuenta pertenece
-            });
-        }
+
     }
 
     return {

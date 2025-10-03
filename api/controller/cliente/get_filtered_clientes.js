@@ -86,8 +86,7 @@ export async function getFilteredClientes(connection, req) {
     observaciones: r.observaciones,
     razon_social: r.razon_social,
     quien: r.quien,
-    direcciones: typeof r.direcciones === "string" ? JSON.parse(r.direcciones) : (r.direcciones ?? []),
-    contactos: typeof r.contactos === "string" ? JSON.parse(r.contactos) : (r.contactos ?? []),
+
   }));
 
   return {
