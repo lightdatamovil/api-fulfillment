@@ -13,6 +13,7 @@ import { logBlue, logRed, verifyToken } from "lightdata-tools";
 import redisClient, { jwtSecret, jwtIssuer, jwtAudience } from "./db.js";
 import auth from "./route/auth.js";
 import preload from './route/preload.js';
+import logisticas from './route/logisticas.js';
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/api/auth", auth);
 app.use(verifyToken({ jwtSecret, jwtIssuer, jwtAudience }));
 app.use("/api/preload", preload);
 app.use("/api/variantes", variantes);
+app.use("/api/logisticas", logisticas);
 app.use("/api/clientes", clientes);
 app.use("/api/insumos", insumos);
 app.use("/api/pedidos", pedido);
