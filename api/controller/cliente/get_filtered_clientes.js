@@ -70,8 +70,7 @@ export async function getFilteredClientes(connection, req) {
 
     FROM clientes c
     
-      d ON d.did_cliente = c.did
-     k ON k.did_cliente = c.did
+    
     ${whereSql}
     ${orderSql}
     LIMIT ? OFFSET ?;
