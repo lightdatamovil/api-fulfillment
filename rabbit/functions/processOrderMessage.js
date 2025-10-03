@@ -1,3 +1,5 @@
+import axios from "axios"; // ⬅️ usamos axios
+
 import { connectMySQL, getFFProductionDbConfig, logRed } from "lightdata-tools";
 import { obtenerDatosEnvioML } from "./obtenerDatosEnvioML.js";
 import { mapMlToPedidoPayload } from "./mapMLToPedidoPayload.js";
@@ -9,10 +11,54 @@ import { getTokenBySeller } from "./getTokenBySeller.js";
 import { getStatusVigente } from "./getStatusVigente.js";
 import { updatePedidoStatusWithHistory } from "./updatePedidoStatusWithHistory.js";
 
+/* ============== Axios client para ML ============== */
+function mlClient(token) {
+    return axios.create({
+        baseURL: "https://api.mercadolibre.com",
+        timeout: 10_000,
+        headers: { Authorization: `Bearer ${token}` },
+    });
+}
+
+async function fetchShipmentReceiverAddress(shippingId, token) {
+    if (!shippingId) return null;
+    const client = mlClient(token);
+
+    const { data } = await client.get(`/shipments/${shippingId}`);
+    // En algunos casos viene en receiver_address, otros en destination.receiver_address
+    const rx = data?.receiver_address || data?.destination?.receiver_address || null;
+    if (!rx) return null;
+
+    const s = (v) => (v == null ? null : String(v).trim());
+    const num = (v) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+    };
+
+    const street_name = s(rx.street_name);
+    const street_number = s(rx.street_number ?? rx.number);
+    const address_line = s(rx.address_line) || [street_name, street_number].filter(Boolean).join(" ") || null;
+
+    return {
+        address_line,
+        street_name,
+        street_number,
+        zip_code: s(rx.zip_code ?? rx.zip),
+        city: s(rx.city?.name ?? rx.city?.id),
+        state: s(rx.state?.name ?? rx.state?.id),
+        country: s(rx.country?.name ?? rx.country?.id),
+        latitude: num(rx.latitude),
+        longitude: num(rx.longitude),
+        comment: s(rx.comment),
+    };
+}
+/* ================================================ */
+
 export async function processOrderMessage(rawMsg) {
     let db;
 
     try {
+        // Parse
         let datain;
         try {
             datain = JSON.parse(rawMsg);
@@ -39,35 +85,54 @@ export async function processOrderMessage(rawMsg) {
             return { ok: false, error: "seller-data-not-found" };
         }
 
-
+        // Conexión (⚠️ no uses "const db" para no sombrear)
         const cfg = getFFProductionDbConfig(
             String(sellerData.idempresa),
             hostFulFillement,
             portFulFillement
         );
-        const db = await connectMySQL(cfg);
+        db = await connectMySQL(cfg);
 
-        const mlOrder = await obtenerDatosEnvioML(resource, token,);
+        // Traer orden ML
+        const mlOrder = await obtenerDatosEnvioML(resource, token);
         if (!mlOrder) {
             return { ok: false, error: "ml-order-null" };
         }
         console.log(mlOrder, "mlOrder");
 
+        // 👉 Completar dirección desde shipments si falta
+        if (!mlOrder?.shipping?.receiver_address && mlOrder?.shipping?.id) {
+            try {
+                const rx = await fetchShipmentReceiverAddress(mlOrder.shipping.id, token);
+                if (rx) {
+                    mlOrder.shipping = { ...(mlOrder.shipping || {}), receiver_address: rx };
+                    console.log("[shipment-address]", rx);
+                } else {
+                    console.warn("[shipment-address] vacío para shipping.id:", mlOrder.shipping.id);
+                }
+            } catch (e) {
+                console.warn("No se pudo obtener receiver_address del shipment:", e?.message || e);
+            }
+        }
 
+        // Map a payload (incluye shipping.receiver_address si lo obtuvimos)
         const number = String(mlOrder.id);
         const keyCache = `${seller_id}_${number}`;
         const payload = mapMlToPedidoPayload(mlOrder, sellerData);
 
-        let did = ORDENES_CACHE[keyCache]?.did || (await getPedidoDidByNumber(db, number,));
+        // Alta / update
+        let did =
+            ORDENES_CACHE[keyCache]?.did ||
+            (await getPedidoDidByNumber(db, number));
         const isNew = !did;
 
         if (isNew) {
-            did = await createPedido(db, payload, sellerData?.quien ?? null,);
+            did = await createPedido(db, payload, sellerData?.quien ?? null);
             ORDENES_CACHE[keyCache] = { did };
             ESTADOS_CACHE[did] = payload.status;
             return { ok: true, created: did };
         } else {
-            const prevStatus = await getStatusVigente(db, did,);
+            const prevStatus = await getStatusVigente(db, did);
             const hasStatusChange = prevStatus !== payload.status;
 
             if (hasStatusChange) {
@@ -77,8 +142,7 @@ export async function processOrderMessage(rawMsg) {
                     payload.status,
                     sellerData?.quien ?? null,
                     new Date(),
-                    payload,
-
+                    payload
                 );
                 ESTADOS_CACHE[did] = payload.status;
                 ORDENES_CACHE[keyCache] = { did };
@@ -89,6 +153,7 @@ export async function processOrderMessage(rawMsg) {
         }
     } catch (e) {
         logRed(e);
+        return { ok: false, error: e?.message || "unknown" };
     } finally {
         await db?.end();
     }
