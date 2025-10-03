@@ -73,7 +73,7 @@ export async function getFilteredClientes(connection, req) {
     FROM clientes c
     LEFT JOIN (
       SELECT
-        didCliente,
+        did_cliente,
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'did', did,
@@ -82,11 +82,11 @@ export async function getFilteredClientes(connection, req) {
         ) AS direcciones
       FROM clientes_direcciones
       WHERE elim = 0 AND superado = 0
-      GROUP BY didCliente
-    ) d ON d.didCliente = c.did
+      GROUP BY did_cliente
+    ) d ON d.did_cliente = c.did
     LEFT JOIN (
       SELECT
-        didCliente,
+        did_cliente,
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'did', did,
@@ -96,8 +96,8 @@ export async function getFilteredClientes(connection, req) {
         ) AS contactos
       FROM clientes_contactos
       WHERE elim = 0 AND superado = 0
-      GROUP BY didCliente
-    ) k ON k.didCliente = c.did
+      GROUP BY did_cliente
+    ) k ON k.did_cliente = c.did
     ${whereSql}
     ${orderSql}
     LIMIT ? OFFSET ?
