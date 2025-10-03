@@ -35,6 +35,7 @@ export async function getClienteById(connection, req) {
       cc.titulo AS cuenta_titulo,
       cc.ml_id_vendedor AS cuenta_ml_id_vendedor,
       cc.ml_user AS cuenta_ml_user
+      cc.data
 
       
     FROM clientes c
@@ -118,6 +119,7 @@ export async function getClienteById(connection, req) {
                 titulo: r.cuenta_titulo,
                 ml_id_vendedor: r.cuenta_ml_id_vendedor,
                 ml_user: r.cuenta_ml_user,
+                data: r.data ? JSON.parse(r.data) : null,
             });
         }
 
