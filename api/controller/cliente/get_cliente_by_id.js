@@ -34,7 +34,7 @@ export async function getClienteById(connection, req) {
       cc.flex AS cuenta_flex,
       cc.titulo AS cuenta_titulo,
       cc.ml_id_vendedor AS cuenta_ml_id_vendedor,
-      cc.ml_user AS cuenta_ml_user,
+      cc.ml_user AS cuenta_ml_user
 
       
     FROM clientes c
