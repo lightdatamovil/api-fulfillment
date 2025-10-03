@@ -129,7 +129,7 @@ export async function createPedido(db, payload, userId) {
             ""
         );
         const cp = s(rx?.zip_code ?? rx?.zip ?? "");
-        const localidad = s(rx.city.name || "");
+        const localidad = s(rx.city || "");
         const provincia = s(rx.state || "");
         const pais = s(rx.country || "");
         const latitud = n(rx?.latitude);
