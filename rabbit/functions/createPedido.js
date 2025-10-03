@@ -1,16 +1,18 @@
 import { executeQuery } from "lightdata-tools";
-
 /**
- * Normaliza strings (trim) y garantiza "" en vez de null/undefined.
+ * @param {any} v
+ * @returns {string}
  */
-function s(v: any): string {
+function s(v) {
     return String(v ?? "").trim();
 }
 
 /**
  * Convierte a number o null si no es parseable.
+ * @param {any} v
+ * @returns {number|null}
  */
-function n(v: any): number | null {
+function n(v) {
     const num = Number(v);
     return Number.isFinite(num) ? num : null;
 }
