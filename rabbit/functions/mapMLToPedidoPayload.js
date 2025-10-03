@@ -5,8 +5,6 @@ export function mapMlToPedidoPayload(ml, sellerData) {
     // si processOrderMessage enriqueció ml.shipping.receiver_address, viaja acá
     const receiver_address = ml?.shipping?.receiver_address || null;
 
-
-
     return {
         did_cuenta: sellerData?.idcuenta ?? 0,
         status: ml?.status || "created",
