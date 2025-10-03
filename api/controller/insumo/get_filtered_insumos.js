@@ -21,15 +21,16 @@ export async function getFilteredInsumos(dbConnection, req) {
     };
     const { orderSql } = makeSort(q, sortMap, { defaultKey: "nombre", byKey: "sort_by", dirKey: "sort_dir" });
 
-    // WHERE
+    // WHERE hace el where
     const where = new SqlWhere()
         .add("i.elim = 0")
         .add("i.superado = 0");
 
-    // filtros
+    // filtros condiciones opcionales
     if (q.codigo) where.likeEscaped("i.codigo", q.codigo);
     if (q.nombre) where.likeEscaped("i.nombre", q.nombre);
 
+    //q es params -- parseo habilitado de params
     const habRaw = q.habilitado;
     if (habRaw !== null && habRaw !== undefined && habRaw !== "todos" && habRaw !== "") {
         const hab = Number(habRaw);
