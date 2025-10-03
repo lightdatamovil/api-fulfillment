@@ -10,7 +10,7 @@ import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 
  * req.body: { codigo?, nombre?, unidad?, habilitado?, clientes_add?, clientes_remove? }
  */
 export async function editInsumo(dbConnection, req) {
-    const { codigo, nombre, unidad, habilitado, clientes_add, clientes_remove } = req.body;
+    const { codigo, nombre, unidad, habilitado, clientes_ids_add, clientes_ids_remove } = req.body;
     const { userId } = req.user;
     const { insumoId } = req.params;
 
@@ -95,8 +95,8 @@ export async function editInsumo(dbConnection, req) {
     }
 
     // 5) Asociaciones incrementales
-    const toAdd = norm(clientes_add);
-    const toRemove = norm(clientes_remove);
+    const toAdd = norm(clientes_ids_add);
+    const toRemove = norm(clientes_ids_remove);
 
     // 5.a) Remover -> marcar superado=1 (no borrar)
     if (toRemove.length > 0) {
