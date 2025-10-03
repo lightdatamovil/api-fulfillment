@@ -16,7 +16,7 @@ export async function getClienteById(connection, req) {
 
       -- Direcciones
       d.did AS direccion_did,
-      d.titulo
+      d.titulo,
       d.localidad,
       d.pais,
       d.calle,
