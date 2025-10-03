@@ -121,7 +121,7 @@ export async function createCliente(db, req) {
           INSERT INTO clientes_direcciones
             (did_cliente, pais, localidad, calle, numero, cp,provincia, quien, superado, elim, autofecha)
           VALUES
-            (?, ?, ?,?, ?, ?, ?,? 0, 0, NOW())
+            (?, ?, ?,?, ?, ?, ?,?, 0, 0, NOW())
         `,
                 [clienteId, pais, localidad, calle, numero, cp, provincia, userId],
                 true
