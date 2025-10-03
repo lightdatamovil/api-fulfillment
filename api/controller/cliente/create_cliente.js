@@ -113,21 +113,22 @@ export async function createCliente(db, req) {
             const calle = isNonEmpty(d?.calle) ? String(d.calle).trim() : null;
             const numero = isNonEmpty(d?.numero) ? String(d.numero).trim() : null;
             const cp = isNonEmpty(d?.cp) ? String(d.cp).trim() : null;
+            const provincia = isNonEmpty(d?.provincia) ? String(d.provincia).trim() : null;
 
             const insDir = await executeQuery(
                 db,
                 `
           INSERT INTO clientes_direcciones
-            (did_cliente, pais, localidad, calle, numero, cp, quien, superado, elim, autofecha)
+            (did_cliente, pais, localidad, calle, numero, cp,provincia, quien, superado, elim, autofecha)
           VALUES
-            (?, ?, ?,?, ?, ?, ?, 0, 0, NOW())
+            (?, ?, ?,?, ?, ?, ?,? 0, 0, NOW())
         `,
-                [clienteId, pais, localidad, calle, numero, cp, userId],
+                [clienteId, pais, localidad, calle, numero, cp, provincia, userId],
                 true
             );
             const dirId = insDir.insertId;
             await executeQuery(db, `UPDATE clientes_direcciones SET did = ? WHERE id = ?`, [dirId, dirId], true);
-            insertedDirecciones.push({ id: dirId, did: dirId, did_cliente: clienteId, pais, localidad, calle, numero, cp, quien: userId, });
+            insertedDirecciones.push({ id: dirId, did: dirId, did_cliente: clienteId, pais, localidad, calle, numero, cp, provincia, quien: userId, });
         }
     }
 
