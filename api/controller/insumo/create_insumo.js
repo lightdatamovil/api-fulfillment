@@ -10,11 +10,11 @@ import { CustomException, executeQuery } from "lightdata-tools";
  *  - clientes?: number[]   // ids de cliente a asociar
  */
 export async function createInsumo(dbConnection, req) {
-    const { codigo, clientes, habilitado, nombre, unidad } = req.body;
+    const { codigo, clientes_dids, habilitado, nombre, unidad } = req.body;
     const { userId } = req.user;
 
-    const clientesArr = Array.isArray(clientes)
-        ? [...new Set(clientes.map(n => Number(n)).filter(Number.isFinite))]
+    const clientesArr = Array.isArray(clientes_dids)
+        ? [...new Set(clientes_dids.map(n => Number(n)).filter(Number.isFinite))]
         : [];
 
     if (!codigo || !nombre) {

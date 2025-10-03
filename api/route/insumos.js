@@ -11,7 +11,7 @@ const insumos = Router();
 insumos.post(
     '/',
     buildHandlerWrapper({
-        required: ['codigo', 'habilitado', 'clientes', 'nombre', 'unidad'],
+        required: ['codigo', 'habilitado', 'clientes_dids', 'nombre', 'unidad'],
         controller: async ({ db, req }) => {
             const result = await createInsumo(db, req);
             return result;
