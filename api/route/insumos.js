@@ -11,7 +11,7 @@ const insumos = Router();
 insumos.post(
     '/',
     buildHandlerWrapper({
-        required: ['codigo', 'habilitado', 'clientes', 'nombre', 'unidad'],
+        required: ['codigo', 'habilitado', 'clientes_dids', 'nombre', 'unidad'],
         controller: async ({ db, req }) => {
             const result = await createInsumo(db, req);
             return result;
@@ -22,7 +22,7 @@ insumos.post(
 insumos.put(
     '/:insumoId',
     buildHandlerWrapper({
-        optional: ['codigo', 'habilitado', 'clientes_add', 'clientes_remove', 'nombre', 'unidad'],
+        optional: ['codigo', 'habilitado', 'clientes_dids_add', 'clientes_dids_remove', 'nombre', 'unidad'],
         controller: async ({ db, req }) => {
             const result = await editInsumo(db, req);
             return result;
