@@ -2,7 +2,8 @@ import { createClient } from "redis";
 import dotenv from "dotenv";
 import { CompaniesService, logRed } from "lightdata-tools";
 
-dotenv.config({ path: process.env.ENV_FILE || ".env" });
+dotenv.config({ path: process.env.ENV_FILE || "../.env" });
+
 
 /// Redis para obtener las empresas
 const redisHost = process.env.REDIS_HOST;
@@ -16,6 +17,8 @@ export const portFulFillement = process.env.FULFILLMENT_DB_PORT;
 export const jwtSecret = process.env.JWT_SECRET;
 export const jwtIssuer = process.env.JWT_ISSUER;
 export const jwtAudience = process.env.JWT_AUDIENCE;
+
+
 
 export const redisClient = createClient({
   socket: {

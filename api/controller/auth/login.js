@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { CustomException, executeQuery, generateToken, Status } from "lightdata-tools";
-import { companiesService, jwtAudience, jwtIssuer } from "../../db.js";
+import { companiesService, jwtAudience, jwtIssuer, jwtSecret } from "../../db.js";
 
 export async function login(dbConnection, req) {
     const { username, password, companyCode } = req.body;
@@ -36,7 +36,8 @@ export async function login(dbConnection, req) {
 
     const company = await companiesService.getByCode(companyCode);
 
-    const jwtSecret = process.env.JWT_SECRET || "dev-secret";
+
+
     const token = generateToken({
         jwtSecret: jwtSecret,
         issuer: jwtIssuer,
@@ -49,6 +50,8 @@ export async function login(dbConnection, req) {
         options: {},
         expiresIn: 3600 * 8,
     });
+
+
 
     return {
         success: true,
