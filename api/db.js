@@ -2,7 +2,7 @@ import { createClient } from "redis";
 import dotenv from "dotenv";
 import { CompaniesService, logRed } from "lightdata-tools";
 
-dotenv.config({ path: process.env.ENV_FILE || "../.env" });
+dotenv.config({ path: process.env.ENV_FILE || ".env" });
 
 
 /// Redis para obtener las empresas
