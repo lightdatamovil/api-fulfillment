@@ -1,0 +1,348 @@
+{
+  id: 1798832816,
+  token: '0c86b0ccc8f84fab3e55613bc2af022d9d0279ab',
+  store_id: '47586',
+  contact_email: 'clemenconcatalina@gmail.com',
+  contact_name: 'Catalina Clemencon',
+  contact_phone: '+541168564621',
+  contact_identification: '43318083',
+  shipping_min_days: 3,
+  shipping_max_days: 5,
+  billing_name: 'Catalina',
+  billing_phone: '+541168564621',
+  billing_address: 'Larrea',
+  billing_number: '449',
+  billing_floor: '',
+  billing_locality: '',
+  billing_zipcode: '1832',
+  billing_city: 'Lomas de Zamora',
+  billing_province: 'Buenos Aires',
+  billing_country: 'AR',
+  billing_customer_type: null,
+  billing_business_name: null,
+  billing_trade_name: null,
+  billing_state_registration: null,
+  billing_fiscal_regime: null,
+  billing_business_activity: null,
+  billing_invoice_use: null,
+  billing_document_type: null,
+  shipping_cost_owner: '0.00',
+  shipping_cost_customer: '0.00',
+  coupon: [],
+  promotional_discount: {
+    id: 77659630,
+    store_id: 47586,
+    order_id: 1798832816,
+    created_at: '2025-09-30T17: 35: 43-03: 00',
+    total_discount_amount: '10000.00',
+    contents: [
+            [Object
+            ],
+            [Object
+            ],
+            [Object
+            ],
+            [Object
+            ]
+        ],
+    promotions_applied: [
+            [Object
+            ]
+        ]
+    },
+  subtotal: '55000.00',
+  discount: '10000.00',
+  discount_coupon: null,
+  discount_gateway: '0.00',
+  total: '45000.00',
+  total_usd: '33.14',
+  checkout_enabled: true,
+  weight: '0.480',
+  currency: 'ARS',
+  language: 'es',
+  gateway: 'mercado-pago',
+  gateway_id: '128085774408',
+  gateway_name: 'Mercado Pago',
+  shipping: 'pickup-point',
+  shipping_option: 'Shopping Lomitas Sreet',
+  shipping_option_code: '01K0FDZ4ZS0H1NKR069A81W24J',
+  shipping_option_reference: '01GQFP5GSXY69PT2WSCVF0DA84',
+  shipping_pickup_details: {
+    name: 'Shopping Lomitas Sreet',
+    address: {
+      address: 'Italia',
+      number: '459',
+      floor: null,
+      locality: 'Lomas de Zamora ',
+      city: 'Buenos Aires',
+      province: 'Buenos Aires',
+      zipcode: '1832',
+      country: 'AR',
+      latitude: null,
+      longitude: null,
+      phone: null
+        },
+    hours: [
+            [Object
+            ],
+            [Object
+            ],
+            [Object
+            ],
+            [Object
+            ],
+            [Object
+            ],
+            [Object
+            ],
+            [Object
+            ]
+        ]
+    },
+  shipping_tracking_number: null,
+  shipping_tracking_url: null,
+  shipping_store_branch_name: null,
+  shipping_store_branch_extra: null,
+  shipping_pickup_type: 'pickup',
+  shipping_suboption: [],
+  extra: {},
+  storefront: 'mobile',
+  note: '',
+  created_at: '2025-09-30T17: 39: 34+0000',
+  updated_at: '2025-09-30T19: 03: 06+0000',
+  completed_at: {
+    date: '2025-09-30 17: 39: 34.000000',
+    timezone_type: 3,
+    timezone: 'UTC'
+    },
+  next_action: 'waiting_shipment',
+  payment_details: {
+    method: 'credit_card',
+    credit_card_company: null,
+    installments: '6'
+    },
+  attributes: [],
+  free_shipping_config: {
+    min_price_free_shipping: { min_price: [Object
+            ], enable: 1
+        },
+    cart_has_free_shipping: false
+    },
+  payment_count: 1,
+  payment_status: 'paid',
+  order_origin: null,
+  same_billing_and_shipping_address: true,
+  total_paid: '45000.00',
+  customer: {
+    id: 232820743,
+    name: 'Catalina Clemencon',
+    email: 'clemenconcatalina@gmail.com',
+    identification: '43318083',
+    phone: '+541168564621',
+    note: null,
+    default_address: {
+      address: 'Larrea',
+      city: 'Lomas de Zamora',
+      country: 'AR',
+      created_at: '2025-09-30T17: 39: 34+0000',
+      default: true,
+      floor: '',
+      id: 187433258,
+      locality: '',
+      name: 'Catalina Clemencon',
+      number: '449',
+      phone: '+541168564621',
+      province: 'Buenos Aires',
+      updated_at: '2025-09-30T17: 39: 34+0000',
+      zipcode: '1832'
+        },
+    addresses: [
+            [Object
+            ]
+        ],
+    billing_name: 'Catalina',
+    billing_phone: '+541168564621',
+    billing_address: 'Larrea',
+    billing_number: '449',
+    billing_floor: '',
+    billing_locality: '',
+    billing_zipcode: '1832',
+    billing_city: 'Lomas de Zamora',
+    billing_province: 'Buenos Aires',
+    billing_country: 'AR',
+    extra: {},
+    total_spent: '45000.00',
+    total_spent_currency: 'ARS',
+    last_order_id: 1798832816,
+    active: false,
+    first_interaction: '2025-09-30T17: 39: 34+0000',
+    created_at: '2025-09-30T17: 39: 34+0000',
+    updated_at: '2025-09-30T17: 39: 34+0000',
+    customer_type: '',
+    business_name: '',
+    trade_name: '',
+    state_registration: '',
+    fiscal_regime: '',
+    invoice_use: '',
+    document_type: '',
+    business_activity: '',
+    accepts_marketing: true,
+    accepts_marketing_updated_at: '2025-09-30T20: 29: 03+0000'
+    },
+  products: [
+        {
+      id: 2704665298,
+      depth: '15.00',
+      height: '5.00',
+      name: 'CORPIÑO BIKINI INNA FUCSIA (85)',
+      name_without_variants: 'CORPIÑO BIKINI INNA FUCSIA',
+      price: '15000.00',
+      compare_at_price: '30000.00',
+      product_id: 134239993,
+      image: [Object
+            ],
+      quantity: '1',
+      free_shipping: false,
+      weight: '0.120',
+      width: '15.00',
+      variant_id: '524797258',
+      variant_values: [Array
+            ],
+      properties: [],
+      sku: null,
+      barcode: null,
+      has_promotional_price: true,
+      promotions: [Object
+            ],
+      cost: null
+        },
+        {
+      id: 2704662234,
+      depth: '15.00',
+      height: '5.00',
+      name: 'CORPIÑO BIKINI NALA FUCSIA (85)',
+      name_without_variants: 'CORPIÑO BIKINI NALA FUCSIA',
+      price: '15000.00',
+      compare_at_price: '30000.00',
+      product_id: 134248577,
+      image: [Object
+            ],
+      quantity: '1',
+      free_shipping: false,
+      weight: '0.120',
+      width: '15.00',
+      variant_id: '524824313',
+      variant_values: [Array
+            ],
+      properties: [],
+      sku: null,
+      barcode: null,
+      has_promotional_price: true,
+      promotions: [Object
+            ],
+      cost: null
+        },
+        {
+      id: 2704662900,
+      depth: '15.00',
+      height: '5.00',
+      name: 'BOMBACHA BIKINI NALA FUCSIA (M)',
+      name_without_variants: 'BOMBACHA BIKINI NALA FUCSIA',
+      price: '10000.00',
+      compare_at_price: '20000.00',
+      product_id: 134249360,
+      image: [Object
+            ],
+      quantity: '1',
+      free_shipping: false,
+      weight: '0.120',
+      width: '15.00',
+      variant_id: '524826547',
+      variant_values: [Array
+            ],
+      properties: [],
+      sku: null,
+      barcode: null,
+      has_promotional_price: true,
+      promotions: [Object
+            ],
+      cost: null
+        },
+        {
+      id: 2704663815,
+      depth: '15.00',
+      height: '5.00',
+      name: 'CORPIÑO BIKINI NALA NEGRO (85)',
+      name_without_variants: 'CORPIÑO BIKINI NALA NEGRO',
+      price: '15000.00',
+      compare_at_price: '30000.00',
+      product_id: 134250776,
+      image: [Object
+            ],
+      quantity: '1',
+      free_shipping: false,
+      weight: '0.120',
+      width: '15.00',
+      variant_id: '524829846',
+      variant_values: [Array
+            ],
+      properties: [],
+      sku: null,
+      barcode: null,
+      has_promotional_price: true,
+      promotions: [Object
+            ],
+      cost: null
+        }
+    ],
+  customer_visit: {
+    created_at: '2025-09-30T17: 34: 59+0000',
+    landing_page: 'https: //www.pompavana.me/?fbclid=PAZXh0bgNhZW0CMTEAAacbl91zi2gfdGSzeCA98zjoG2MQYQvjNRdyF47K0MZHdR7z8AR-BS4fDL5GSA_aem_H4H2Oc5nxdNJFUmS-MuZKQ',
+    utm_parameters: {
+      utm_campaign: null,
+      utm_content: null,
+      utm_medium: null,
+      utm_source: null,
+      utm_term: null
+        }
+    },
+  fulfillments: [ '01K6DVAKRY8DV2TN6PY6PXHWA1'
+    ],
+  number: 47696,
+  cancel_reason: null,
+  owner_note: null,
+  cancelled_at: null,
+  closed_at: null,
+  read_at: null,
+  status: 'open',
+  gateway_link: 'https: //www.mercadopago.com.ar/activities/1?q=128085774408',
+  has_shippable_products: true,
+  shipping_carrier_name: null,
+  shipping_address: {
+    address: 'Larrea',
+    city: 'Lomas de Zamora',
+    country: 'AR',
+    created_at: '2025-09-30T17: 35: 43+0000',
+    default: false,
+    floor: '',
+    id: 0,
+    locality: '',
+    name: 'Catalina Clemencon',
+    number: '449',
+    phone: '+541168564621',
+    province: 'Buenos Aires',
+    updated_at: '2025-09-30T19: 03: 06+0000',
+    zipcode: '1832',
+    customs: null
+    },
+  shipping_status: 'unshipped',
+  shipped_at: null,
+  paid_at: '2025-09-30T17: 39: 36+0000',
+  landing_url: 'https: //www.pompavana.me/?fbclid=PAZXh0bgNhZW0CMTEAAacbl91zi2gfdGSzeCA98zjoG2MQYQvjNRdyF47K0MZHdR7z8AR-BS4fDL5GSA_aem_H4H2Oc5nxdNJFUmS-MuZKQ',
+  client_details: {
+    browser_ip: '201.213.145.237',
+    user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22G100 Instagram 400.0.0.27.75 (iPhone15,
+        2; iOS 18_6_2; es_LA; es; scale=3.00; 1179x2556; IABMV/1; 797775111)'
+    },
+  app_id: null
+}

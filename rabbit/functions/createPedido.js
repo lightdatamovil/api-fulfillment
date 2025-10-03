@@ -1,8 +1,23 @@
 import { executeQuery } from "lightdata-tools";
 
+/**
+ * Normaliza strings (trim) y garantiza "" en vez de null/undefined.
+ */
+function s(v: any): string {
+    return String(v ?? "").trim();
+}
+
+/**
+ * Convierte a number o null si no es parseable.
+ */
+function n(v: any): number | null {
+    const num = Number(v);
+    return Number.isFinite(num) ? num : null;
+}
+
 export async function createPedido(db, payload, userId) {
     // ml_id del pedido: nunca null/undefined
-    const pedidoMlId = String(payload?.ml_id ?? payload?.number ?? "").trim();
+    const pedidoMlId = s(payload?.ml_id ?? payload?.number ?? "");
 
     // Insert encabezado
     const cols = [
@@ -23,7 +38,7 @@ export async function createPedido(db, payload, userId) {
         payload.buyer_last_name,
         payload.total_amount,
         payload.ml_shipment_id,
-        pedidoMlId,                 // <= nunca null
+        pedidoMlId,                // <= nunca null
         payload.ml_pack_id,
         payload.observaciones ?? "",
         payload.armado ?? 0,
@@ -51,7 +66,7 @@ export async function createPedido(db, payload, userId) {
         if (!it || Number(it.cantidad) <= 0) continue;
 
         // ml_id del item con fallback: it.ml_id -> it.codigo -> pedidoMlId
-        const mlItemIdFinal = String((it.ml_id ?? it.codigo ?? pedidoMlId ?? "")).trim();
+        const mlItemIdFinal = s(it.ml_id ?? it.codigo ?? pedidoMlId ?? "");
 
         const icol = [
             "did_pedido", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
@@ -62,12 +77,12 @@ export async function createPedido(db, payload, userId) {
 
         const ival = [
             did,
-            String(it.seller_sku ?? ""),                      // nunca null
+            s(it.seller_sku ?? ""),               // nunca null
             it.codigo ?? null,
             it.descripcion ?? null,
-            mlItemIdFinal,                                    // nunca null
-            String(it.dimensions ?? ""),                      // <= NUNCA null
-            String(it.variacion ?? ""),                       // <= NUNCA null
+            mlItemIdFinal,                         // nunca null
+            s(it.dimensions ?? ""),                // NUNCA null
+            s(it.variacion ?? ""),                 // NUNCA null
             it.id_variacion ?? null,
             it.user_product_id ?? null,
             Number(it.cantidad),
@@ -82,6 +97,78 @@ export async function createPedido(db, payload, userId) {
             db,
             `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph})`,
             ival,
+            true
+        );
+    }
+
+    // === Dirección de destino ML (pedidos_ordenes_direcciones_destino) ===
+    // Soporta distintos "shapes" de ML:
+    // - payload.shipping.receiver_address.{address_line, zip_code, city.name, state.name, country.id, latitude, longitude, comment}
+    // - payload.receiver_address.*  (fallback)
+    // - payload.shipping.{receiver_address: {...}} dentro de shipments
+    const rx =
+        payload?.shipping?.receiver_address ??
+        payload?.receiver_address ??
+        null;
+
+    // Extra: a veces ML trae ventana horaria en tags o en delivery.*; las dejamos opcionales
+    // y con fallback a "" (columnas son NULL por esquema, así que podemos guardar null tranquilamente).
+    const horaDesde = payload?.delivery?.schedule?.from ?? null;
+    const horaHasta = payload?.delivery?.schedule?.to ?? null;
+
+    // Map a columnas de la tabla
+    // (NOTA: 'did' es FK lógica al pedido recién creado)
+    if (rx) {
+        const calle = s(rx?.street_name ?? rx?.address_line ?? "");
+        const numero = s(rx?.street_number ?? rx?.number ?? "");
+        const address_line = s(
+            rx?.address_line ??
+            [calle, numero].filter(Boolean).join(" ") ??
+            ""
+        );
+        const cp = s(rx?.zip_code ?? rx?.zip ?? "");
+        const localidad = s(rx?.city?.name ?? rx?.city?.id ?? rx?.neighborhood?.name ?? "");
+        const provincia = s(rx?.state?.name ?? rx?.state?.id ?? "");
+        const pais = s(rx?.country?.name ?? rx?.country?.id ?? "");
+        const latitud = n(rx?.latitude);
+        const longitud = n(rx?.longitude);
+        const destination_coments = s(
+            rx?.comment ??
+            payload?.shipping?.comments ??
+            payload?.comments ??
+            ""
+        );
+
+        const dirCols = [
+            "did", "calle", "numero", "address_line", "cp", "localidad", "provincia", "pais",
+            "latitud", "longitud", "destination_coments", "hora_desde", "hora_hasta", "prioridad",
+            "quien", "superado", "elim"
+        ];
+        const dirVals = [
+            did,
+            calle || null,                  // NULL si no vino
+            numero || null,
+            address_line || null,
+            cp || null,
+            localidad || null,
+            provincia || null,
+            pais || null,
+            latitud,                        // number | null
+            longitud,                       // number | null
+            destination_coments || null,
+            horaDesde || null,
+            horaHasta || null,
+            null,                           // prioridad (opcional, dejamos null)
+            Number(userId ?? 0),
+            0,
+            0
+        ];
+        const dirPh = dirCols.map(() => "?").join(",");
+
+        await executeQuery(
+            db,
+            `INSERT INTO pedidos_ordenes_direcciones_destino (${dirCols.join(",")}) VALUES (${dirPh})`,
+            dirVals,
             true
         );
     }
