@@ -129,9 +129,9 @@ export async function createPedido(db, payload, userId) {
             ""
         );
         const cp = s(rx?.zip_code ?? rx?.zip ?? "");
-        const localidad = s(rx?.city?.name ?? rx?.city?.id ?? rx?.neighborhood?.name ?? "");
-        const provincia = s(rx?.state?.name ?? rx?.state?.id ?? "");
-        const pais = s(rx?.country?.name ?? rx?.country?.id ?? "");
+        const localidad = s(rx.city.name || "");
+        const provincia = s(rx.state || "");
+        const pais = s(rx.country || "");
         const latitud = n(rx?.latitude);
         const longitud = n(rx?.longitude);
         const destination_coments = s(
