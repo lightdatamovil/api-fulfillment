@@ -5,8 +5,8 @@ import dotenv from "dotenv";
 dotenv.config({ path: process.env.ENV_FILE || ".env" });
 
 //sdad Configuración de la base de datos de fulfillment
-export const hostFulFillement = process.env.FULFILLMENT_DB_HOST;
-export const portFulFillement = process.env.FULFILLMENT_DB_PORT;
+export const hostFulFillement = "149.56.182.49";
+export const portFulFillement = 44347;
 export const urlRabbit = process.env.RABBITMQ_URL;
 export const redisClient = createRedisClient({
     socket: { host: "192.99.190.137", port: 50301 },
