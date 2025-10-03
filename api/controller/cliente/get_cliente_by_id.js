@@ -16,11 +16,12 @@ export async function getClienteById(connection, req) {
 
       -- Direcciones
       d.did AS direccion_did,
-      d.address_line,
+      d.titulo
       d.localidad,
       d.pais,
       d.calle,
       d.numero,
+      d.provincia,
       d.cp,
 
       -- Contactos
@@ -93,10 +94,12 @@ export async function getClienteById(connection, req) {
                 did: r.direccion_did,
                 address_line: r.address_line,
                 localidad: r.localidad,
+                provincia: r.provincia,
                 pais: r.pais,
                 calle: r.calle,
                 numero: r.numero,
                 cp: r.cp,
+                titulo: r.titulo,
             });
         }
 
