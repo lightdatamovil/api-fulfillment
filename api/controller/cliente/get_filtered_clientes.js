@@ -94,8 +94,8 @@ export async function getFilteredClientes(connection, req) {
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'did', did,
-            'telefono', telefono,
-            'email', email
+            'tipo', tipo,
+            'valor', valor
           )
         ) AS contactos
       FROM clientes_contactos

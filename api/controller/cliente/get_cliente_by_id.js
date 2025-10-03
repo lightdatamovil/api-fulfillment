@@ -19,12 +19,14 @@ export async function getClienteById(connection, req) {
       d.address_line,
       d.localidad,
       d.pais,
+      d.calle,
+      d.numero,
       d.cp,
 
       -- Contactos
       co.did AS contacto_did,
-      co.telefono,
-      co.email AS email,
+      co.tipo,
+      co.valor,
 
       -- Cuentas
       cc.did AS cuenta_did,
@@ -92,6 +94,8 @@ export async function getClienteById(connection, req) {
                 address_line: r.address_line,
                 localidad: r.localidad,
                 pais: r.pais,
+                calle: r.calle,
+                numero: r.numero,
                 cp: r.cp,
             });
         }
@@ -101,8 +105,9 @@ export async function getClienteById(connection, req) {
             conSet.add(r.contacto_did);
             cliente.contactos.push({
                 did: r.contacto_did,
-                telefono: r.telefono,
-                email: r.email,
+                tipo: r.tipo || 0,
+                valor: r.valor || null,
+
             });
         }
 
