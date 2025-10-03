@@ -28,6 +28,8 @@ async function fetchShipmentReceiverAddress(shippingId, token) {
     // En algunos casos viene en receiver_address, otros en destination.receiver_address
     const rx = data?.receiver_address || data?.destination?.receiver_address || null;
     if (!rx) return null;
+    console.log("rx", rx);
+
 
     const s = (v) => (v == null ? null : String(v).trim());
     const num = (v) => {
