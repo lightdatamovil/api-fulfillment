@@ -51,6 +51,8 @@ export async function processOrderMessage(rawMsg) {
         if (!mlOrder) {
             return { ok: false, error: "ml-order-null" };
         }
+        console.log(mlOrder, "mlOrder");
+
 
         const number = String(mlOrder.id);
         const keyCache = `${seller_id}_${number}`;
