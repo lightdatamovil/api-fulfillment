@@ -66,7 +66,7 @@ export async function getFilteredClientes(connection, req) {
       c.codigo,
       c.observaciones,
       c.razon_social,
-      c.quien,
+      c.quien
 
     FROM clientes c
     
