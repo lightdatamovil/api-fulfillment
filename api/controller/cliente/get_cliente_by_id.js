@@ -36,9 +36,7 @@ export async function getClienteById(connection, req) {
       cc.ml_id_vendedor AS cuenta_ml_id_vendedor,
       cc.ml_user AS cuenta_ml_user,
 
-      -- Depósitos (ojo: FK correcta es a la cuenta)
-      cd.did AS deposito_did,
-      cd.did_deposito
+      
     FROM clientes c
     LEFT JOIN clientes_direcciones d
       ON d.did_cliente = c.did AND d.elim = 0 AND d.superado = 0
@@ -46,8 +44,6 @@ export async function getClienteById(connection, req) {
       ON co.did_cliente = c.did AND co.elim = 0 AND co.superado = 0
     LEFT JOIN clientes_cuentas cc
       ON cc.did_cliente = c.did AND cc.elim = 0 AND cc.superado = 0
-    LEFT JOIN clientes_cuentas_depositos cd
-      ON cd.did_cliente_cuenta = cc.did AND cd.elim = 0 AND cd.superado = 0
     WHERE c.elim = 0
       AND c.superado = 0
       AND c.did = ?
