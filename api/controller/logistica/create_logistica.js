@@ -13,11 +13,14 @@ export async function createlogistica(db, req) {
     const {
         nombre,
         logisticaLD,
-        codigo,
-        codigoLD
+        codigo
 
     } = req.body || {};
     const { userId } = req.user;
+    let codigoLD = null;
+    if (req.body.codigoLD) {
+        codigoLD = req.body.codigoLD;
+    }
     let direcciones = req.body.direcciones ?? {};
     const { cp, calle, pais, localidad, numero, provincia, address_line, habilitado = 0 } = direcciones;
 
