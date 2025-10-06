@@ -43,7 +43,7 @@ export async function getFilteredLogisticas(connection, req) {
   if (filtros.codigo) where.likeEscaped("l.codigo", filtros.codigo, { caseInsensitive: true });
   if (filtros.nombre) where.likeEscaped("l.nombre", filtros.nombre, { caseInsensitive: true });
   if (filtros.codigoLD) where.likeEscaped("l.codigoLD", filtros.codigoLD, { caseInsensitive: true });
-  if (filtros.habilitado) where.eq("l.habilitado", true);
+  if (filtros.habilitado !== undefined && filtros.habilitado !== "todos") where.eq("l.habilitado", toBool(filtros.habilitado));
   if (filtros.logisticaLD !== undefined && filtros.logisticaLD !== "todos") where.eq("l.logisticaLD", toBool(filtros.logisticaLD));
 
   const { whereSql, params } = where.finalize();
