@@ -25,6 +25,7 @@ import { createPedido } from "../functions/createPedido.js";
 import { getPedidoDidByNumber } from "../functions/getDidPedidoByNumber.js";
 import { updatePedidoStatusWithHistory } from "../functions/updatePedidoStatusWithHistory.js";
 import { mapMlToPedidoPayload } from "../functions/mapMLToPedidoPayload.js";
+import { mapTNToPedidoPayload } from "../functions/mapTNToPedidoPayload.js";
 
 // =============== CONFIG ===============
 
@@ -179,10 +180,14 @@ export async function processTNMessage(rawMsg) {
     let db;
     try {
         db = await connectMySQL(cfg);
-        console.log(orderTN, sellerData);
+        //     console.log(orderTN, sellerData);
 
         // 5) Mapear payload a tu modelo de tablas
-        const payload = mapMlToPedidoPayload(orderTN, sellerData);
+        const payload = mapTNToPedidoPayload(orderTN, sellerData);
+        console.log(JSON.stringify(payload, null, 2));
+
+
+
 
         // 6) Idempotencia por (seller_id, number)
         const number = String(payload.number);
