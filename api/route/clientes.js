@@ -23,6 +23,7 @@ clientes.put(
   '/:clienteId',
   buildHandlerWrapper({
     requiredParams: ['clienteId'],
+    optional: ['nombre_fantasia', 'razon_social', 'codigo', 'habilitado', 'observaciones', 'direcciones', 'contactos', 'cuentas'],
     controller: async ({ db, req }) => {
       const result = await editCliente(db, req);
       return result;
