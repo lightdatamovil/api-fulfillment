@@ -1,337 +1,221 @@
-import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
+import { CustomException, executeQuery } from "lightdata-tools";
+import { DbUtils } from "../../src/functions/db_utils.js";
 
-/**
- * Edita un cliente (versionado por did) y procesa acciones sueltas en direcciones, contactos y cuentas.
- *
- * Param: req.params.clienteId  (did del cliente)
- *
- * Body:
- * {
- *   nombre_fantasia?, razon_social?, codigo?, habilitado?(0/1), observaciones?,
- *   direccionesData?: [
- *     { action: "create", data: { ...json... } },
- *     { action: "delete", did: number }                 // did de clientes_direcciones
- *   ],
- *   contactosData?: [
- *     { action: "create", tipo: number, valor: string },
- *     { action: "delete", did: number }                 // did de clientes_contactos
- *   ],
- *   cuentasData?: [
- *     { action: "create", tipo?: number, flex?: number, data?: object, depositos?: string, titulo?: string, ml_id_vendedor?: string, ml_user?: string },
- *     { action: "delete", did: number }                 // did de clientes_cuentas
- *   ]
- * }
- */
-export async function editCliente(db, req) {
-    const { clienteId } = req.params; // did del cliente
+export async function editLogistica(db, req) {
+    const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user ?? {};
 
-    const {
-        nombre_fantasia,
-        razon_social,
-        codigo,
-        habilitado,
-        observaciones,
+    //EXISTE?
+    const verifyLogistica = await DbUtils.verifyExistsAndSelect({
+        db,
+        table: "logisticas",
+        column: "did",
+        valor: logisticaDid,
+        select: "nombre, codigo, codigoLD, logisticaLD"
+    });
 
-        direccionesData,
-        contactosData,
-        cuentasData,
-    } = req.body ?? {};
+    const { nombreActual, esLightdataActual, codigoActual, codigoLDActual } = verifyLogistica;
 
-    if (!isDefined(userId)) {
-        throw new CustomException({
-            title: "Sesión inválida",
-            message: "No se pudo determinar el usuario (quien)",
-            status: Status.unauthorized,
-        });
-    }
+    //mapear
+    const topAllowed = ["nombre", "codigo", "codigoLD", "esLightdata"];
+    const topPatch = pickDefined(req.body, topAllowed);
 
-    // 1) Obtener cliente actual activo por did
-    const qGet = `
-    SELECT did, nombre_fantasia, razon_social, codigo, habilitado, observaciones
-    FROM clientes
-    WHERE did = ? AND elim = 0 AND superado = 0
-    LIMIT 1
-  `;
-    const rows = await executeQuery(db, qGet, [clienteId]);
-    if (!rows?.length) {
-        throw new CustomException({
-            title: "Cliente no encontrado",
-            message: `No existe cliente activo con did=${clienteId}`,
-            status: Status.notFound,
-        });
-    }
-    const current = rows[0];
+    // Mapear nombres de body -> columnas reales
+    const updateTop = {
+        ...(isDefined(topPatch.nombre) ? { nombre: topPatch.nombre } : {}),
+        ...(isDefined(topPatch.codigo) ? { codigo: topPatch.codigo } : {}),
+        ...(isDefined(topPatch.codigoLD) ? { codigoLD: topPatch.codigoLD } : {}),
+        ...(isDefined(topPatch.esLightdata) ? { logisticaLD: topPatch.esLightdata } : {}),
+    };
 
-    // 2) Preparar nuevos valores (o conservar actuales)
-    const newNF = isNonEmpty(nombre_fantasia) ? String(nombre_fantasia).trim() : current.nombre_fantasia;
-    const newRS = isDefined(razon_social) ? (isNonEmpty(razon_social) ? String(razon_social).trim() : null) : current.razon_social;
-    const newCOD = isDefined(codigo) ? (isNonEmpty(codigo) ? String(codigo).trim() : null) : current.codigo;
+    const nombreInsert = isDefined(topPatch.nombre) ? topPatch.nombre : nombreActual;
+    const codigoInsert = isDefined(topPatch.codigo) ? topPatch.codigo : codigoActual;
+    const codigoLDInsert = isDefined(topPatch.codigoLD) ? topPatch.codigoLD : codigoLDActual;
+    const esLightdataInsert = isDefined(topPatch.esLightdata) ? topPatch.esLightdata : esLightdataActual;
 
-    let newHAB = current.habilitado;
-    if (isDefined(habilitado)) {
-        const h = number01(habilitado);
-        if (h !== 0 && h !== 1) {
+    const huboCambio = nombreInsert !== nombreActual || codigoInsert !== codigoActual || codigoLDInsert !== codigoLDActual || esLightdataInsert !== esLightdataActual;
+
+
+    // si varables actual != variables nuevas
+
+    if (huboCambio) {
+
+        //SUPERADO = 1
+        await executeQuery(db, "UPDATE logisticas SET superado = 1 WHERE did = ? AND superado = 0 AND elim = 0", [logisticaDid], true);
+
+        // updateo inserto 
+        const queryUpddate = `INSERT INTO logisticas (did, nombre, logisticaLD, codigo, codigoLD,  autofecha, quien, superado, elim)
+        VALUES (?, ?, ?, ?, ?, NOW(), ?, 0, 0)`;
+        const insertUpdate = await executeQuery(db, queryUpddate, [logisticaDid, nombreInsert, esLightdataInsert, codigoInsert, codigoLDInsert, userId], true);
+
+        if (insertUpdate.affectedRows !== 1) {
             throw new CustomException({
-                title: "Valor inválido",
-                message: "habilitado debe ser 0 o 1",
-                status: Status.badRequest,
-            });
-        }
-        newHAB = h;
-    }
-
-    const newOBS = isDefined(observaciones)
-        ? (isNonEmpty(observaciones) ? String(observaciones).trim() : null)
-        : current.observaciones;
-
-    // 3) Validar duplicados si cambia nombre_fantasia o codigo
-    if (newNF !== current.nombre_fantasia) {
-        const dupNF = await executeQuery(
-            db,
-            `SELECT did FROM clientes WHERE nombre_fantasia = ? AND elim = 0 AND superado = 0 AND did <> ? LIMIT 1`,
-            [newNF, clienteId]
-        );
-        if (dupNF?.length) {
-            throw new CustomException({
-                title: "Duplicado",
-                message: `Ya existe un cliente activo con nombre_fantasia "${newNF}"`,
-                status: Status.conflict,
+                title: "Error al actualizar logistica",
+                message: "No se pudo actualizar el logistica",
             });
         }
     }
-    if (newCOD !== current.codigo) {
-        if (newCOD) {
-            const dupCod = await executeQuery(
-                db,
-                `SELECT did FROM clientes WHERE codigo = ? AND elim = 0 AND superado = 0 AND did <> ? LIMIT 1`,
-                [newCOD, clienteId]
+
+
+    // Direcciones -> add y delete
+
+    // lo mismo en logisticas_direcciones
+    const { direcciones } = req.body ?? {};
+    const hayDirecciones = getDireccionesOpsState(direcciones);
+
+    if (hayDirecciones.hasAdd) {
+        console.log("entre a direcciones add");
+
+        const normalized = normalizeDireccionesInsert(hayDirecciones.add);
+        console.log("normalized", normalized);
+
+        const cols = "(did_logistica, cp, calle, pais, localidad, numero, provincia, address_line, autofecha, quien, superado, elim)";
+        const placeholders = normalized.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 0, 0)").join(", ");
+        const sql = `INSERT INTO logisticas_direcciones ${cols} VALUES ${placeholders}`;
+
+        const params = [];
+        for (const d of normalized) {
+            params.push(logisticaDid, d.cp, d.calle, d.pais, d.localidad, d.numero, d.provincia, d.address_line, userId
             );
-            if (dupCod?.length) {
-                throw new CustomException({
-                    title: "Duplicado",
-                    message: `Ya existe un cliente activo con código "${newCOD}"`,
-                    status: Status.conflict,
-                });
-            }
+        }
+
+        const r = await executeQuery(db, sql, params, true);
+
+        // 4) chequear que se insertaron todas
+        if (r.affectedRows !== normalized.length) {
+            throw new CustomException({
+                title: "Inserción parcial",
+                message: `Se insertaron ${r.affectedRows} de ${normalized.length} direcciones`,
+            });
+        }
+
+        // 8) Respuesta
+
+    }
+    if (hayDirecciones.hasRemove) {
+        const idsRemove = hayDirecciones.remove;
+
+        if (idsRemove.length > 0) {
+            const sql = `UPDATE logisticas_direcciones
+        SET elim = 1 WHERE did_logistica = ?
+        AND did_cliente IN (${idsRemove.map(() => "?").join(",")})
+        AND superado = 0
+        AND elim = 0 `;
+            await executeQuery(db, sql, [logisticaDid, ...idsRemove]);
         }
     }
 
-    // 4) Versionar cliente (superar actual + nueva versión con mismo did)
-    await executeQuery(
-        db,
-        `UPDATE clientes SET superado = 1 WHERE did = ? AND elim = 0 AND superado = 0`,
-        [clienteId]
-    );
+    if (hayDirecciones.hasUpdate) {
+        const didsUpdate = hayDirecciones.update.map(d => d.did);
+        const normalized = normalizeDireccionesInsert(hayDirecciones.update);
 
-    const insCli = await executeQuery(
-        db,
-        `
-      INSERT INTO clientes (did, nombre_fantasia, razon_social, codigo, habilitado, observaciones, quien, superado, elim, autofecha)
-      VALUES (?,  ?,                ?,            ?,      ?,          ?,             ?,     0,        0,    NOW())
-    `,
-        [clienteId, newNF, newRS, newCOD, newHAB, newOBS, userId],
-        true
-    );
+        // update sup = 1
+        const sqlUpdate = `UPDATE logisticas_direcciones SET superado = 1 WHERE did_logistica = ? AND did_logistica IN (${normalized.map(() => "?").join(",")})`;
+        await executeQuery(db, sqlUpdate, [logisticaDid, ...didsUpdate]);
 
-    if (!insCli?.affectedRows) {
-        throw new CustomException({
-            title: "Error al versionar cliente",
-            message: "No se pudo crear la nueva versión del cliente",
-            status: Status.internalServerError,
-        });
-    }
+        // insert nuevo
+        const cols = "(did_logistica, cp, calle, pais, localidad, numero, provincia, address_line, autofecha, quien, superado, elim)";
+        const placeholders = normalized.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 0, 0)").join(", ");
+        const sql = `INSERT INTO logisticas_direcciones ${cols} VALUES ${placeholders}`;
 
-    // 5) Acciones sueltas: direcciones
-    const dirCreated = [];
-    const dirDeleted = [];
-    if (Array.isArray(direccionesData)) {
-        for (const item of direccionesData) {
-            const action = String(item?.action || "").toLowerCase();
-
-            if (action === "create") {
-                const dataStr = JSON.stringify(item ?? {});
-                const ins = await executeQuery(
-                    db,
-                    `
-            INSERT INTO clientes_direcciones (didCliente, data, quien, superado, elim, autofecha)
-            VALUES (?, ?, ?, 0, 0, NOW())
-          `,
-                    [Number(clienteId), dataStr, userId],
-                    true
-                );
-                const id = ins.insertId;
-                await executeQuery(db, `UPDATE clientes_direcciones SET did = ? WHERE id = ?`, [id, id], true);
-                dirCreated.push({ id, did: id, didCliente: Number(clienteId), data: JSON.parse(dataStr || "{}") });
-            }
-            else if (action === "delete") {
-                const didVal = Number(item?.did);
-                if (!Number.isFinite(didVal) || didVal <= 0) {
-                    throw new CustomException({
-                        title: "Dato inválido",
-                        message: "did inválido en direccionesData.delete",
-                        status: Status.badRequest,
-                    });
-                }
-                const del = await executeQuery(
-                    db,
-                    `UPDATE clientes_direcciones SET elim = 1 WHERE did = ? AND elim = 0`,
-                    [didVal],
-                    true
-                );
-                dirDeleted.push({ did: didVal, affectedRows: del?.affectedRows ?? 0 });
-            }
-            else {
-                throw new CustomException({
-                    title: "Acción inválida",
-                    message: `direccionesData.action debe ser "create" o "delete"`,
-                    status: Status.badRequest,
-                });
-            }
+        const params = [];
+        for (const d of normalized) {
+            params.push(logisticaDid, d.cp, d.calle, d.pais, d.localidad, d.numero, d.provincia, d.address_line, userId
+            );
         }
-    }
 
-    // 6) Acciones sueltas: contactos
-    const contCreated = [];
-    const contDeleted = [];
-    if (Array.isArray(contactosData)) {
-        for (const item of contactosData) {
-            const action = String(item?.action || "").toLowerCase();
+        const r = await executeQuery(db, sql, params, true);
 
-            if (action === "create") {
-                const tipo = Number(item?.tipo) || 0;
-                const valor = (item?.valor ?? "").toString().trim();
-                if (valor === "") {
-                    throw new CustomException({
-                        title: "Datos de contacto inválidos",
-                        message: "contactosData.create requiere 'valor' no vacío",
-                        status: Status.badRequest,
-                    });
-                }
-                const ins = await executeQuery(
-                    db,
-                    `
-            INSERT INTO clientes_contactos (didCliente, tipo, valor, quien, superado, elim, autofecha)
-            VALUES (?, ?, ?, ?, 0, 0, NOW())
-          `,
-                    [Number(clienteId), tipo, valor, userId],
-                    true
-                );
-                const id = ins.insertId;
-                await executeQuery(db, `UPDATE clientes_contactos SET did = ? WHERE id = ?`, [id, id], true);
-                contCreated.push({ id, did: id, didCliente: Number(clienteId), tipo, valor });
-            }
-            else if (action === "delete") {
-                const didVal = Number(item?.did);
-                if (!Number.isFinite(didVal) || didVal <= 0) {
-                    throw new CustomException({
-                        title: "Dato inválido",
-                        message: "did inválido en contactosData.delete",
-                        status: Status.badRequest,
-                    });
-                }
-                const del = await executeQuery(
-                    db,
-                    `UPDATE clientes_contactos SET elim = 1 WHERE did = ? AND elim = 0`,
-                    [didVal],
-                    true
-                );
-                contDeleted.push({ did: didVal, affectedRows: del?.affectedRows ?? 0 });
-            }
-            else {
-                throw new CustomException({
-                    title: "Acción inválida",
-                    message: `contactosData.action debe ser "create" o "delete"`,
-                    status: Status.badRequest,
-                });
-            }
+        // 4) chequear que se insertaron todas
+        if (r.affectedRows !== normalized.length) {
+            throw new CustomException({
+                title: "Inserción parcial",
+                message: `Se insertaron ${r.affectedRows} de ${normalized.length} direcciones`,
+            });
         }
+
     }
+    // select de todas las direcciones para devolver
+    const direccionesReturn = await executeQuery(db, "SELECT id, did, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid], true);
 
-    // 7) Acciones sueltas: cuentas
-    const ctaCreated = [];
-    const ctaDeleted = [];
-    if (Array.isArray(cuentasData)) {
-        for (const item of cuentasData) {
-            const action = String(item?.action || "").toLowerCase();
 
-            if (action === "create") {
-                const flex = Number(item?.flex ?? item?.tipo) || 0; // tu modelo usa 'flex' como tipo
-                const rawData = item?.data ?? {};
-                const dataStr = JSON.stringify(rawData);
-                const depositos = (item?.depositos ?? "").toString();
-                const titulo = (item?.titulo ?? "").toString();
-
-                const ml_id_vendedor =
-                    flex === 1 ? (rawData?.ml_id_vendedor ?? item?.ml_id_vendedor ?? "").toString() : "";
-                const ml_user =
-                    flex === 1 ? (rawData?.ml_user ?? item?.ml_user ?? "").toString() : "";
-
-                const ins = await executeQuery(
-                    db,
-                    `
-            INSERT INTO clientes_cuentas
-              (didCliente, flex, data, depositos, titulo, ml_id_vendedor, ml_user, quien, superado, elim, autofecha)
-            VALUES
-              (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NOW())
-          `,
-                    [Number(clienteId), flex, dataStr, depositos, titulo, ml_id_vendedor, ml_user, userId],
-                    true
-                );
-                const id = ins.insertId;
-                await executeQuery(db, `UPDATE clientes_cuentas SET did = ? WHERE id = ?`, [id, id], true);
-                ctaCreated.push({
-                    id, did: id, didCliente: Number(clienteId), flex,
-                    data: rawData, depositos, titulo, ml_id_vendedor, ml_user
-                });
-            }
-            else if (action === "delete") {
-                const didVal = Number(item?.did);
-                if (!Number.isFinite(didVal) || didVal <= 0) {
-                    throw new CustomException({
-                        title: "Dato inválido",
-                        message: "did inválido en cuentasData.delete",
-                        status: Status.badRequest,
-                    });
-                }
-                const del = await executeQuery(
-                    db,
-                    `UPDATE clientes_cuentas SET elim = 1 WHERE did = ? AND elim = 0`,
-                    [didVal],
-                    true
-                );
-                ctaDeleted.push({ did: didVal, affectedRows: del?.affectedRows ?? 0 });
-            }
-            else {
-                throw new CustomException({
-                    title: "Acción inválida",
-                    message: `cuentasData.action debe ser "create" o "delete"`,
-                    status: Status.badRequest,
-                });
-            }
-        }
-    }
-
-    // 8) Respuesta
     return {
         success: true,
-        message: "Cliente actualizado correctamente",
+        message: "logistica actualizada correctamente",
         data: {
-            did: Number(clienteId),
-            cliente: { nombre_fantasia: newNF, razon_social: newRS, codigo: newCOD, habilitado: newHAB, observaciones: newOBS },
-            direcciones: {
-                created: dirCreated.length ? dirCreated : undefined,
-                deleted: dirDeleted.length ? dirDeleted : undefined
-            },
-            contactos: {
-                created: contCreated.length ? contCreated : undefined,
-                deleted: contDeleted.length ? contDeleted : undefined
-            },
-            cuentas: {
-                created: ctaCreated.length ? ctaCreated : undefined,
-                deleted: ctaDeleted.length ? ctaDeleted : undefined
-            }
+            did: logisticaDid,
+            nombre: nombreInsert,
+            esLightdata: esLightdataInsert,
+            codigo: codigoInsert,
+            codigoLD: codigoLDInsert,
+            quien: userId,
+            direcciones: direccionesReturn,
         },
-        meta: { timestamp: new Date().toISOString() }
+        meta: { timestamp: new Date().toISOString() },
     };
 }
+
+
+
+// Helpers
+
+function normalizeDireccionesInsert(adds) {
+
+    const out = new Array(adds.length);
+    for (let i = 0; i < adds.length; i++) {
+        const d = adds[i] ?? {};
+        out[i] = {
+            cp: nn(d.cp),
+            calle: nn(d.calle),
+            pais: nn(d.pais),
+            localidad: nn(d.localidad),
+            numero: nn(d.numero),
+            provincia: nn(d.provincia),
+            address_line: nn(d.address_line),
+        };
+    }
+    return out;
+}
+
+function getDireccionesOpsState(direcciones) {
+    const addRaw = toArray(direcciones?.add);
+    const updateRaw = toArray(direcciones?.update);
+    const removeRaw = toArray(direcciones?.remove);
+
+    // Filtrar entradas vacías
+    const add = addRaw.filter((x) => !isEmptyAddress(x));
+    const update = updateRaw.filter((x) => !isEmptyAddress(x));
+
+    // Para remove, si envías IDs o claves, filtrá valores vacíos
+    const remove = removeRaw.filter((x) => !isEmptyValue(x));
+
+    const counts = {
+        add: add.length,
+        update: update.length,
+        remove: remove.length,
+    };
+
+    const flags = {
+        hasAdd: counts.add > 0,
+        hasUpdate: counts.update > 0,
+        hasRemove: counts.remove > 0,
+    };
+
+    return { add, update, remove, counts, ...flags, hasWork: flags.hasAdd || flags.hasUpdate || flags.hasRemove };
+}
+
+const isEmptyAddress = (obj) => {
+    if (!obj || typeof obj !== "object") return true;
+    return Object.values(obj).every(isEmptyValue);
+};
+const toArray = (v) => Array.isArray(v) ? v : [];
+const isEmptyValue = (v) =>
+    v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+const isDefined = (v) => v !== undefined;
+const pickDefined = (obj = {}, allow = null) => {
+    const out = {};
+    const keys = allow ?? Object.keys(obj);
+    for (const k of keys) if (isDefined(obj[k])) out[k] = obj[k];
+    return out;
+}
+const nn = (v) => (v ?? null);  

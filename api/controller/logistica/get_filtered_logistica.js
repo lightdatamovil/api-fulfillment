@@ -1,11 +1,10 @@
-// clientes.controller.js
+// logisticas.controller.js
 import { executeQuery, toStr, toBool, pickNonEmpty } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functions/query_utils.js";
 
-export async function getFilteredClientes(connection, req) {
+export async function getFilteredLogisticas(connection, req) {
   const q = req.query;
 
-  // Aliases de paginación
   const qp = { ...q, page: q.page ?? q.pagina, page_size: q.page_size ?? q.cantidad };
 
   // Filtros
@@ -47,7 +46,7 @@ export async function getFilteredClientes(connection, req) {
   const { whereSql, params } = where.finalize();
 
   // COUNT sin los LEFT JOIN (más preciso y rápido)
-  const countSql = `SELECT COUNT(*) AS total FROM clientes c ${whereSql}`;
+  const countSql = `SELECT COUNT(*) AS total FROM logisticas c ${whereSql}`;
   const [{ total = 0 } = {}] = await executeQuery(connection, countSql, params);
 
   // DATA: una sola query con subqueries agregadas (evita cross-product)
@@ -62,23 +61,23 @@ export async function getFilteredClientes(connection, req) {
       c.quien,
       COALESCE(d.direcciones, JSON_ARRAY()) AS direcciones,
       COALESCE(k.contactos,   JSON_ARRAY()) AS contactos
-    FROM clientes c
+    FROM logisticas c
     LEFT JOIN (
       SELECT
-        didCliente,
+        didlogistica,
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'did', did,
             'data', data
           )
         ) AS direcciones
-      FROM clientes_direcciones
+      FROM logisticas_direcciones
       WHERE elim = 0 AND superado = 0
-      GROUP BY didCliente
-    ) d ON d.didCliente = c.did
+      GROUP BY didlogistica
+    ) d ON d.didlogistica = c.did
     LEFT JOIN (
       SELECT
-        didCliente,
+        didlogistica,
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'did', did,
@@ -86,10 +85,10 @@ export async function getFilteredClientes(connection, req) {
             'valor', valor
           )
         ) AS contactos
-      FROM clientes_contactos
+      FROM logisticas_contactos
       WHERE elim = 0 AND superado = 0
-      GROUP BY didCliente
-    ) k ON k.didCliente = c.did
+      GROUP BY didlogistica
+    ) k ON k.didlogistica = c.did
     ${whereSql}
     ${orderSql}
     LIMIT ? OFFSET ?
@@ -98,7 +97,7 @@ export async function getFilteredClientes(connection, req) {
   const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset]);
 
   // Parse seguro (depende de tu driver, a veces ya viene como objeto)
-  const clientesFinal = rows.map(r => ({
+  const logisticasFinal = rows.map(r => ({
     did: r.did,
     nombre_fantasia: r.nombre_fantasia,
     habilitado: r.habilitado,
@@ -112,8 +111,8 @@ export async function getFilteredClientes(connection, req) {
 
   return {
     success: true,
-    message: "Clientes obtenidos correctamente",
-    data: clientesFinal,
+    message: "logisticas obtenidos correctamente",
+    data: logisticasFinal,
     meta: buildMeta({
       page,
       pageSize,

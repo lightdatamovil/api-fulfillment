@@ -5,7 +5,7 @@ export class DbUtils {
 
     // verificar que ya exista un registro, si no existe lanza excepción 404 
     static async verifyExistsAndSelect({ db, table, column, valor, notExist = false, select = '*' }) {
-        const sql = `SELECT ${select} FROM ${table} WHERE ${column} = ? and eliminado = 0 LIMIT 1`
+        const sql = `SELECT ${select} FROM ${table} WHERE ${column} = ? and superado = 0 and elim = 0 LIMIT 1`
         const result = await executeQuery(db, sql, [valor])
         if (!notExist) {
             if (!result.length) {
@@ -30,7 +30,7 @@ export class DbUtils {
 
     // verificar si un valor ya existe en la base de datos, retorna true/false
     static async existsInDb(db, table, column, value) {
-        const sql = `SELECT 1 FROM ${table} WHERE ${column} = ? and eliminado = 0 LIMIT 1`
+        const sql = `SELECT 1 FROM ${table} WHERE ${column} = ? and superado = 0 and elim = 0 LIMIT 1`
         const result = await executeQuery(db, sql, [value])
         return result.length > 0
     }
