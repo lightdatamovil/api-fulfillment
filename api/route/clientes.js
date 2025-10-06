@@ -11,7 +11,7 @@ const clientes = Router();
 clientes.post(
   '/',
   buildHandlerWrapper({
-    required: ['nombre_fantasia', 'razon_social', 'codigo'],
+    optional: ['nombre_fantasia', 'razon_social', 'codigo', 'habilitado', 'observaciones', 'direcciones', 'contactos', 'cuentas'],
     controller: async ({ db, req }) => {
       const result = await createCliente(db, req);
       return result;
@@ -23,7 +23,7 @@ clientes.put(
   '/:clienteId',
   buildHandlerWrapper({
     requiredParams: ['clienteId'],
-    required: ['nombre_fantasia', 'habilitado', 'observaciones', 'direccionesData', 'contactosData', 'cuentasData'],
+    optional: ['nombre_fantasia', 'razon_social', 'codigo', 'habilitado', 'observaciones', 'direcciones', 'contactos', 'cuentas'],
     controller: async ({ db, req }) => {
       const result = await editCliente(db, req);
       return result;

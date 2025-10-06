@@ -1,358 +1,366 @@
-import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
+// clientes.controller.js (ESM)
+import { executeQuery } from "lightdata-tools";
 
 /**
- * Edita un cliente (versionado por did) y procesa acciones sueltas en direcciones, contactos y cuentas.
- *
- * Param: req.params.clienteId  (did del cliente)
- *
- * Body:
- * {
- *   nombre_fantasia?, razon_social?, codigo?, habilitado?(0/1), observaciones?,
- *   direccionesData?: [
- *     { action: "create", data: { ...json... } },
- *     { action: "delete", did: number }                 // did de clientes_direcciones
- *   ],
- *   contactosData?: [
- *     { action: "create", tipo: number, valor: string },
- *     { action: "delete", did: number }                 // did de clientes_contactos
- *   ],
- *   cuentasData?: [
- *     { action: "create", tipo?: number, flex?: number, data?: object, depositos?: string, titulo?: string, ml_id_vendedor?: string, ml_user?: string },
- *     { action: "delete", did: number }                 // did de clientes_cuentas
- *   ]
- * }
+ * PUT /api/clientes/:clienteId
+ * Body (root): nombre_fantasia, razon_social, codigo, observaciones, habilitado
+ * Nested: direcciones { add[], update[], remove[] }, contactos { ... }, cuentas { ... }
+ * Estrategia: VERSIONADO (no UPDATE in-place)
+ *  - marcar vigente como superado=1
+ *  - insertar nuevo registro con el MISMO did
  */
-export async function editCliente(db, req) {
-    const { clienteId } = req.params; // did del cliente
-    const { userId } = req.user ?? {};
+export async function editCliente(connection, req) {
+    const { clienteId } = req.params;
+    const body = req.body || {};
+    const nowUser = Number(req.user?.id ?? 0);
 
-    const {
-        nombre_fantasia,
-        razon_social,
-        codigo,
-        habilitado,
-        observaciones,
+    const ensureArr = (x) => (Array.isArray(x) ? x : []);
+    const dAdd = ensureArr(body?.direcciones?.add);
+    const dUpd = ensureArr(body?.direcciones?.update);
+    const dDel = ensureArr(body?.direcciones?.remove);
 
-        direccionesData,
-        contactosData,
-        cuentasData,
-        depositosData
-    } = req.body ?? {};
+    const cAdd = ensureArr(body?.contactos?.add);
+    const cUpd = ensureArr(body?.contactos?.update);
+    const cDel = ensureArr(body?.contactos?.remove);
 
-    if (!isDefined(userId)) {
-        throw new CustomException({
-            title: "Sesión inválida",
-            message: "No se pudo determinar el usuario (quien)",
-            status: Status.unauthorized,
-        });
-    }
+    const aAdd = ensureArr(body?.cuentas?.add);
+    const aUpd = ensureArr(body?.cuentas?.update);
+    const aDel = ensureArr(body?.cuentas?.remove);
 
-    // 1) Obtener cliente actual activo por did
-    const qGet = `
-    SELECT did, nombre_fantasia, razon_social, codigo, habilitado, observaciones
-    FROM clientes
-    WHERE did = ? AND elim = 0 AND superado = 0
-    LIMIT 1
-  `;
-    const rows = await executeQuery(db, qGet, [clienteId]);
-    if (!rows?.length) {
-        throw new CustomException({
-            title: "Cliente no encontrado",
-            message: `No existe cliente activo con did=${clienteId}`,
-            status: Status.notFound,
-        });
-    }
-    const current = rows[0];
-
-    // 2) Preparar nuevos valores (o conservar actuales)
-    const newNF = isNonEmpty(nombre_fantasia) ? String(nombre_fantasia).trim() : current.nombre_fantasia;
-    const newRS = isDefined(razon_social) ? (isNonEmpty(razon_social) ? String(razon_social).trim() : null) : current.razon_social;
-    const newCOD = isDefined(codigo) ? (isNonEmpty(codigo) ? String(codigo).trim() : null) : current.codigo;
-
-    let newHAB = current.habilitado;
-    if (isDefined(habilitado)) {
-        const h = number01(habilitado);
-        if (h !== 0 && h !== 1) {
-            throw new CustomException({
-                title: "Valor inválido",
-                message: "habilitado debe ser 0 o 1",
-                status: Status.badRequest,
-            });
-        }
-        newHAB = h;
-    }
-
-    const newOBS = isDefined(observaciones)
-        ? (isNonEmpty(observaciones) ? String(observaciones).trim() : null)
-        : current.observaciones;
-
-    // 3) Validar duplicados si cambia nombre_fantasia o codigo
-    if (newNF !== current.nombre_fantasia) {
-        const dupNF = await executeQuery(
-            db,
-            `SELECT did FROM clientes WHERE nombre_fantasia = ? AND elim = 0 AND superado = 0 AND did <> ? LIMIT 1`,
-            [newNF, clienteId]
-        );
-        if (dupNF?.length) {
-            throw new CustomException({
-                title: "Duplicado",
-                message: `Ya existe un cliente activo con nombre_fantasia "${newNF}"`,
-                status: Status.conflict,
-            });
-        }
-    }
-    if (newCOD !== current.codigo) {
-        if (newCOD) {
-            const dupCod = await executeQuery(
-                db,
-                `SELECT did FROM clientes WHERE codigo = ? AND elim = 0 AND superado = 0 AND did <> ? LIMIT 1`,
-                [newCOD, clienteId]
-            );
-            if (dupCod?.length) {
-                throw new CustomException({
-                    title: "Duplicado",
-                    message: `Ya existe un cliente activo con código "${newCOD}"`,
-                    status: Status.conflict,
-                });
-            }
-        }
-    }
-
-    // 4) Versionar cliente (superar actual + nueva versión con mismo did)
-    await executeQuery(
-        db,
-        `UPDATE clientes SET superado = 1 WHERE did = ? AND elim = 0 AND superado = 0`,
-        [clienteId]
-    );
-
-    const insCli = await executeQuery(
-        db,
-        `
-      INSERT INTO clientes (did, nombre_fantasia, razon_social, codigo, habilitado, observaciones, quien, superado, elim, autofecha)
-      VALUES (?,  ?,                ?,            ?,      ?,          ?,             ?,     0,        0,    NOW())
-    `,
-        [clienteId, newNF, newRS, newCOD, newHAB, newOBS, userId],
-        true
-    );
-
-    if (!insCli?.affectedRows) {
-        throw new CustomException({
-            title: "Error al versionar cliente",
-            message: "No se pudo crear la nueva versión del cliente",
-            status: Status.internalServerError,
-        });
-    }
-
-    // 5) Acciones sueltas: direcciones
-    const dirCreated = [];
-    const dirDeleted = [];
-    if (Array.isArray(direccionesData)) {
-        for (const item of direccionesData) {
-            const action = String(item?.action || "").toLowerCase();
-
-            if (action === "create") {
-                const pais = item?.pais ? String(item.pais).trim() : null;
-                const localidad = item?.localidad ? String(item.localidad).trim() : null;
-                const calle = item?.calle ? String(item.calle).trim() : null;
-                const numero = item?.numero ? String(item.numero).trim() : null;
-                const cp = item?.cp ? String(item.cp).trim() : null;
-                const address_line = calle && numero ? `${calle} ${numero}` : calle || null;
-                const ins = await executeQuery(
-                    db,
-                    `
-            INSERT INTO clientes_direcciones (didCliente ,pais,localidad , calle,numero ,cp,  address_line, quien, superado, elim, autofecha)
-            VALUES (?, ?, ?,?, ?, ?, ?, ?, 0, 0, NOW())
-          `,
-                    [Number(clienteId), pais, localidad, address_line, cp, userId],
-                    true
-                );
-                const id = ins.insertId;
-                await executeQuery(db, `UPDATE clientes_direcciones SET did = ? WHERE id = ?`, [id, id], true);
-                dirCreated.push({ id, did: id, didCliente: Number(clienteId), pais, localidad, calle, numero, cp });
-            }
-            else if (action === "delete") {
-                const didVal = Number(item?.did);
-                if (!Number.isFinite(didVal) || didVal <= 0) {
-                    throw new CustomException({
-                        title: "Dato inválido",
-                        message: "did inválido en direccionesData.delete",
-                        status: Status.badRequest,
-                    });
-                }
-                const del = await executeQuery(
-                    db,
-                    `UPDATE clientes_direcciones SET elim = 1 WHERE did = ? AND elim = 0`,
-                    [didVal],
-                    true
-                );
-                dirDeleted.push({ did: didVal, affectedRows: del?.affectedRows ?? 0 });
-            }
-            else {
-                throw new CustomException({
-                    title: "Acción inválida",
-                    message: `direccionesData.action debe ser "create" o "delete"`,
-                    status: Status.badRequest,
-                });
-            }
-        }
-    }
-
-    // 6) Acciones sueltas: contactos
-    const contCreated = [];
-    const contDeleted = [];
-    if (Array.isArray(contactosData)) {
-        for (const item of contactosData) {
-            const action = String(item?.action || "").toLowerCase();
-
-            if (action === "create") {
-                const telefono = item?.telefono ? String(item.telefono).trim() : null;
-                const email = item?.email ? String(item.email).trim() : null;
-
-                const ins = await executeQuery(
-                    db,
-                    `
-            INSERT INTO clientes_contactos (didCliente, telefono, email, quien, superado, elim, autofecha)
-            VALUES (?, ?, ?, ?, 0, 0, NOW())
-          `,
-                    [Number(clienteId), telefono, email, userId],
-                    true
-                );
-                const id = ins.insertId;
-                await executeQuery(db, `UPDATE clientes_contactos SET did = ? WHERE id = ?`, [id, id], true);
-                contCreated.push({ id, did: id, didCliente: Number(clienteId), telefono, email });
-            }
-            else if (action === "delete") {
-                const didVal = Number(item?.did);
-                if (!Number.isFinite(didVal) || didVal <= 0) {
-                    throw new CustomException({
-                        title: "Dato inválido",
-                        message: "did inválido en contactosData.delete",
-                        status: Status.badRequest,
-                    });
-                }
-                const del = await executeQuery(
-                    db,
-                    `UPDATE clientes_contactos SET elim = 1 WHERE did = ? AND elim = 0`,
-                    [didVal],
-                    true
-                );
-                contDeleted.push({ did: didVal, affectedRows: del?.affectedRows ?? 0 });
-            }
-            else {
-                throw new CustomException({
-                    title: "Acción inválida",
-                    message: `contactosData.action debe ser "create" o "delete"`,
-                    status: Status.badRequest,
-                });
-            }
-        }
-    }
-
-    // 7) Acciones sueltas: cuentas
-    const ctaCreated = [];
-    const ctaDeleted = [];
-    if (Array.isArray(cuentasData)) {
-        for (const item of cuentasData) {
-            const action = String(item?.action || "").toLowerCase();
-
-            if (action === "create") {
-                const flex = Number(item?.flex ?? item?.tipo) || 0; // tu modelo usa 'flex' como tipo
-                const rawData = item?.data ?? {};
-                const dataStr = JSON.stringify(rawData);
-
-                const titulo = (item?.titulo ?? "").toString();
-
-                const ml_id_vendedor =
-                    flex === 1 ? (rawData?.ml_id_vendedor ?? item?.ml_id_vendedor ?? "").toString() : "";
-                const ml_user =
-                    flex === 1 ? (rawData?.ml_user ?? item?.ml_user ?? "").toString() : "";
-
-                const ins = await executeQuery(
-                    db,
-                    `
-            INSERT INTO clientes_cuentas
-              (didCliente, flex, data, titulo, ml_id_vendedor, ml_user, quien, superado, elim, autofecha)
-            VALUES
-              (?, ?, ?, ?, ?,  ?, ?, 0, 0, NOW())
-          `,
-                    [Number(clienteId), flex, dataStr, titulo, ml_id_vendedor, ml_user, userId],
-                    true
-                );
-                const id = ins.insertId;
-                await executeQuery(db, `UPDATE clientes_cuentas SET did = ? WHERE id = ?`, [id, id], true);
-                ctaCreated.push({
-                    id, did: id, didCliente: Number(clienteId), flex,
-                    data: rawData, titulo, ml_id_vendedor, ml_user
-                });
-            }
-            else if (action === "delete") {
-                const didVal = Number(item?.did);
-                if (!Number.isFinite(didVal) || didVal <= 0) {
-                    throw new CustomException({
-                        title: "Dato inválido",
-                        message: "did inválido en cuentasData.delete",
-                        status: Status.badRequest,
-                    });
-                }
-                const del = await executeQuery(
-                    db,
-                    `UPDATE clientes_cuentas SET elim = 1 WHERE did = ? AND elim = 0`,
-                    [didVal],
-                    true
-                );
-                ctaDeleted.push({ did: didVal, affectedRows: del?.affectedRows ?? 0 });
-            }
-            else {
-                throw new CustomException({
-                    title: "Acción inválida",
-                    message: `cuentasData.action debe ser "create" o "delete"`,
-                    status: Status.badRequest,
-                });
-            }
-        }
-    }
-    const insertDepositos = [];
-    if (Array.isArray(depositosData) && depositosData.length > 0) {
-        for (const d of depositosData) {
-            const did_cliente_cuenta = Number(d?.did_cliente_cuenta) || 0;
-            const did_deposito = Number(d?.did_deposito) || 0;
-
-            const resultDep = await executeQuery(db, `INSERT INTO clientes_cuentas_depositos (did_cliente_cuenta, did_deposito) VALUES (?, ?)`, [did_cliente_cuenta, did_deposito], true);
-
-            const resultDepId = resultDep.insertId;
-
-            await executeQuery(db, `UPDATE clientes_cuentas_depositos SET did = ? WHERE id = ?`, [resultDepId, resultDepId], true);
-            await executeQuery(db, `UPDATE clientes_cuentas_depositos SET superado = 1 where did_deposito = ? AND did_cliente_cuenta = ?   AND id <> ?`, [did_deposito, did_cliente_cuenta, resultDepId], true);
-            insertDepositos.push({ did_cliente_cuenta, did_deposito, id: resultDepId, did: resultDepId });//id y did son iguales
-
-
-
-
-        }
-    }
-
-    // 8) Respuesta
-    return {
-        success: true,
-        message: "Cliente actualizado correctamente",
-        data: {
-            did: Number(clienteId),
-            cliente: { nombre_fantasia: newNF, razon_social: newRS, codigo: newCOD, habilitado: newHAB, observaciones: newOBS },
-            direcciones: {
-                created: dirCreated.length ? dirCreated : undefined,
-                deleted: dirDeleted.length ? dirDeleted : undefined
-            },
-            contactos: {
-                created: contCreated.length ? contCreated : undefined,
-                deleted: contDeleted.length ? contDeleted : undefined
-            },
-            cuentas: {
-                created: ctaCreated.length ? ctaCreated : undefined,
-                deleted: ctaDeleted.length ? ctaDeleted : undefined
-            }
-            ,
-            depositosData: insertDepositos.length ? insertDepositos : undefined
-        },
-        meta: { timestamp: new Date().toISOString() }
+    const changed = {
+        cliente: 0,
+        direcciones: { added: 0, updated: 0, removed: 0 },
+        contactos: { added: 0, updated: 0, removed: 0 },
+        cuentas: { added: 0, updated: 0, removed: 0 },
     };
+
+    // helpers -------------->
+    const fetchClienteVigente = async () => {
+        const rows = await executeQuery(
+            connection,
+            `SELECT did, nombre_fantasia, razon_social, codigo, observaciones, habilitado
+         FROM clientes
+        WHERE did = ? AND superado = 0 AND elim = 0
+        LIMIT 1`,
+            [clienteId]
+        );
+        return rows?.[0] || null;
+    };
+
+    const fetchDirByDid = async (didDireccion) => {
+        const rows = await executeQuery(
+            connection,
+            `SELECT *
+         FROM clientes_direcciones
+        WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
+        LIMIT 1`,
+            [didDireccion, clienteId]
+        );
+        return rows?.[0] || null;
+    };
+
+    const fetchConByDid = async (didContacto) => {
+        const rows = await executeQuery(
+            connection,
+            `SELECT *
+         FROM clientes_contactos
+        WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
+        LIMIT 1`,
+            [didContacto, clienteId]
+        );
+        return rows?.[0] || null;
+    };
+
+    const fetchCtaByDid = async (didCuenta) => {
+        const rows = await executeQuery(
+            connection,
+            `SELECT *
+         FROM clientes_cuentas
+        WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
+        LIMIT 1`,
+            [didCuenta, clienteId]
+        );
+        return rows?.[0] || null;
+    };
+
+    // versionar registro genérico (marca superado e inserta con mismo did)
+    const superarVigente = async (table, whereCols, whereVals) => {
+        const where = whereCols.map((c) => `${c} = ?`).join(" AND ");
+        await executeQuery(
+            connection,
+            `UPDATE ${table}
+          SET superado = 1, quien = ?
+        WHERE ${where} AND superado = 0 AND elim = 0`,
+            [nowUser || null, ...whereVals]
+        );
+    };
+
+    const insertWithSameDid = async (table, cols, vals, fixedDid) => {
+        // Insert con did explícito (= fixedDid)
+        const colsWithDid = ["did", ...cols];
+        const ph = ["?", ...cols.map(() => "?")];
+        const res = await executeQuery(
+            connection,
+            `INSERT INTO ${table} (${colsWithDid.join(",")}) VALUES (${ph.join(",")})`,
+            [fixedDid, ...vals],
+            true
+        );
+        return res?.insertId || 0;
+    };
+
+    // <-------------- helpers
+
+    await executeQuery(connection, "START TRANSACTION");
+    try {
+        // validar cliente vigente
+        const vigente = await fetchClienteVigente();
+        if (!vigente) {
+            await executeQuery(connection, "ROLLBACK");
+            return {
+                success: false,
+                message: "Cliente no encontrado o no vigente",
+                data: null,
+                meta: null,
+            };
+        }
+
+        // -----------------------------
+        // CLIENTE (root del body)
+        // Si hay algún campo base en el body, versionamos cliente.
+        const baseFields = ["nombre_fantasia", "razon_social", "codigo", "observaciones", "habilitado"];
+        const someBasePatch = baseFields.some((k) => body[k] !== undefined);
+        if (someBasePatch) {
+            // merge (patch sobre vigente)
+            const merged = {
+                nombre_fantasia: body.nombre_fantasia ?? vigente.nombre_fantasia ?? null,
+                razon_social: body.razon_social ?? vigente.razon_social ?? null,
+                codigo: body.codigo ?? vigente.codigo ?? null,
+                observaciones: body.observaciones ?? vigente.observaciones ?? null,
+                habilitado: body.habilitado ?? vigente.habilitado ?? 0,
+            };
+
+            // superar vigente e insertar nueva versión con el MISMO did
+            await superarVigente("clientes", ["did"], [clienteId]);
+
+            const cols = [
+                "nombre_fantasia", "razon_social", "codigo", "observaciones",
+                "habilitado", "quien", "superado", "elim"
+            ];
+            const vals = [
+                merged.nombre_fantasia, merged.razon_social, merged.codigo, merged.observaciones,
+                Number(merged.habilitado ?? 0), nowUser || null, 0, 0
+            ];
+            await insertWithSameDid("clientes", cols, vals, Number(clienteId));
+            changed.cliente = 1;
+        }
+
+        // -----------------------------
+        // DIRECCIONES
+        // ADD: inserta con did=auto (did=0 -> set did=id) o directamente con did=id?
+        // -> como es ALTA "nueva", dejamos el patrón habitual: did=0 y luego set did=id.
+        for (const d of dAdd) {
+            const ins = await executeQuery(
+                connection,
+                `INSERT INTO clientes_direcciones
+         (did, did_cliente, address_line, pais, localidad, numero, calle, cp, provincia, titulo, quien, superado, elim)
+         VALUES (0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+                [
+                    clienteId,
+                    d.address_line ?? null,
+                    d.pais ?? null,
+                    d.localidad ?? null,
+                    d.numero ?? null,
+                    d.calle ?? null,
+                    d.cp ?? null,
+                    d.provincia ?? null,
+                    d.titulo ?? null,
+                    nowUser || null,
+                ],
+                true
+            );
+            const newId = ins?.insertId || 0;
+            if (newId) {
+                await executeQuery(connection, `UPDATE clientes_direcciones SET did = ? WHERE id = ?`, [newId, newId]);
+            }
+            changed.direcciones.added++;
+        }
+
+        // UPDATE: versionado por did (supera e inserta con MISMO did)
+        for (const d of dUpd) {
+            if (!d.did) continue;
+            const cur = await fetchDirByDid(d.did);
+            if (!cur) continue;
+
+            const merged = {
+                did_cliente: clienteId,
+                address_line: d.address_line ?? cur.address_line ?? null,
+                pais: d.pais ?? cur.pais ?? null,
+                localidad: d.localidad ?? cur.localidad ?? null,
+                numero: d.numero ?? cur.numero ?? null,
+                calle: d.calle ?? cur.calle ?? null,
+                cp: d.cp ?? cur.cp ?? null,
+                provincia: d.provincia ?? cur.provincia ?? null,
+                titulo: d.titulo ?? cur.titulo ?? null,
+            };
+
+            await superarVigente("clientes_direcciones", ["did_cliente", "did"], [clienteId, d.did]);
+
+            const cols = [
+                "did_cliente", "address_line", "pais", "localidad", "numero",
+                "calle", "cp", "provincia", "titulo", "quien", "superado", "elim"
+            ];
+            const vals = [
+                merged.did_cliente, merged.address_line, merged.pais, merged.localidad, merged.numero,
+                merged.calle, merged.cp, merged.provincia, merged.titulo, nowUser || null, 0, 0
+            ];
+            await insertWithSameDid("clientes_direcciones", cols, vals, Number(d.did));
+            changed.direcciones.updated++;
+        }
+
+        // REMOVE: elim=1 al vigente por did
+        if (dDel.length) {
+            await executeQuery(
+                connection,
+                `UPDATE clientes_direcciones
+            SET elim = 1, quien = ?
+          WHERE did_cliente = ?
+            AND did IN (${dDel.map(() => "?").join(",")})
+            AND superado = 0`,
+                [nowUser || null, clienteId, ...dDel]
+            );
+            changed.direcciones.removed = dDel.length;
+        }
+
+        // -----------------------------
+        // CONTACTOS
+        for (const c of cAdd) {
+            const ins = await executeQuery(
+                connection,
+                `INSERT INTO clientes_contactos
+         (did, did_cliente, tipo, valor, quien, superado, elim)
+         VALUES (0, ?, ?, ?, ?, 0, 0)`,
+                [clienteId, Number(c.tipo ?? 0), c.valor ?? null, nowUser || null],
+                true
+            );
+            const newId = ins?.insertId || 0;
+            if (newId) {
+                await executeQuery(connection, `UPDATE clientes_contactos SET did = ? WHERE id = ?`, [newId, newId]);
+            }
+            changed.contactos.added++;
+        }
+
+        for (const c of cUpd) {
+            if (!c.did) continue;
+            const cur = await fetchConByDid(c.did);
+            if (!cur) continue;
+
+            const merged = {
+                did_cliente: clienteId,
+                tipo: c.tipo ?? cur.tipo ?? 0,
+                valor: c.valor ?? cur.valor ?? null,
+            };
+
+            await superarVigente("clientes_contactos", ["did_cliente", "did"], [clienteId, c.did]);
+
+            const cols = ["did_cliente", "tipo", "valor", "quien", "superado", "elim"];
+            const vals = [merged.did_cliente, merged.tipo, merged.valor, nowUser || null, 0, 0];
+            await insertWithSameDid("clientes_contactos", cols, vals, Number(c.did));
+            changed.contactos.updated++;
+        }
+
+        if (cDel.length) {
+            await executeQuery(
+                connection,
+                `UPDATE clientes_contactos
+            SET elim = 1, quien = ?
+          WHERE did_cliente = ?
+            AND did IN (${cDel.map(() => "?").join(",")})
+            AND superado = 0`,
+                [nowUser || null, clienteId, ...cDel]
+            );
+            changed.contactos.removed = cDel.length;
+        }
+
+        // -----------------------------
+        // CUENTAS (ojo: ml_id_vendedor usualmente NOT NULL; si no viene en update, se hereda)
+        for (const a of aAdd) {
+            const ins = await executeQuery(
+                connection,
+                `INSERT INTO clientes_cuentas
+         (did, did_cliente, flex, titulo, ml_id_vendedor, ml_user, data, quien, superado, elim)
+         VALUES (0, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+                [
+                    clienteId,
+                    Number(a.flex ?? 0),
+                    a.titulo ?? null,
+                    String(a.ml_id_vendedor ?? ""),  // evitar null
+                    a.ml_user ?? null,
+                    a.data ?? null,
+                    nowUser || null,
+                ],
+                true
+            );
+            const newId = ins?.insertId || 0;
+            if (newId) {
+                await executeQuery(connection, `UPDATE clientes_cuentas SET did = ? WHERE id = ?`, [newId, newId]);
+            }
+            changed.cuentas.added++;
+        }
+
+        for (const a of aUpd) {
+            if (!a.did) continue;
+            const cur = await fetchCtaByDid(a.did);
+            if (!cur) continue;
+
+            const merged = {
+                did_cliente: clienteId,
+                flex: Number(a.flex ?? cur.flex ?? 0),
+                titulo: a.titulo ?? cur.titulo ?? null,
+                ml_id_vendedor: String(a.ml_id_vendedor ?? cur.ml_id_vendedor ?? ""),
+                ml_user: a.ml_user ?? cur.ml_user ?? null,
+                data: a.data ?? cur.data ?? null,
+            };
+
+            await superarVigente("clientes_cuentas", ["did_cliente", "did"], [clienteId, a.did]);
+
+            const cols = [
+                "did_cliente", "flex", "titulo", "ml_id_vendedor", "ml_user", "data", "quien", "superado", "elim"
+            ];
+            const vals = [
+                merged.did_cliente, merged.flex, merged.titulo, merged.ml_id_vendedor, merged.ml_user,
+                merged.data, nowUser || null, 0, 0
+            ];
+            await insertWithSameDid("clientes_cuentas", cols, vals, Number(a.did));
+            changed.cuentas.updated++;
+        }
+
+        if (aDel.length) {
+            await executeQuery(
+                connection,
+                `UPDATE clientes_cuentas
+            SET elim = 1, quien = ?
+          WHERE did_cliente = ?
+            AND did IN (${aDel.map(() => "?").join(",")})
+            AND superado = 0`,
+                [nowUser || null, clienteId, ...aDel]
+            );
+            changed.cuentas.removed = aDel.length;
+        }
+
+        await executeQuery(connection, "COMMIT");
+        return {
+            success: true,
+            message: "Cliente actualizado (versionado) correctamente",
+            data: { did: Number(clienteId) },
+            meta: { changed },
+        };
+    } catch (err) {
+        await executeQuery(connection, "ROLLBACK");
+        return {
+            success: false,
+            message: err?.message || "Error actualizando cliente",
+            data: null,
+            meta: { changed },
+        };
+    }
 }

@@ -3,20 +3,18 @@ import { executeQuery, toStr, toBool, pickNonEmpty } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functions/query_utils.js";
 
 /**
- * GET /clientes (con filtros y paginación)
+ * GET /clientes
  * Query params:
  *   nombre_fantasia, codigo, razon_social, habilitado,
- *   localidad, pais, cp, email, telefono,
- *   pagina, cantidad
- * Estructura de respuesta: { success, message, data, meta }
+ *   pagina|page, cantidad|page_size, sort_by, sort_dir
  */
 export async function getFilteredClientes(connection, req) {
   const q = req.query;
 
-  // Aliases de paginación
+  // aliases paginación
   const qp = { ...q, page: q.page ?? q.pagina, page_size: q.page_size ?? q.cantidad };
 
-  // Filtros
+  // filtros
   const filtros = {
     nombre_fantasia: toStr(q.nombre_fantasia),
     codigo: toStr(q.codigo),
@@ -24,7 +22,7 @@ export async function getFilteredClientes(connection, req) {
     habilitado: toBool(q.estado ?? q.habilitado, undefined), // 0/1 o undefined
   };
 
-  // Paginación y orden
+  // paginación
   const { page, pageSize, offset } = makePagination(qp, {
     pageKey: "page",
     pageSizeKey: "page_size",
@@ -33,6 +31,7 @@ export async function getFilteredClientes(connection, req) {
     maxPageSize: 100,
   });
 
+  // orden
   const sortMap = {
     codigo: "c.codigo",
     nombre_fantasia: "c.nombre_fantasia",
@@ -45,7 +44,7 @@ export async function getFilteredClientes(connection, req) {
     dirKey: "sort_dir",
   });
 
-  // WHERE (con LIKE escapado dentro de helper)
+  // WHERE
   const where = new SqlWhere().add("c.superado = 0").add("c.elim = 0");
   if (filtros.codigo) where.likeEscaped("c.codigo", filtros.codigo, { caseInsensitive: true });
   if (filtros.nombre_fantasia) where.likeEscaped("c.nombre_fantasia", filtros.nombre_fantasia, { caseInsensitive: true });
@@ -54,11 +53,11 @@ export async function getFilteredClientes(connection, req) {
 
   const { whereSql, params } = where.finalize();
 
-  // COUNT sin los LEFT JOIN (más preciso y rápido)
+  // COUNT
   const countSql = `SELECT COUNT(*) AS total FROM clientes c ${whereSql}`;
   const [{ total = 0 } = {}] = await executeQuery(connection, countSql, params);
 
-  // DATA: una sola query con subqueries agregadas (evita cross-product)
+  // DATA con subqueries agregadas (nombres REALES de columnas)
   const dataSql = `
     SELECT
       c.did,
@@ -67,45 +66,18 @@ export async function getFilteredClientes(connection, req) {
       c.codigo,
       c.observaciones,
       c.razon_social,
-      c.quien,
-      COALESCE(d.direcciones, JSON_ARRAY()) AS direcciones,
-      COALESCE(k.contactos,   JSON_ARRAY()) AS contactos
+      c.quien
+
     FROM clientes c
-    LEFT JOIN (
-      SELECT
-        didCliente,
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'did', did,
-            'data', data
-          )
-        ) AS direcciones
-      FROM clientes_direcciones
-      WHERE elim = 0 AND superado = 0
-      GROUP BY didCliente
-    ) d ON d.didCliente = c.did
-    LEFT JOIN (
-      SELECT
-        didCliente,
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'did', did,
-            'tipo', tipo,
-            'valor', valor
-          )
-        ) AS contactos
-      FROM clientes_contactos
-      WHERE elim = 0 AND superado = 0
-      GROUP BY didCliente
-    ) k ON k.didCliente = c.did
+    
+    
     ${whereSql}
     ${orderSql}
-    LIMIT ? OFFSET ?
+    LIMIT ? OFFSET ?;
   `;
 
   const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset]);
 
-  // Parse seguro (depende de tu driver, a veces ya viene como objeto)
   const clientesFinal = rows.map(r => ({
     did: r.did,
     nombre_fantasia: r.nombre_fantasia,
@@ -114,8 +86,7 @@ export async function getFilteredClientes(connection, req) {
     observaciones: r.observaciones,
     razon_social: r.razon_social,
     quien: r.quien,
-    direcciones: typeof r.direcciones === "string" ? JSON.parse(r.direcciones) : (r.direcciones ?? []),
-    contactos: typeof r.contactos === "string" ? JSON.parse(r.contactos) : (r.contactos ?? []),
+
   }));
 
   return {

@@ -24,6 +24,8 @@ import {
 import { createPedido } from "../functions/createPedido.js";
 import { getPedidoDidByNumber } from "../functions/getDidPedidoByNumber.js";
 import { updatePedidoStatusWithHistory } from "../functions/updatePedidoStatusWithHistory.js";
+import { mapMlToPedidoPayload } from "../functions/mapMLToPedidoPayload.js";
+import { mapTNToPedidoPayload } from "../functions/mapTNToPedidoPayload.js";
 
 // =============== CONFIG ===============
 
@@ -122,102 +124,9 @@ async function obtenerOrdenTN(storeId, orderId, token) {
 }
 
 // Arma observaciones “amistosas” como hacía tu PHP
-function buildObservacionesTN(order) {
-    const arr = [];
-    if (order?.note && String(order.note).trim())
-        arr.push(`Nota comprador: ${order.note}`);
-    if (order?.owner_note && String(order.owner_note).trim())
-        arr.push(`Nota vendedor: ${order.owner_note}`);
 
-    // Si querés sumar Items:
-    // const items = (order.products||[]).map(i => `${i.name} x${i.quantity}`).join(" | ");
-    // if (items) arr.push(`Items: ${items}`);
 
-    return arr.join(" ");
-}
 
-// Mapea JSON TN -> payload compatible con createPedido / tablas pedidos*
-function mapTNToPedidoPayload(orderTN, sellerDataLike) {
-    const didCuenta = Number(
-        sellerDataLike?.did_cuenta ?? sellerDataLike?.idempresa ?? 0
-    );
-    const sellerId = String(
-        sellerDataLike?.seller_id ?? orderTN?.store_id ?? ""
-    );
-
-    // Dirección y comprador
-    const shipping = orderTN?.shipping_address || {};
-    const buyerId = orderTN?.customer?.id ?? "";
-    const buyerName = shipping?.name ?? orderTN?.customer?.name ?? "";
-
-    // Fecha venta (TN viene UTC)
-    const fechaVenta = orderTN?.created_at
-        ? new Date(orderTN.created_at)
-        : new Date();
-
-    // Totales
-    const totalAmount = Number(orderTN?.total ?? 0);
-
-    // Items TN
-    const itemsTN = Array.isArray(orderTN?.products) ? orderTN.products : [];
-    const items = itemsTN.map((p) => {
-        const mlItemIdFinal = String(p?.id ?? "");
-        const fallbackSku = p?.sku ? String(p.sku) : mlItemIdFinal || "";
-
-        // Normalizar imagen: string URL o null (TN puede mandar objeto)
-        let imgUrl = null;
-        if (p?.image) {
-            if (typeof p.image === "string") {
-                imgUrl = p.image;
-            } else if (typeof p.image === "object") {
-                imgUrl = p.image.src || p.image.url || null;
-            }
-        }
-
-        return {
-            seller_sku: String(p?.sku ?? ""),                // NOT NULL
-            codigo: String(p?.sku ?? mlItemIdFinal ?? ""),   // NOT NULL
-            descripcion: String(p?.name ?? ""),              // NOT NULL
-            ml_id: String(mlItemIdFinal ?? ""),              // NOT NULL
-            dimensions: "",                                  // NOT NULL (TN no trae aquí)
-            variacion: p?.variant_id ? String(p.variant_id) : "", // NOT NULL
-            id_variacion: p?.variant_id ?? null,
-            user_product_id: String(p?.id ?? fallbackSku ?? ""),  // NOT NULL
-            cantidad: Number(p?.quantity ?? 1),
-            variation_attributes: null,                      // (si querés, stringify desde variant opts)
-            imagen: imgUrl,                                  // <-- string o null (NO objeto)
-        };
-    });
-
-    // Estado
-    const status = String(orderTN?.payment_status ?? orderTN?.status ?? "created");
-
-    // Envío: si no hay, dejar ""
-    const envioId =
-        orderTN?.shipping_tracking_number || orderTN?.shipping_option_code || "";
-
-    return {
-        did_cuenta: didCuenta,
-        status,
-        number: String(orderTN?.id ?? orderTN?.number ?? ""),
-        fecha_venta: fechaVenta,
-        buyer_id: String(buyerId ?? ""),
-        buyer_nickname: "",
-        buyer_name: String(buyerName ?? ""),
-        buyer_last_name: "",
-        total_amount: totalAmount,
-        ml_shipment_id: String(envioId ?? ""),
-        ml_id: String(orderTN?.id ?? ""), // NOT NULL en tu código/DDL
-        ml_pack_id: "", // TN no maneja pack; queda vacío
-        observaciones: buildObservacionesTN(orderTN),
-        armado: 0,
-        descargado: 0,
-        quien_armado: 0,
-        quien: Number(sellerDataLike?.quien ?? 0),
-        items,
-        seller_id: sellerId, // por si tu createPedido lo toma para pedidos.seller_id
-    };
-}
 
 // Si necesitás derivar “empresa/cuenta” para la conexión de FF.
 // Por ahora usamos lo que trae getTNTokenForStore() para idempresa/did_cuenta.
@@ -271,10 +180,14 @@ export async function processTNMessage(rawMsg) {
     let db;
     try {
         db = await connectMySQL(cfg);
-        console.log(orderTN, sellerData);
+        //     console.log(orderTN, sellerData);
 
         // 5) Mapear payload a tu modelo de tablas
         const payload = mapTNToPedidoPayload(orderTN, sellerData);
+        console.log(JSON.stringify(payload, null, 2));
+
+
+
 
         // 6) Idempotencia por (seller_id, number)
         const number = String(payload.number);

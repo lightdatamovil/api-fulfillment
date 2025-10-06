@@ -26,7 +26,7 @@ export async function createPedido(db, payload, userId) {
         "did_cuenta", "status", "number", "fecha_venta", "buyer_id", "buyer_nickname",
         "buyer_name", "buyer_last_name", "total_amount", "ml_shipment_id", "ml_id",
         "ml_pack_id", "observaciones", "armado", "descargado",
-        "quien_armado", "quien", "superado", "elim"
+        "quien_armado", "reference_id", "billing", "quien", "superado", "elim"
     ];
     const ph = cols.map(() => "?");
     const vals = [
@@ -46,6 +46,8 @@ export async function createPedido(db, payload, userId) {
         payload.armado ?? 0,
         payload.descargado ?? 0,
         payload.quien_armado ?? 0,
+        payload.reference_id ?? "",
+        payload.billing ? JSON.stringify(payload.billing) : null,
         Number(userId ?? 0),
         0,
         0
@@ -129,9 +131,9 @@ export async function createPedido(db, payload, userId) {
             ""
         );
         const cp = s(rx?.zip_code ?? rx?.zip ?? "");
-        const localidad = s(rx?.city?.name ?? rx?.city?.id ?? rx?.neighborhood?.name ?? "");
-        const provincia = s(rx?.state?.name ?? rx?.state?.id ?? "");
-        const pais = s(rx?.country?.name ?? rx?.country?.id ?? "");
+        const localidad = s(rx.city || "");
+        const provincia = s(rx.state || "");
+        const pais = s(rx.country || "");
         const latitud = n(rx?.latitude);
         const longitud = n(rx?.longitude);
         const destination_coments = s(
