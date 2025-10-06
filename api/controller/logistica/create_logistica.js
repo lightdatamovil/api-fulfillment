@@ -12,7 +12,7 @@ import { CustomException, executeQuery, Status } from "lightdata-tools";
 export async function createlogistica(db, req) {
     const {
         nombre,
-        esLightdata,
+        logisticaLD,
         codigo,
         codigoLD
 
@@ -48,7 +48,7 @@ export async function createlogistica(db, req) {
       VALUES
         (?, ?, ?, ?, ?, NOW(), 0, ?)
     `,
-        [nombre, esLightdata, codigo, codigoLD, userId, habilitado]
+        [nombre, logisticaLD, codigo, codigoLD, userId, habilitado]
     );
     if (!insert?.affectedRows) {
         throw new CustomException({
@@ -109,7 +109,7 @@ export async function createlogistica(db, req) {
             id: logisticaId,
             did: logisticaId,
             nombre: nombre,
-            esLightdata: esLightdata,
+            logisticaLD: logisticaLD,
             codigo: codigo,
             codigoLD: codigoLD,
             habilitado: habilitado,

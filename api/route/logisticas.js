@@ -12,7 +12,7 @@ const logisticas = Router();
 logisticas.post(
   '/',
   buildHandlerWrapper({
-    required: ['nombre', 'esLightdata', 'codigo', 'codigoLD', 'direcciones', 'habilitado'],
+    required: ['nombre', 'logisticaLD', 'codigo', 'codigoLD', 'direcciones', 'habilitado'],
     controller: async ({ db, req }) => {
       const result = await createlogistica(db, req);
       return result;
@@ -46,7 +46,7 @@ logisticas.put(
   '/:logisticaDid',
   buildHandlerWrapper({
     requiredParams: ['logisticaDid'],
-    optional: ['nombre', 'esLightdata', 'codigo', 'codigoLD', 'direcciones', 'habilitado'],
+    optional: ['nombre', 'logisticaLD', 'codigo', 'codigoLD', 'direcciones', 'habilitado'],
     controller: async ({ db, req }) => {
       const result = await editLogistica(db, req);
       return result;

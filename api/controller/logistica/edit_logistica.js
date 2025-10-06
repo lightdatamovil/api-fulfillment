@@ -14,10 +14,10 @@ export async function editLogistica(db, req) {
         select: "nombre, codigo, codigoLD, logisticaLD, habilitado"
     });
 
-    const { nombreActual, esLightdataActual, codigoActual, codigoLDActual, habilitadoActual } = verifyLogistica;
+    const { nombreActual, logisticaLDActual, codigoActual, codigoLDActual, habilitadoActual } = verifyLogistica;
 
     //mapear
-    const topAllowed = ["nombre", "codigo", "codigoLD", "esLightdata", "habilitado"];
+    const topAllowed = ["nombre", "codigo", "codigoLD", "logisticaLD", "habilitado"];
     const topPatch = pickDefined(req.body, topAllowed);
 
     // Mapear nombres de body -> columnas reales
@@ -25,17 +25,17 @@ export async function editLogistica(db, req) {
         ...(isDefined(topPatch.nombre) ? { nombre: topPatch.nombre } : {}),
         ...(isDefined(topPatch.codigo) ? { codigo: topPatch.codigo } : {}),
         ...(isDefined(topPatch.codigoLD) ? { codigoLD: topPatch.codigoLD } : {}),
-        ...(isDefined(topPatch.esLightdata) ? { logisticaLD: topPatch.esLightdata } : {}),
+        ...(isDefined(topPatch.logisticaLD) ? { logisticaLD: topPatch.logisticaLD } : {}),
         ...(isDefined(topPatch.habilitado) ? { habilitado: topPatch.habilitado } : {}),
     };
 
     const nombreInsert = isDefined(topPatch.nombre) ? topPatch.nombre : nombreActual;
     const codigoInsert = isDefined(topPatch.codigo) ? topPatch.codigo : codigoActual;
     const codigoLDInsert = isDefined(topPatch.codigoLD) ? topPatch.codigoLD : codigoLDActual;
-    const esLightdataInsert = isDefined(topPatch.esLightdata) ? topPatch.esLightdata : esLightdataActual;
+    const logisticaLDInsert = isDefined(topPatch.logisticaLD) ? topPatch.logisticaLD : logisticaLDActual;
     const habilitadoInsert = isDefined(topPatch.habilitado) ? topPatch.habilitado : habilitadoActual;
 
-    const huboCambio = nombreInsert !== nombreActual || codigoInsert !== codigoActual || codigoLDInsert !== codigoLDActual || esLightdataInsert !== esLightdataActual || habilitadoInsert !== habilitadoActual;
+    const huboCambio = nombreInsert !== nombreActual || codigoInsert !== codigoActual || codigoLDInsert !== codigoLDActual || logisticaLDInsert !== logisticaLDActual || habilitadoInsert !== habilitadoActual;
 
 
     // si varables actual != variables nuevas
@@ -48,7 +48,7 @@ export async function editLogistica(db, req) {
         // updateo inserto 
         const queryUpddate = `INSERT INTO logisticas (did, nombre, logisticaLD, codigo, codigoLD, habilitado,  autofecha, quien, superado, elim)
         VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, 0, 0)`;
-        const insertUpdate = await executeQuery(db, queryUpddate, [logisticaDid, nombreInsert, esLightdataInsert, codigoInsert, codigoLDInsert, habilitadoInsert, userId], true);
+        const insertUpdate = await executeQuery(db, queryUpddate, [logisticaDid, nombreInsert, logisticaLDInsert, codigoInsert, codigoLDInsert, habilitadoInsert, userId], true);
 
         if (insertUpdate.affectedRows !== 1) {
             throw new CustomException({
@@ -152,7 +152,7 @@ export async function editLogistica(db, req) {
         data: {
             did: logisticaDid,
             nombre: nombreInsert,
-            esLightdata: esLightdataInsert,
+            logisticaLD: logisticaLDInsert,
             codigo: codigoInsert,
             codigoLD: codigoLDInsert,
             quien: userId,
