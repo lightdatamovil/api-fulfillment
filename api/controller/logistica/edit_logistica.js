@@ -58,9 +58,6 @@ export async function editLogistica(db, req) {
         }
     }
 
-
-    // Direcciones -> add y delete
-
     // lo mismo en logisticas_direcciones
     const { direcciones } = req.body ?? {};
     const hayDirecciones = getDireccionesOpsState(direcciones);
