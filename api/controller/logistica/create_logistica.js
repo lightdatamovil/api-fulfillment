@@ -1,6 +1,5 @@
-import {
-    CustomException, executeQuery, Status
-} from "lightdata-tools";
+import { CustomException, executeQuery, Status } from "lightdata-tools";
+
 
 /**
  * Alta de logistica y derivados (direcciones, contactos, cuentas).
@@ -12,23 +11,24 @@ import {
  */
 export async function createlogistica(db, req) {
     const {
-        did,
         nombre,
-        logisticaLD,
+        esLightdata,
         codigo,
         codigoLD
 
     } = req.body || {};
     const { userId } = req.user;
+    let direcciones = req.body.direcciones ?? {};
+    const { cp, calle, pais, localidad, numero, provincia, address_line } = direcciones;
 
 
     // ---------- Duplicados (logistica activo) ----------
     const logisticaDuplicada = await executeQuery(
         db,
-        `SELECT * FROM logisticas WHERE superado = 0 AND elim = 0
-        AND (did = ? OR nombre = ? OR logisticaLD = ? OR codigo = ? OR codigoLD = ?)
+        `SELECT * FROM logisticas WHERE 
+        (nombre = ? OR codigo = ? OR codigoLD = ?) AND superado = 0 AND elim = 0
         LIMIT 1;`,
-        [did, nombre, logisticaLD, codigo, codigoLD]
+        [nombre, codigo, codigoLD], true
     );
 
     if (logisticaDuplicada?.length) {
@@ -44,11 +44,11 @@ export async function createlogistica(db, req) {
         db,
         `
       INSERT INTO logisticas
-        (did, nombre, logisticaLD, codigo, codigoLD, quien, autofecha, superado)
+        (nombre, logisticaLD, codigo, codigoLD, quien, autofecha, superado)
       VALUES
-        (?, ?, ?, ?, ?, ?, NOW(), 0)
+        (?, ?, ?, ?, ?, NOW(), 0)
     `,
-        [did, nombre, logisticaLD, codigo, codigoLD, userId]
+        [nombre, esLightdata, codigo, codigoLD, userId]
     );
     if (!insert?.affectedRows) {
         throw new CustomException({
@@ -60,15 +60,56 @@ export async function createlogistica(db, req) {
     const logisticaId = insert.insertId;
 
 
+    //actualizar did
+    const did = await executeQuery(db, "UPDATE logisticas SET did = ?  WHERE id = ?", [logisticaId, logisticaId], true);
+    if (!did?.affectedRows) {
+        throw new CustomException({
+            title: "Error al actualizar did del logistica",
+            message: "No se pudo actualizar el did del logistica",
+            status: Status.internalServerError,
+        });
+    }
+
+    //llevar datos a direcciones
+    const direccionInsert = await executeQuery(
+        db, ` INSERT INTO logisticas_direcciones
+        (did_logistica, cp, calle, pais, localidad, numero, provincia, address_line, quien, autofecha, superado, elim)
+      VALUES
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0, 0)
+    `,
+        [logisticaId, cp, calle, pais, localidad, numero, provincia, address_line, userId], true
+    );
+    if (!direccionInsert?.affectedRows) {
+        throw new CustomException({
+            title: "Error al crear direccion",
+            message: "No se pudo insertar la direccion",
+            status: Status.internalServerError,
+        });
+    }
+    const didDirecciones = direccionInsert.insertId;
+
+    //actualizar did
+
+    const insertDidDirecciones = await executeQuery(db, "UPDATE logisticas_direcciones SET did = ? WHERE id = ?", [didDirecciones, didDirecciones], true);
+    if (!insertDidDirecciones?.affectedRows) {
+        throw new CustomException({
+            title: "Error al actualizar did de la direccion",
+            message: "No se pudo actualizar el did de la direccion",
+            status: Status.internalServerError,
+        });
+    }
+
+
+
     // ---------- Respuesta ----------
     return {
         success: true,
         message: "logistica creada correctamente",
         data: {
             id: logisticaId,
-            did: did,
+            did: logisticaId,
             nombre: nombre,
-            logisticaLD: logisticaLD,
+            esLightdata: esLightdata,
             codigo: codigo,
             codigoLD: codigoLD,
             quien: userId,
@@ -76,3 +117,4 @@ export async function createlogistica(db, req) {
         meta: { timestamp: new Date().toISOString() },
     };
 }
+

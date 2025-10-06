@@ -116,7 +116,7 @@ export async function editInsumo(dbConnection, req) {
         // Reactivar existentes (superado=1 o elim=1)
         const sqlReact = `
       UPDATE insumos_clientes
-      SET superado = 0, elim = 0, quien = ?
+      SET superado = 1, quien = ?
       WHERE did_insumo = ?
         AND did_cliente IN (${toAdd.map(() => "?").join(",")})
         AND (superado = 1 OR elim = 1)
