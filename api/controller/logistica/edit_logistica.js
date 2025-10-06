@@ -11,13 +11,13 @@ export async function editLogistica(db, req) {
         table: "logisticas",
         column: "did",
         valor: logisticaDid,
-        select: "nombre, codigo, codigoLD, logisticaLD"
+        select: "nombre, codigo, codigoLD, logisticaLD, habilitado"
     });
 
-    const { nombreActual, esLightdataActual, codigoActual, codigoLDActual } = verifyLogistica;
+    const { nombreActual, esLightdataActual, codigoActual, codigoLDActual, habilitadoActual } = verifyLogistica;
 
     //mapear
-    const topAllowed = ["nombre", "codigo", "codigoLD", "esLightdata"];
+    const topAllowed = ["nombre", "codigo", "codigoLD", "esLightdata", "habilitado"];
     const topPatch = pickDefined(req.body, topAllowed);
 
     // Mapear nombres de body -> columnas reales
@@ -26,14 +26,16 @@ export async function editLogistica(db, req) {
         ...(isDefined(topPatch.codigo) ? { codigo: topPatch.codigo } : {}),
         ...(isDefined(topPatch.codigoLD) ? { codigoLD: topPatch.codigoLD } : {}),
         ...(isDefined(topPatch.esLightdata) ? { logisticaLD: topPatch.esLightdata } : {}),
+        ...(isDefined(topPatch.habilitado) ? { habilitado: topPatch.habilitado } : {}),
     };
 
     const nombreInsert = isDefined(topPatch.nombre) ? topPatch.nombre : nombreActual;
     const codigoInsert = isDefined(topPatch.codigo) ? topPatch.codigo : codigoActual;
     const codigoLDInsert = isDefined(topPatch.codigoLD) ? topPatch.codigoLD : codigoLDActual;
     const esLightdataInsert = isDefined(topPatch.esLightdata) ? topPatch.esLightdata : esLightdataActual;
+    const habilitadoInsert = isDefined(topPatch.habilitado) ? topPatch.habilitado : habilitadoActual;
 
-    const huboCambio = nombreInsert !== nombreActual || codigoInsert !== codigoActual || codigoLDInsert !== codigoLDActual || esLightdataInsert !== esLightdataActual;
+    const huboCambio = nombreInsert !== nombreActual || codigoInsert !== codigoActual || codigoLDInsert !== codigoLDActual || esLightdataInsert !== esLightdataActual || habilitadoInsert !== habilitadoActual;
 
 
     // si varables actual != variables nuevas
@@ -44,9 +46,9 @@ export async function editLogistica(db, req) {
         await executeQuery(db, "UPDATE logisticas SET superado = 1 WHERE did = ? AND superado = 0 AND elim = 0", [logisticaDid], true);
 
         // updateo inserto 
-        const queryUpddate = `INSERT INTO logisticas (did, nombre, logisticaLD, codigo, codigoLD,  autofecha, quien, superado, elim)
-        VALUES (?, ?, ?, ?, ?, NOW(), ?, 0, 0)`;
-        const insertUpdate = await executeQuery(db, queryUpddate, [logisticaDid, nombreInsert, esLightdataInsert, codigoInsert, codigoLDInsert, userId], true);
+        const queryUpddate = `INSERT INTO logisticas (did, nombre, logisticaLD, codigo, codigoLD, habilitado,  autofecha, quien, superado, elim)
+        VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, 0, 0)`;
+        const insertUpdate = await executeQuery(db, queryUpddate, [logisticaDid, nombreInsert, esLightdataInsert, codigoInsert, codigoLDInsert, habilitadoInsert, userId], true);
 
         if (insertUpdate.affectedRows !== 1) {
             throw new CustomException({
@@ -93,12 +95,13 @@ export async function editLogistica(db, req) {
 
     }
     if (hayDirecciones.hasRemove) {
+        console.log("entre a direcciones remove");
         const idsRemove = hayDirecciones.remove;
 
         if (idsRemove.length > 0) {
             const sql = `UPDATE logisticas_direcciones
         SET elim = 1 WHERE did_logistica = ?
-        AND did_cliente IN (${idsRemove.map(() => "?").join(",")})
+        AND id IN (${idsRemove.map(() => "?").join(",")})
         AND superado = 0
         AND elim = 0 `;
             await executeQuery(db, sql, [logisticaDid, ...idsRemove]);
@@ -106,11 +109,12 @@ export async function editLogistica(db, req) {
     }
 
     if (hayDirecciones.hasUpdate) {
-        const didsUpdate = hayDirecciones.update.map(d => d.did);
+        console.log("entre a direcciones update");
+        const didsUpdate = hayDirecciones.update.map(d => d.id);
         const normalized = normalizeDireccionesInsert(hayDirecciones.update);
 
         // update sup = 1
-        const sqlUpdate = `UPDATE logisticas_direcciones SET superado = 1 WHERE did_logistica = ? AND did_logistica IN (${normalized.map(() => "?").join(",")})`;
+        const sqlUpdate = `UPDATE logisticas_direcciones SET superado = 1 WHERE did_logistica = ? AND id IN (${didsUpdate.map(() => "?").join(",")})`;
         await executeQuery(db, sqlUpdate, [logisticaDid, ...didsUpdate]);
 
         // insert nuevo
@@ -136,9 +140,12 @@ export async function editLogistica(db, req) {
 
     }
     // select de todas las direcciones para devolver
-    const direccionesReturn = await executeQuery(db, "SELECT id, did, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid], true);
+    let direccionesReturn = [];
+    const direccionesSelect = await executeQuery(db, "SELECT id, did, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid], true);
 
-
+    if (direccionesSelect.length > 0) {
+        direccionesReturn = direccionesSelect
+    }
     return {
         success: true,
         message: "logistica actualizada correctamente",
@@ -149,12 +156,13 @@ export async function editLogistica(db, req) {
             codigo: codigoInsert,
             codigoLD: codigoLDInsert,
             quien: userId,
-            direcciones: direccionesReturn,
+            habilitado: habilitadoInsert,
+            direcciones: direccionesReturn
+
         },
         meta: { timestamp: new Date().toISOString() },
     };
 }
-
 
 
 // Helpers

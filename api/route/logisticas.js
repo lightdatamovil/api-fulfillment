@@ -4,6 +4,7 @@ import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { getlogisticaById } from "../controller/logistica/get_logsitica_by_id.js";
 import { deleteLogistica } from "../controller/logistica/delete_logistica.js";
 import { editLogistica } from "../controller/logistica/edit_logistica.js";
+import { getFilteredLogisticas } from "../controller/logistica/get_filtered_logistica.js";
 
 
 const logisticas = Router();
@@ -11,7 +12,7 @@ const logisticas = Router();
 logisticas.post(
   '/',
   buildHandlerWrapper({
-    required: ['nombre', 'esLightdata', 'codigo', 'codigoLD', 'direcciones'],
+    required: ['nombre', 'esLightdata', 'codigo', 'codigoLD', 'direcciones', 'habilitado'],
     controller: async ({ db, req }) => {
       const result = await createlogistica(db, req);
       return result;
@@ -45,7 +46,7 @@ logisticas.put(
   '/:logisticaDid',
   buildHandlerWrapper({
     requiredParams: ['logisticaDid'],
-    optional: ['nombre', 'esLightdata', 'codigo', 'codigoLD', 'direcciones'],
+    optional: ['nombre', 'esLightdata', 'codigo', 'codigoLD', 'direcciones', 'habilitado'],
     controller: async ({ db, req }) => {
       const result = await editLogistica(db, req);
       return result;
@@ -53,21 +54,17 @@ logisticas.put(
   })
 );
 
-/** 
-
-
-
 
 
 logisticas.get(
   '/',
   buildHandlerWrapper({
     controller: async ({ db, req }) => {
-      const result = await getFilteredlogisticas(db, req);
+      const result = await getFilteredLogisticas(db, req);
       return result;
     },
   })
 );
 
-*/
+
 export default logisticas;

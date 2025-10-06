@@ -1,4 +1,6 @@
+import { executeQuery } from "lightdata-tools";
 import { DbUtils } from "../../src/functions/db_utils.js";
+
 
 export async function getlogisticaById(db, req) {
     const logisticaDid = req.params.logisticaDid;
@@ -11,21 +13,26 @@ export async function getlogisticaById(db, req) {
         table: "logisticas",
         column: "did",
         valor: logisticaDid,
-        select: "did, nombre, codigo, codigoLD, logisticaLD"
+        select: "did, nombre, codigo, codigoLD, logisticaLD, habilitado"
     });
 
-    const { nombre, codigo, codigoLD, logisticaLD } = logistica;
+    const { nombre, codigo, codigoLD, logisticaLD, habilitado } = logistica;
 
-    const direcciones = await DbUtils.verifyExistsAndSelect(
-        {
-            db,
-            table: "logisticas_direcciones",
-            column: "did_logistica",
-            valor: logisticaDid,
-            select: "cp, calle, pais, localidad, numero, provincia, address_line"
-        });
+    const sqlDirecciones = 'SELECT id, CP, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0';
 
-    const { cp, calle, pais, localidad, numero, provincia, address_line } = direcciones;
+    const direccionesSelect = await executeQuery(db, sqlDirecciones, [logisticaDid], true);
+
+    //mapear direcciones a objeto direcciones
+    const direcciones = direccionesSelect.map(d => ({
+        id: d.id,
+        cp: d.CP,
+        calle: d.calle,
+        pais: d.pais,
+        localidad: d.localidad,
+        numero: d.numero,
+        provincia: d.provincia,
+        address_line: d.address_line
+    }));
 
     return {
         success: true,
@@ -36,15 +43,8 @@ export async function getlogisticaById(db, req) {
             logisticaLD: logisticaLD,
             codigo: codigo,
             codigoLD: codigoLD,
-            direcciones: {
-                cp: cp,
-                calle: calle,
-                pais: pais,
-                localidad: localidad,
-                numero: numero,
-                provincia: provincia,
-                address_line: address_line
-            },
+            habilitado: habilitado,
+            direcciones: direcciones,
             quien: userId,
         },
         meta: { timestamp: new Date().toISOString() },

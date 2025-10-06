@@ -19,7 +19,7 @@ export async function createlogistica(db, req) {
     } = req.body || {};
     const { userId } = req.user;
     let direcciones = req.body.direcciones ?? {};
-    const { cp, calle, pais, localidad, numero, provincia, address_line } = direcciones;
+    const { cp, calle, pais, localidad, numero, provincia, address_line, habilitado = 0 } = direcciones;
 
 
     // ---------- Duplicados (logistica activo) ----------
@@ -44,11 +44,11 @@ export async function createlogistica(db, req) {
         db,
         `
       INSERT INTO logisticas
-        (nombre, logisticaLD, codigo, codigoLD, quien, autofecha, superado)
+        (nombre, logisticaLD, codigo, codigoLD, quien, autofecha, superado, habilitado)
       VALUES
-        (?, ?, ?, ?, ?, NOW(), 0)
+        (?, ?, ?, ?, ?, NOW(), 0, ?)
     `,
-        [nombre, esLightdata, codigo, codigoLD, userId]
+        [nombre, esLightdata, codigo, codigoLD, userId, habilitado]
     );
     if (!insert?.affectedRows) {
         throw new CustomException({
@@ -112,6 +112,7 @@ export async function createlogistica(db, req) {
             esLightdata: esLightdata,
             codigo: codigo,
             codigoLD: codigoLD,
+            habilitado: habilitado,
             quien: userId,
         },
         meta: { timestamp: new Date().toISOString() },

@@ -1,14 +1,5 @@
 import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
 
-/**
- * Versiona el insumo (supera la fila activa e inserta una nueva)
- * y aplica cambios incrementales en asociaciones:
- *   - clientes_add?: number[]
- *   - clientes_remove?: number[]
- *
- * req.params.insumoId = did del insumo
- * req.body: { codigo?, nombre?, unidad?, habilitado?, clientes_add?, clientes_remove? }
- */
 export async function editInsumo(dbConnection, req) {
     const { codigo, nombre, unidad, habilitado, clientes_dids_add, clientes_dids_remove } = req.body;
     const { userId } = req.user;
