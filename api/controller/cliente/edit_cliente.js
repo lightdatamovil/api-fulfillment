@@ -205,21 +205,21 @@ export async function editCliente(db, req) {
             const action = String(item?.action || "").toLowerCase();
 
             if (action === "create") {
-                const telefono = item?.telefono ? String(item.telefono).trim() : null;
-                const email = item?.email ? String(item.email).trim() : null;
+                const tipo = item?.tipo || 0;
+                const valor = item?.valor || null;
 
                 const ins = await executeQuery(
                     db,
                     `
-            INSERT INTO clientes_contactos (didCliente, telefono, email, quien, superado, elim, autofecha)
+            INSERT INTO clientes_contactos (didCliente, tipo, valor, quien, superado, elim, autofecha)
             VALUES (?, ?, ?, ?, 0, 0, NOW())
           `,
-                    [Number(clienteId), telefono, email, userId],
+                    [Number(clienteId), tipo, valor, userId],
                     true
                 );
                 const id = ins.insertId;
                 await executeQuery(db, `UPDATE clientes_contactos SET did = ? WHERE id = ?`, [id, id], true);
-                contCreated.push({ id, did: id, didCliente: Number(clienteId), telefono, email });
+                contCreated.push({ id, did: id, didCliente: Number(clienteId), tipo, valor });//id y did son iguales
             }
             else if (action === "delete") {
                 const didVal = Number(item?.did);

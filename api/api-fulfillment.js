@@ -10,10 +10,11 @@ import usuarios from "./route/usuarios.js";
 import curvas from './route/curva.js';
 import ordenesTrabajo from './route/ordenes_trabajo.js';
 import { logBlue, logRed, verifyToken } from "lightdata-tools";
-import redisClient, { jwtSecret, jwtIssuer, jwtAudience } from "./db.js";
+import redisClient, { jwtIssuer, jwtAudience } from "./db.js";
 import auth from "./route/auth.js";
 import preload from './route/preload.js';
 import logisticas from './route/logisticas.js';
+import { jwtSecret } from './db.js';
 
 const app = express();
 

@@ -113,21 +113,22 @@ export async function createCliente(db, req) {
             const calle = isNonEmpty(d?.calle) ? String(d.calle).trim() : null;
             const numero = isNonEmpty(d?.numero) ? String(d.numero).trim() : null;
             const cp = isNonEmpty(d?.cp) ? String(d.cp).trim() : null;
+            const provincia = isNonEmpty(d?.provincia) ? String(d.provincia).trim() : null;
 
             const insDir = await executeQuery(
                 db,
                 `
           INSERT INTO clientes_direcciones
-            (did_cliente, pais, localidad, calle, numero, cp, quien, superado, elim, autofecha)
+            (did_cliente, pais, localidad, calle, numero, cp,provincia, quien, superado, elim, autofecha)
           VALUES
-            (?, ?, ?,?, ?, ?, ?, 0, 0, NOW())
+            (?, ?, ?,?, ?, ?, ?,?, 0, 0, NOW())
         `,
-                [clienteId, pais, localidad, calle, numero, cp, userId],
+                [clienteId, pais, localidad, calle, numero, cp, provincia, userId],
                 true
             );
             const dirId = insDir.insertId;
             await executeQuery(db, `UPDATE clientes_direcciones SET did = ? WHERE id = ?`, [dirId, dirId], true);
-            insertedDirecciones.push({ id: dirId, did: dirId, did_cliente: clienteId, pais, localidad, calle, numero, cp, quien: userId, });
+            insertedDirecciones.push({ id: dirId, did: dirId, did_cliente: clienteId, pais, localidad, calle, numero, cp, provincia, quien: userId, });
         }
     }
 
@@ -136,23 +137,22 @@ export async function createCliente(db, req) {
     if (Array.isArray(contactos) && contactos.length > 0) {
         for (const c of contactos) {
 
-            const telefono = c.telefono ? String(c.telefono).trim() : null;
-            const email = c.email ? String(c.email).trim() : null;
-
+            const tipo = c.tipo || 0;
+            const valor = c.valor || null;
             const insCont = await executeQuery(
                 db,
                 `
           INSERT INTO clientes_contactos
-            (did_cliente, telefono, email, quien, superado, elim, autofecha)
+            (did_cliente, tipo, valor, quien, superado, elim, autofecha)
           VALUES
             (?, ?, ?, ?, 0, 0, NOW())
         `,
-                [clienteId, telefono, email, userId],
+                [clienteId, tipo, valor, userId],
                 true
             );
             const contId = insCont.insertId;
             await executeQuery(db, `UPDATE clientes_contactos SET did = ? WHERE id = ?`, [contId, contId], true);
-            insertedContactos.push({ id: contId, did: contId, did_cliente: clienteId, telefono, email });
+            insertedContactos.push({ id: contId, did: contId, did_cliente: clienteId, tipo: tipo, valor: valor });
         }
     }
 
