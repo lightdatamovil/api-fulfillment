@@ -1,135 +1,75 @@
-import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
+import { executeQuery, isNonEmpty, isDefined, LightdataQuerys, CustomException } from "lightdata-tools";
+import { DbUtils } from "../../src/functions/db_utils.js";
 
 export async function editInsumo(dbConnection, req) {
-    const { codigo, nombre, unidad, habilitado, clientes_dids_add, clientes_dids_remove } = req.body;
     const { userId } = req.user;
     const { insumoId } = req.params;
+    const { codigo, nombre, unidad, habilitado, clientes_dids_add, clientes_dids_remove } = req.body;
 
-    const norm = (v) =>
-        Array.isArray(v) ? [...new Set(v.map(n => Number(n)).filter(Number.isFinite))] : [];
+    const norm = (v) => new Set(v.map(n => Number(n)));
 
-    // 1) Verificar existencia (por did, activo)
-    const qGet = `
-    SELECT id, did, codigo, nombre, habilitado, unidad
-    FROM insumos
-    WHERE did = ? AND elim = 0 AND superado = 0
-    LIMIT 1
-  `;
-    const rows = await executeQuery(dbConnection, qGet, [insumoId]);
-    if (!rows?.length) {
-        throw new CustomException({
-            title: "Insumo no encontrado",
-            message: `No existe insumo activo con did=${insumoId}`,
-            status: Status.notFound,
-        });
-    }
-    const current = rows[0];
+    const current = await DbUtils.verifyExistsAndSelect({
+        dbConnection,
+        table: "insumos",
+        column: "did",
+        valor: insumoId,
+        select: "*"
+    });
 
-    // 1.a) Validar código duplicado
     if (isNonEmpty(codigo)) {
-        const dup = await executeQuery(
-            dbConnection,
-            `SELECT did FROM insumos
-       WHERE codigo = ? AND elim = 0 AND superado = 0 AND did <> ?
-       LIMIT 1`,
-            [codigo, insumoId]
-        );
-        if (dup?.length) {
+        const exists = await DbUtils.existsInDb(dbConnection, "insumos", "codigo", codigo);
+        if (exists) {
             throw new CustomException({
                 title: "Código duplicado",
-                message: `Ya existe un insumo activo con código "${codigo}"`,
-                status: Status.conflict,
+                message: `El código ${codigo} ya existe en otro insumo.`,
             });
         }
     }
 
-    // 2) Nuevos valores (fallback)
-    const newCodigo = isNonEmpty(codigo) ? String(codigo).trim() : current.codigo;
-    const newNombre = isNonEmpty(nombre) ? String(nombre).trim() : current.nombre;
-    const newUnidad = isDefined(unidad) ? Number(unidad) || 0 : current.unidad;
+    const newCodigo = isDefined(codigo) ? codigo : current.codigo;
+    const newNombre = isDefined(nombre) ? nombre : current.nombre;
+    const newUnidad = isDefined(unidad) ? unidad : current.unidad;
+    const newHabilitado = isDefined(habilitado) ? habilitado : current.habilitado;
 
-    let newHabilitado = current.habilitado;
-    if (isDefined(habilitado)) {
-        const hab = number01(habilitado);
-        if (hab !== 0 && hab !== 1) {
-            throw new CustomException({
-                title: "Valor inválido",
-                message: "habilitado debe ser 0 o 1",
-                status: Status.badRequest,
-            });
+    await LightdataQuerys.update({
+        dbConnection,
+        tabla: "insumos",
+        did: insumoId,
+        quien: userId,
+        data: {
+            codigo: newCodigo,
+            nombre: newNombre,
+            unidad: newUnidad,
+            habilitado: newHabilitado
         }
-        newHabilitado = hab;
-    }
+    });
 
-    // 3) Superar versión actual
-    await executeQuery(
-        dbConnection,
-        `UPDATE insumos
-     SET superado = 1
-     WHERE did = ? AND elim = 0 AND superado = 0`,
-        [insumoId]
-    );
-
-    // 4) Insertar nueva versión
-    const ins = await executeQuery(
-        dbConnection,
-        `INSERT INTO insumos (did, codigo, nombre, unidad, habilitado, quien, superado)
-     VALUES (?, ?, ?, ?, ?, ?, 0)`,
-        [insumoId, newCodigo, newNombre, newUnidad, newHabilitado, userId]
-    );
-    if (!ins?.affectedRows) {
-        throw new CustomException({
-            title: "Error al versionar insumo",
-            message: "No se pudo crear la nueva versión del insumo",
-            status: Status.internalServerError,
-        });
-    }
-
-    // 5) Asociaciones incrementales
     const toAdd = norm(clientes_dids_add);
     const toRemove = norm(clientes_dids_remove);
 
-    // 5.a) Remover -> marcar superado=1 (no borrar)
     if (toRemove.length > 0) {
-        const sql = `
-      UPDATE insumos_clientes
-      SET superado = 1
-      WHERE did_insumo = ?
-        AND did_cliente IN (${toRemove.map(() => "?").join(",")})
-        AND superado = 0
-        AND elim = 0
-    `;
-        await executeQuery(dbConnection, sql, [insumoId, ...toRemove]);
+        await LightdataQuerys.delete({
+            dbConnection,
+            tabla: "insumos_clientes",
+            did: toRemove,
+            quien: userId,
+        });
     }
 
-    // 5.b) Agregar -> reactivar si existe "dormido", sino insertar
     if (toAdd.length > 0) {
-        // Reactivar existentes (superado=1 o elim=1)
-        const sqlReact = `
-      UPDATE insumos_clientes
-      SET superado = 1, quien = ?
-      WHERE did_insumo = ?
-        AND did_cliente IN (${toAdd.map(() => "?").join(",")})
-        AND (superado = 1 OR elim = 1)
-    `;
-        await executeQuery(dbConnection, sqlReact, [userId, insumoId, ...toAdd]);
+        const data = toAdd.map(clienteId => ({
+            did_insumo: insumoId,
+            did_cliente: clienteId,
+        }));
 
-        // Insertar los que aún no existen (ningún registro para ese par)
-        // (NOT EXISTS evita duplicados; si además tienes UNIQUE(did_insumo, did_cliente), mejor)
-        const insertOne = `
-      INSERT INTO insumos_clientes (did_insumo, did_cliente, quien, superado, elim)
-      SELECT ?, ?, ?, 0, 0
-      WHERE NOT EXISTS (
-        SELECT 1 FROM insumos_clientes
-        WHERE did_insumo = ? AND did_cliente = ?
-      )
-    `;
-        for (const cid of toAdd) {
-            await executeQuery(dbConnection, insertOne, [insumoId, cid, userId, insumoId, cid]);
-        }
+        await LightdataQuerys.insert({
+            dbConnection,
+            tabla: "insumos_clientes",
+            quien: userId,
+            data
+        });
     }
 
-    // 6) Devolver asociaciones activas
     const activos = await executeQuery(
         dbConnection,
         `SELECT did_cliente
