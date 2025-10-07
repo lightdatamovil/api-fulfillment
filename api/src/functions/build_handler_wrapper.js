@@ -20,7 +20,7 @@ export function buildHandlerWrapper({
         controller,
         companyResolver: companyResolver2 || (({ req }) => companiesService.getById(req.user.companyId)),
         getDbConfig: getDbConfig2 || (({ company }) => getFFProductionDbConfig(company.did, hostFulFillement, portFulFillement)),
-        log,
+        log: log || (() => { }),
         pool,
     });
 }

@@ -12,14 +12,17 @@ import { CustomException, executeQuery, Status } from "lightdata-tools";
 export async function createlogistica(db, req) {
     const {
         nombre,
-        esLightdata,
-        codigo,
-        codigoLD
+        logisticaLD,
+        codigo
 
     } = req.body || {};
     const { userId } = req.user;
+    let codigoLD = null;
+    if (req.body.codigoLD) {
+        codigoLD = req.body.codigoLD;
+    }
     let direcciones = req.body.direcciones ?? {};
-    const { cp, calle, pais, localidad, numero, provincia, address_line } = direcciones;
+    const { cp, calle, pais, localidad, numero, provincia, address_line, habilitado = 0 } = direcciones;
 
 
     // ---------- Duplicados (logistica activo) ----------
@@ -44,11 +47,11 @@ export async function createlogistica(db, req) {
         db,
         `
       INSERT INTO logisticas
-        (nombre, logisticaLD, codigo, codigoLD, quien, autofecha, superado)
+        (nombre, logisticaLD, codigo, codigoLD, quien, autofecha, superado, habilitado)
       VALUES
-        (?, ?, ?, ?, ?, NOW(), 0)
+        (?, ?, ?, ?, ?, NOW(), 0, ?)
     `,
-        [nombre, esLightdata, codigo, codigoLD, userId]
+        [nombre, logisticaLD, codigo, codigoLD, userId, habilitado]
     );
     if (!insert?.affectedRows) {
         throw new CustomException({
@@ -109,9 +112,10 @@ export async function createlogistica(db, req) {
             id: logisticaId,
             did: logisticaId,
             nombre: nombre,
-            esLightdata: esLightdata,
+            logisticaLD: logisticaLD,
             codigo: codigo,
             codigoLD: codigoLD,
+            habilitado: habilitado,
             quien: userId,
         },
         meta: { timestamp: new Date().toISOString() },

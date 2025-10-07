@@ -9,10 +9,12 @@ export async function getFilteredLogisticas(connection, req) {
 
   // Filtros
   const filtros = {
-    nombre_fantasia: toStr(q.nombre_fantasia),
+    nombre: toStr(q.nombre),
     codigo: toStr(q.codigo),
-    razon_social: toStr(q.razon_social),
-    habilitado: toBool(q.estado ?? q.habilitado, undefined), // 0/1 o undefined
+    codigoLD: toStr(q.codigoLD),
+    logisticaLD: toStr(q.logisticaLD ?? q.logisticaLD, undefined),
+    habilitado: toBool(q.habilitado ?? q.habilitado, undefined),
+    //agregar u filtro todos que sea bool 1 o 0
   };
 
   // Paginación y orden
@@ -25,93 +27,86 @@ export async function getFilteredLogisticas(connection, req) {
   });
 
   const sortMap = {
-    codigo: "c.codigo",
-    nombre_fantasia: "c.nombre_fantasia",
-    razon_social: "c.razon_social",
-    estado: "c.habilitado",
+    codigo: "l.codigo",
+    nombre: "l.nombre",
+    codigoLD: "l.codigoLD",
+    logisticaLD: "l.logisticaLD",
   };
   const { orderSql } = makeSort(q, sortMap, {
-    defaultKey: "nombre_fantasia",
+    defaultKey: "nombre",
     byKey: "sort_by",
     dirKey: "sort_dir",
   });
 
   // WHERE (con LIKE escapado dentro de helper)
-  const where = new SqlWhere().add("c.superado = 0").add("c.elim = 0");
-  if (filtros.codigo) where.likeEscaped("c.codigo", filtros.codigo, { caseInsensitive: true });
-  if (filtros.nombre_fantasia) where.likeEscaped("c.nombre_fantasia", filtros.nombre_fantasia, { caseInsensitive: true });
-  if (filtros.razon_social) where.likeEscaped("c.razon_social", filtros.razon_social, { caseInsensitive: true });
-  if (filtros.habilitado !== undefined) where.eq("c.habilitado", filtros.habilitado);
+  const where = new SqlWhere().add("l.superado = 0").add("l.elim = 0");
+  if (filtros.codigo) where.likeEscaped("l.codigo", filtros.codigo, { caseInsensitive: true });
+  if (filtros.nombre) where.likeEscaped("l.nombre", filtros.nombre, { caseInsensitive: true });
+  if (filtros.codigoLD) where.likeEscaped("l.codigoLD", filtros.codigoLD, { caseInsensitive: true });
+  if (filtros.habilitado !== undefined && filtros.habilitado !== "todos") where.eq("l.habilitado", toBool(filtros.habilitado));
+  if (filtros.logisticaLD !== undefined && filtros.logisticaLD !== "todos") where.eq("l.logisticaLD", toBool(filtros.logisticaLD));
 
   const { whereSql, params } = where.finalize();
 
   // COUNT sin los LEFT JOIN (más preciso y rápido)
-  const countSql = `SELECT COUNT(*) AS total FROM logisticas c ${whereSql}`;
+  const countSql = `SELECT COUNT(*) AS total FROM logisticas l ${whereSql}`;
   const [{ total = 0 } = {}] = await executeQuery(connection, countSql, params);
 
   // DATA: una sola query con subqueries agregadas (evita cross-product)
   const dataSql = `
-    SELECT
-      c.did,
-      c.nombre_fantasia,
-      c.habilitado,
-      c.codigo,
-      c.observaciones,
-      c.razon_social,
-      c.quien,
-      COALESCE(d.direcciones, JSON_ARRAY()) AS direcciones,
-      COALESCE(k.contactos,   JSON_ARRAY()) AS contactos
-    FROM logisticas c
-    LEFT JOIN (
-      SELECT
-        didlogistica,
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'did', did,
-            'data', data
-          )
-        ) AS direcciones
-      FROM logisticas_direcciones
-      WHERE elim = 0 AND superado = 0
-      GROUP BY didlogistica
-    ) d ON d.didlogistica = c.did
-    LEFT JOIN (
-      SELECT
-        didlogistica,
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'did', did,
-            'tipo', tipo,
-            'valor', valor
-          )
-        ) AS contactos
-      FROM logisticas_contactos
-      WHERE elim = 0 AND superado = 0
-      GROUP BY didlogistica
-    ) k ON k.didlogistica = c.did
-    ${whereSql}
-    ${orderSql}
-    LIMIT ? OFFSET ?
+SELECT
+  l.did,
+  l.nombre,
+  l.logisticaLD,
+  l.codigo,
+  l.codigoLD,
+  l.quien,
+  l.habilitado,
+   CASE
+    WHEN COUNT(d.id) = 0 THEN JSON_ARRAY()
+    ELSE JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'id', d.id,
+        'cp', d.cp,
+        'calle', d.calle,
+        'pais', d.pais,
+        'localidad', d.localidad,
+        'numero', d.numero,
+        'provincia', d.provincia,
+        'address_line', d.address_line
+      )
+    )
+   END AS direcciones
+FROM logisticas AS l
+LEFT JOIN logisticas_direcciones AS d
+  ON d.did_logistica = l.did
+  AND d.elim = 0
+  AND d.superado = 0
+${whereSql}
+/* Si whereSql pudiera venir vacío, garantizá base: WHERE l.elim = 0 AND l.superado = 0 */
+GROUP BY
+  l.did, l.nombre, l.logisticaLD, l.codigo, l.codigoLD, l.quien, l.habilitado
+${orderSql /* calificado: ORDER BY l.nombre ASC, por ej. */}
+LIMIT ? OFFSET ?;
   `;
 
-  const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset]);
+  const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset], true);
 
   // Parse seguro (depende de tu driver, a veces ya viene como objeto)
-  const logisticasFinal = rows.map(r => ({
-    did: r.did,
-    nombre_fantasia: r.nombre_fantasia,
-    habilitado: r.habilitado,
-    codigo: r.codigo,
-    observaciones: r.observaciones,
-    razon_social: r.razon_social,
-    quien: r.quien,
-    direcciones: typeof r.direcciones === "string" ? JSON.parse(r.direcciones) : (r.direcciones ?? []),
-    contactos: typeof r.contactos === "string" ? JSON.parse(r.contactos) : (r.contactos ?? []),
+  const logisticasFinal = rows.map(l => ({
+    did: l.did,
+    nombre: l.nombre,
+    logisticaLD: l.logisticaLD,
+    codigo: l.codigo,
+    codigoLD: l.codigoLD,
+    quien: l.quien,
+    habilitado: l.habilitado,
+    direcciones: typeof l.direcciones === "string" ? JSON.parse(l.direcciones) : (l.direcciones ?? [])
   }));
 
   return {
     success: true,
-    message: "logisticas obtenidos correctamente",
+    message: "logisticas obtenidas correctamente",
     data: logisticasFinal,
     meta: buildMeta({
       page,

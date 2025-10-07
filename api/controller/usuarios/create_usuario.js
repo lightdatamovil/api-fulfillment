@@ -11,8 +11,8 @@ export async function createUsuario(dbConnection, req) {
     const passRaw = toStr(b.contrasena ?? b["contraseña"] ?? b.pass ?? b.password);
     const perfil = toInt(b.perfil, undefined);
 
-    const habilitado = toBool01(b.habilitado, 1);   // default 1
-    const app_habilitada = toBool01(b.app_habilitada, 0); // default 0
+    const habilitado = toBool01(b.habilitado, 1);
+    const app_habilitada = toBool01(b.app_habilitada, 0);
     const telefono = toStr(b.telefono);
     const codigo_cliente = toStr(b.codigo_cliente);
     const modulo_inicial = toStr(b.modulo_inicial);
