@@ -1,31 +1,34 @@
-// clientes.controller.js (ESM)
+// clientes.controller.js (ESM, simple y directo)
 import { executeQuery } from "lightdata-tools";
 
 /**
  * PUT /api/clientes/:clienteId
- * Body (root): nombre_fantasia, razon_social, codigo, observaciones, habilitado
- * Nested: direcciones { add[], update[], remove[] }, contactos { ... }, cuentas { ... }
- * Estrategia: VERSIONADO (no UPDATE in-place)
- *  - marcar vigente como superado=1
- *  - insertar nuevo registro con el MISMO did
+ * Body: root { nombre_fantasia, razon_social, codigo, observaciones, habilitado }
+ *        direcciones { add[], update[], remove[] }
+ *        contactos   { add[], update[], remove[] }
+ *        cuentas     { add[], update[], remove[] }
+ * Estrategia: versionado (superado=1 e insert con mismo did). Sin transacciones.
+ *
+ * Cambio: "remove" ahora se procesa como un update versionado: se supera la fila vigente
+ *         e inserta NUEVA versión con elim=1 (manteniendo el mismo did).
  */
 export async function editCliente(connection, req) {
     const { clienteId } = req.params;
     const body = req.body || {};
     const nowUser = Number(req.user?.id ?? 0);
 
-    const ensureArr = (x) => (Array.isArray(x) ? x : []);
-    const dAdd = ensureArr(body?.direcciones?.add);
-    const dUpd = ensureArr(body?.direcciones?.update);
-    const dDel = ensureArr(body?.direcciones?.remove);
+    const arr = (x) => (Array.isArray(x) ? x : []);
+    const dAdd = arr(body?.direcciones?.add);
+    const dUpd = arr(body?.direcciones?.update);
+    const dDel = arr(body?.direcciones?.remove);
 
-    const cAdd = ensureArr(body?.contactos?.add);
-    const cUpd = ensureArr(body?.contactos?.update);
-    const cDel = ensureArr(body?.contactos?.remove);
+    const cAdd = arr(body?.contactos?.add);
+    const cUpd = arr(body?.contactos?.update);
+    const cDel = arr(body?.contactos?.remove);
 
-    const aAdd = ensureArr(body?.cuentas?.add);
-    const aUpd = ensureArr(body?.cuentas?.update);
-    const aDel = ensureArr(body?.cuentas?.remove);
+    const aAdd = arr(body?.cuentas?.add);
+    const aUpd = arr(body?.cuentas?.update);
+    const aDel = arr(body?.cuentas?.remove);
 
     const changed = {
         cliente: 0,
@@ -34,130 +37,60 @@ export async function editCliente(connection, req) {
         cuentas: { added: 0, updated: 0, removed: 0 },
     };
 
-    // helpers -------------->
-    const fetchClienteVigente = async () => {
-        const rows = await executeQuery(
+    // helper para normalizar entradas de remove: acepta [did] o [{did}]
+    const normalizeRemoveList = (list) =>
+        list
+            .map((x) => (typeof x === "object" ? Number(x?.did ?? 0) : Number(x)))
+            .filter((n) => Number.isFinite(n) && n > 0);
+
+    try {
+        // 1) Traer vigente del cliente
+        const vigenteRows = await executeQuery(
             connection,
             `SELECT did, nombre_fantasia, razon_social, codigo, observaciones, habilitado
-         FROM clientes
-        WHERE did = ? AND superado = 0 AND elim = 0
-        LIMIT 1`,
+       FROM clientes
+       WHERE did = ? AND superado = 0 AND elim = 0
+       LIMIT 1`,
             [clienteId]
         );
-        return rows?.[0] || null;
-    };
-
-    const fetchDirByDid = async (didDireccion) => {
-        const rows = await executeQuery(
-            connection,
-            `SELECT *
-         FROM clientes_direcciones
-        WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
-        LIMIT 1`,
-            [didDireccion, clienteId]
-        );
-        return rows?.[0] || null;
-    };
-
-    const fetchConByDid = async (didContacto) => {
-        const rows = await executeQuery(
-            connection,
-            `SELECT *
-         FROM clientes_contactos
-        WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
-        LIMIT 1`,
-            [didContacto, clienteId]
-        );
-        return rows?.[0] || null;
-    };
-
-    const fetchCtaByDid = async (didCuenta) => {
-        const rows = await executeQuery(
-            connection,
-            `SELECT *
-         FROM clientes_cuentas
-        WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
-        LIMIT 1`,
-            [didCuenta, clienteId]
-        );
-        return rows?.[0] || null;
-    };
-
-    // versionar registro genérico (marca superado e inserta con mismo did)
-    const superarVigente = async (table, whereCols, whereVals) => {
-        const where = whereCols.map((c) => `${c} = ?`).join(" AND ");
-        await executeQuery(
-            connection,
-            `UPDATE ${table}
-          SET superado = 1, quien = ?
-        WHERE ${where} AND superado = 0 AND elim = 0`,
-            [nowUser || null, ...whereVals]
-        );
-    };
-
-    const insertWithSameDid = async (table, cols, vals, fixedDid) => {
-        // Insert con did explícito (= fixedDid)
-        const colsWithDid = ["did", ...cols];
-        const ph = ["?", ...cols.map(() => "?")];
-        const res = await executeQuery(
-            connection,
-            `INSERT INTO ${table} (${colsWithDid.join(",")}) VALUES (${ph.join(",")})`,
-            [fixedDid, ...vals],
-            true
-        );
-        return res?.insertId || 0;
-    };
-
-    // <-------------- helpers
-
-    await executeQuery(connection, "START TRANSACTION");
-    try {
-        // validar cliente vigente
-        const vigente = await fetchClienteVigente();
+        const vigente = vigenteRows?.[0] || null;
         if (!vigente) {
-            await executeQuery(connection, "ROLLBACK");
-            return {
-                success: false,
-                message: "Cliente no encontrado o no vigente",
-                data: null,
-                meta: null,
-            };
+            return { success: false, message: "Cliente no encontrado o no vigente", data: null, meta: null };
         }
 
-        // -----------------------------
-        // CLIENTE (root del body)
-        // Si hay algún campo base en el body, versionamos cliente.
+        // 2) Cliente (root)
         const baseFields = ["nombre_fantasia", "razon_social", "codigo", "observaciones", "habilitado"];
-        const someBasePatch = baseFields.some((k) => body[k] !== undefined);
-        if (someBasePatch) {
-            // merge (patch sobre vigente)
-            const merged = {
-                nombre_fantasia: body.nombre_fantasia ?? vigente.nombre_fantasia ?? null,
-                razon_social: body.razon_social ?? vigente.razon_social ?? null,
-                codigo: body.codigo ?? vigente.codigo ?? null,
-                observaciones: body.observaciones ?? vigente.observaciones ?? null,
-                habilitado: body.habilitado ?? vigente.habilitado ?? 0,
-            };
+        const hayPatch = baseFields.some((k) => body[k] !== undefined);
+        if (hayPatch) {
+            const nombre_fantasia = body.nombre_fantasia ?? vigente.nombre_fantasia ?? null;
+            const razon_social = body.razon_social ?? vigente.razon_social ?? null;
+            const codigo = body.codigo ?? vigente.codigo ?? null;
+            const observaciones = body.observaciones ?? vigente.observaciones ?? null;
+            const habilitado = Number(body.habilitado ?? vigente.habilitado ?? 0);
 
-            // superar vigente e insertar nueva versión con el MISMO did
-            await superarVigente("clientes", ["did"], [clienteId]);
+            // superar vigente
+            await executeQuery(
+                connection,
+                `UPDATE clientes SET superado = 1, quien = ?
+         WHERE did = ? AND superado = 0 AND elim = 0`,
+                [nowUser || null, clienteId]
+            );
 
-            const cols = [
-                "nombre_fantasia", "razon_social", "codigo", "observaciones",
-                "habilitado", "quien", "superado", "elim"
-            ];
-            const vals = [
-                merged.nombre_fantasia, merged.razon_social, merged.codigo, merged.observaciones,
-                Number(merged.habilitado ?? 0), nowUser || null, 0, 0
-            ];
-            await insertWithSameDid("clientes", cols, vals, Number(clienteId));
+            // insertar nueva versión con MISMO did
+            await executeQuery(
+                connection,
+                `INSERT INTO clientes
+         (did, nombre_fantasia, razon_social, codigo, observaciones, habilitado, quien, superado, elim)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+                [Number(clienteId), nombre_fantasia, razon_social, codigo, observaciones, habilitado, nowUser || null],
+                true
+            );
+
             changed.cliente = 1;
         }
 
-        // -----------------------------
-        // DIRECCIONES
-        // ADD: inserta con did=auto (did=0 -> set did=id) o directamente con did=id?
-        // -> como es ALTA "nueva", dejamos el patrón habitual: did=0 y luego set did=id.
+        // 3) Direcciones
+        // add
         for (const d of dAdd) {
             const ins = await executeQuery(
                 connection,
@@ -185,54 +118,107 @@ export async function editCliente(connection, req) {
             changed.direcciones.added++;
         }
 
-        // UPDATE: versionado por did (supera e inserta con MISMO did)
+        // update (versionado por did)
         for (const d of dUpd) {
-            if (!d.did) continue;
-            const cur = await fetchDirByDid(d.did);
+            if (!d?.did) continue;
+
+            const curRows = await executeQuery(
+                connection,
+                `SELECT * FROM clientes_direcciones
+         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
+         LIMIT 1`,
+                [d.did, clienteId]
+            );
+            const cur = curRows?.[0];
             if (!cur) continue;
 
-            const merged = {
-                did_cliente: clienteId,
-                address_line: d.address_line ?? cur.address_line ?? null,
-                pais: d.pais ?? cur.pais ?? null,
-                localidad: d.localidad ?? cur.localidad ?? null,
-                numero: d.numero ?? cur.numero ?? null,
-                calle: d.calle ?? cur.calle ?? null,
-                cp: d.cp ?? cur.cp ?? null,
-                provincia: d.provincia ?? cur.provincia ?? null,
-                titulo: d.titulo ?? cur.titulo ?? null,
-            };
+            const address_line = d.address_line ?? cur.address_line ?? null;
+            const pais = d.pais ?? cur.pais ?? null;
+            const localidad = d.localidad ?? cur.localidad ?? null;
+            const numero = d.numero ?? cur.numero ?? null;
+            const calle = d.calle ?? cur.calle ?? null;
+            const cp = d.cp ?? cur.cp ?? null;
+            const provincia = d.provincia ?? cur.provincia ?? null;
+            const titulo = d.titulo ?? cur.titulo ?? null;
 
-            await superarVigente("clientes_direcciones", ["did_cliente", "did"], [clienteId, d.did]);
-
-            const cols = [
-                "did_cliente", "address_line", "pais", "localidad", "numero",
-                "calle", "cp", "provincia", "titulo", "quien", "superado", "elim"
-            ];
-            const vals = [
-                merged.did_cliente, merged.address_line, merged.pais, merged.localidad, merged.numero,
-                merged.calle, merged.cp, merged.provincia, merged.titulo, nowUser || null, 0, 0
-            ];
-            await insertWithSameDid("clientes_direcciones", cols, vals, Number(d.did));
-            changed.direcciones.updated++;
-        }
-
-        // REMOVE: elim=1 al vigente por did
-        if (dDel.length) {
             await executeQuery(
                 connection,
                 `UPDATE clientes_direcciones
-            SET elim = 1, quien = ?
-          WHERE did_cliente = ?
-            AND did IN (${dDel.map(() => "?").join(",")})
-            AND superado = 0`,
-                [nowUser || null, clienteId, ...dDel]
+         SET superado = 1, quien = ?
+         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
+                [nowUser || null, clienteId, d.did]
             );
-            changed.direcciones.removed = dDel.length;
+
+            await executeQuery(
+                connection,
+                `INSERT INTO clientes_direcciones
+         (did, did_cliente, address_line, pais, localidad, numero, calle, cp, provincia, titulo, quien, superado, elim)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+                [
+                    Number(d.did),
+                    clienteId,
+                    address_line,
+                    pais,
+                    localidad,
+                    numero,
+                    calle,
+                    cp,
+                    provincia,
+                    titulo,
+                    nowUser || null,
+                ],
+                true
+            );
+
+            changed.direcciones.updated++;
         }
 
-        // -----------------------------
-        // CONTACTOS
+        // remove (versionado: supera e inserta nueva versión con elim=1)
+        for (const did of normalizeRemoveList(dDel)) {
+            const curRows = await executeQuery(
+                connection,
+                `SELECT * FROM clientes_direcciones
+         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
+         LIMIT 1`,
+                [did, clienteId]
+            );
+            const cur = curRows?.[0];
+            if (!cur) continue;
+
+            await executeQuery(
+                connection,
+                `UPDATE clientes_direcciones
+         SET superado = 1, quien = ?
+         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
+                [nowUser || null, clienteId, did]
+            );
+
+            await executeQuery(
+                connection,
+                `INSERT INTO clientes_direcciones
+         (did, did_cliente, address_line, pais, localidad, numero, calle, cp, provincia, titulo, quien, superado, elim)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)`,
+                [
+                    Number(did),
+                    clienteId,
+                    cur.address_line ?? null,
+                    cur.pais ?? null,
+                    cur.localidad ?? null,
+                    cur.numero ?? null,
+                    cur.calle ?? null,
+                    cur.cp ?? null,
+                    cur.provincia ?? null,
+                    cur.titulo ?? null,
+                    nowUser || null,
+                ],
+                true
+            );
+
+            changed.direcciones.removed++;
+        }
+
+        // 4) Contactos
+        // add
         for (const c of cAdd) {
             const ins = await executeQuery(
                 connection,
@@ -249,40 +235,77 @@ export async function editCliente(connection, req) {
             changed.contactos.added++;
         }
 
+        // update
         for (const c of cUpd) {
-            if (!c.did) continue;
-            const cur = await fetchConByDid(c.did);
+            if (!c?.did) continue;
+
+            const curRows = await executeQuery(
+                connection,
+                `SELECT * FROM clientes_contactos
+         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
+         LIMIT 1`,
+                [c.did, clienteId]
+            );
+            const cur = curRows?.[0];
             if (!cur) continue;
 
-            const merged = {
-                did_cliente: clienteId,
-                tipo: c.tipo ?? cur.tipo ?? 0,
-                valor: c.valor ?? cur.valor ?? null,
-            };
+            const tipo = Number(c.tipo ?? cur.tipo ?? 0);
+            const valor = c.valor ?? cur.valor ?? null;
 
-            await superarVigente("clientes_contactos", ["did_cliente", "did"], [clienteId, c.did]);
-
-            const cols = ["did_cliente", "tipo", "valor", "quien", "superado", "elim"];
-            const vals = [merged.did_cliente, merged.tipo, merged.valor, nowUser || null, 0, 0];
-            await insertWithSameDid("clientes_contactos", cols, vals, Number(c.did));
-            changed.contactos.updated++;
-        }
-
-        if (cDel.length) {
             await executeQuery(
                 connection,
                 `UPDATE clientes_contactos
-            SET elim = 1, quien = ?
-          WHERE did_cliente = ?
-            AND did IN (${cDel.map(() => "?").join(",")})
-            AND superado = 0`,
-                [nowUser || null, clienteId, ...cDel]
+         SET superado = 1, quien = ?
+         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
+                [nowUser || null, clienteId, c.did]
             );
-            changed.contactos.removed = cDel.length;
+
+            await executeQuery(
+                connection,
+                `INSERT INTO clientes_contactos
+         (did, did_cliente, tipo, valor, quien, superado, elim)
+         VALUES (?, ?, ?, ?, ?, 0, 0)`,
+                [Number(c.did), clienteId, tipo, valor, nowUser || null],
+                true
+            );
+
+            changed.contactos.updated++;
         }
 
-        // -----------------------------
-        // CUENTAS (ojo: ml_id_vendedor usualmente NOT NULL; si no viene en update, se hereda)
+        // remove (versionado: supera e inserta nueva versión con elim=1)
+        for (const did of normalizeRemoveList(cDel)) {
+            const curRows = await executeQuery(
+                connection,
+                `SELECT * FROM clientes_contactos
+         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
+         LIMIT 1`,
+                [did, clienteId]
+            );
+            const cur = curRows?.[0];
+            if (!cur) continue;
+
+            await executeQuery(
+                connection,
+                `UPDATE clientes_contactos
+         SET superado = 1, quien = ?
+         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
+                [nowUser || null, clienteId, did]
+            );
+
+            await executeQuery(
+                connection,
+                `INSERT INTO clientes_contactos
+         (did, did_cliente, tipo, valor, quien, superado, elim)
+         VALUES (?, ?, ?, ?, ?, 0, 1)`,
+                [Number(did), clienteId, cur.tipo ?? 0, cur.valor ?? null, nowUser || null],
+                true
+            );
+
+            changed.contactos.removed++;
+        }
+
+        // 5) Cuentas
+        // add
         for (const a of aAdd) {
             const ins = await executeQuery(
                 connection,
@@ -293,7 +316,7 @@ export async function editCliente(connection, req) {
                     clienteId,
                     Number(a.flex ?? 0),
                     a.titulo ?? null,
-                    String(a.ml_id_vendedor ?? ""),  // evitar null
+                    String(a.ml_id_vendedor ?? ""),
                     a.ml_user ?? null,
                     a.data ?? null,
                     nowUser || null,
@@ -307,47 +330,87 @@ export async function editCliente(connection, req) {
             changed.cuentas.added++;
         }
 
+        // update
         for (const a of aUpd) {
-            if (!a.did) continue;
-            const cur = await fetchCtaByDid(a.did);
+            if (!a?.did) continue;
+
+            const curRows = await executeQuery(
+                connection,
+                `SELECT * FROM clientes_cuentas
+         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
+         LIMIT 1`,
+                [a.did, clienteId]
+            );
+            const cur = curRows?.[0];
             if (!cur) continue;
 
-            const merged = {
-                did_cliente: clienteId,
-                flex: Number(a.flex ?? cur.flex ?? 0),
-                titulo: a.titulo ?? cur.titulo ?? null,
-                ml_id_vendedor: String(a.ml_id_vendedor ?? cur.ml_id_vendedor ?? ""),
-                ml_user: a.ml_user ?? cur.ml_user ?? null,
-                data: a.data ?? cur.data ?? null,
-            };
+            const flex = Number(a.flex ?? cur.flex ?? 0);
+            const titulo = a.titulo ?? cur.titulo ?? null;
+            const ml_id_vendedor = String(a.ml_id_vendedor ?? cur.ml_id_vendedor ?? "");
+            const ml_user = a.ml_user ?? cur.ml_user ?? null;
+            const data = a.data ?? cur.data ?? null;
 
-            await superarVigente("clientes_cuentas", ["did_cliente", "did"], [clienteId, a.did]);
-
-            const cols = [
-                "did_cliente", "flex", "titulo", "ml_id_vendedor", "ml_user", "data", "quien", "superado", "elim"
-            ];
-            const vals = [
-                merged.did_cliente, merged.flex, merged.titulo, merged.ml_id_vendedor, merged.ml_user,
-                merged.data, nowUser || null, 0, 0
-            ];
-            await insertWithSameDid("clientes_cuentas", cols, vals, Number(a.did));
-            changed.cuentas.updated++;
-        }
-
-        if (aDel.length) {
             await executeQuery(
                 connection,
                 `UPDATE clientes_cuentas
-            SET elim = 1, quien = ?
-          WHERE did_cliente = ?
-            AND did IN (${aDel.map(() => "?").join(",")})
-            AND superado = 0`,
-                [nowUser || null, clienteId, ...aDel]
+         SET superado = 1, quien = ?
+         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
+                [nowUser || null, clienteId, a.did]
             );
-            changed.cuentas.removed = aDel.length;
+
+            await executeQuery(
+                connection,
+                `INSERT INTO clientes_cuentas
+         (did, did_cliente, flex, titulo, ml_id_vendedor, ml_user, data, quien, superado, elim)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+                [Number(a.did), clienteId, flex, titulo, ml_id_vendedor, ml_user, data, nowUser || null],
+                true
+            );
+
+            changed.cuentas.updated++;
         }
 
-        await executeQuery(connection, "COMMIT");
+        // remove (versionado: supera e inserta nueva versión con elim=1)
+        for (const did of normalizeRemoveList(aDel)) {
+            const curRows = await executeQuery(
+                connection,
+                `SELECT * FROM clientes_cuentas
+         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
+         LIMIT 1`,
+                [did, clienteId]
+            );
+            const cur = curRows?.[0];
+            if (!cur) continue;
+
+            await executeQuery(
+                connection,
+                `UPDATE clientes_cuentas
+         SET superado = 1, quien = ?
+         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
+                [nowUser || null, clienteId, did]
+            );
+
+            await executeQuery(
+                connection,
+                `INSERT INTO clientes_cuentas
+         (did, did_cliente, flex, titulo, ml_id_vendedor, ml_user, data, quien, superado, elim)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1)`,
+                [
+                    Number(did),
+                    clienteId,
+                    Number(cur.flex ?? 0),
+                    cur.titulo ?? null,
+                    String(cur.ml_id_vendedor ?? ""),
+                    cur.ml_user ?? null,
+                    cur.data ?? null,
+                    nowUser || null,
+                ],
+                true
+            );
+
+            changed.cuentas.removed++;
+        }
+
         return {
             success: true,
             message: "Cliente actualizado (versionado) correctamente",
@@ -355,7 +418,6 @@ export async function editCliente(connection, req) {
             meta: { changed },
         };
     } catch (err) {
-        await executeQuery(connection, "ROLLBACK");
         return {
             success: false,
             message: err?.message || "Error actualizando cliente",
