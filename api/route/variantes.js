@@ -2,7 +2,7 @@ import { Router } from "express";
 import { getFilteredVariantes } from "../controller/variantes/get_filtered_variantes.js";
 import { getVarianteById } from "../controller/variantes/get_variante_by_id.js";
 import { deleteVarianteCategoria } from "../controller/variantes/delete_variante.js";
-import { createVarianteCategoria } from "../controller/variantes/create_variante.js";
+import { createVariante } from "../controller/variantes/create_variante.js";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 
 const variantes = Router();
@@ -12,7 +12,7 @@ variantes.post(
   buildHandlerWrapper({
     required: ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'subcategorias'],
     controller: async ({ db, req }) => {
-      const result = await createVarianteCategoria(db, req);
+      const result = await createVariante(db, req);
       return result;
     },
   })

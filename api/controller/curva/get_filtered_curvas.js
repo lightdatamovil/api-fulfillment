@@ -62,7 +62,7 @@ export async function getFilteredCurvas(connection, req) {
     // SELECT + COUNT
     const { rows, total } = await runPagedQuery(connection, {
         select: "vc.id, vc.did, vc.nombre",
-        from: "FROM variantes_curvas vc",
+        from: "FROM curvas vc",
         whereSql,
         orderSql,
         params,

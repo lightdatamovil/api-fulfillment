@@ -25,9 +25,9 @@ export async function getCurvaById(dbConnection, req) {
       SELECT
         vc.did             AS curva_did,
         vc.nombre          AS curva_nombre,
-        vcc.did_categoria  AS cat_did
-      FROM variantes_curvas vc
-      LEFT JOIN variantes_categorias_curvas vcc
+        vcc.did_variante  AS cat_did
+      FROM curvas vc
+      LEFT JOIN variantes_curvas vcc
         ON vcc.did_curva = vc.did
        AND vcc.elim = 0
        AND vcc.superado = 0

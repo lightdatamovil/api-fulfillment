@@ -1,20 +1,23 @@
-import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
+import {
+    CustomException,
+    executeQuery,
+    Status,
+    isNonEmpty,
+    isDefined,
+    number01,
+} from "lightdata-tools";
 
 /**
- * Crea una categoría de variantes y (opcional) sus subcategorías y valores.
- * Requiere: codigo, nombre.
- * Opcionales: descripcion, habilitado (0/1), orden, subcategorias[][]. 
- *   - subcategorias: array de objetos { valores: [{ nombre }] }
- * Notas:
- *   - Sin transacciones (mismo criterio que tu flujo actual).
- *   - did == id (se actualiza post-insert).
- *   - Unicidad de 'codigo' en variantes_categorias con elim=0 y superado=0.
+ * Crea una variante (raíz) y opcionalmente sus categorías y valores.
+ * Requiere: codigo, nombre
+ * Opcionales: descripcion, habilitado (0/1), orden, categorias: [{ nombre, valores?: [{ nombre }] }]
+ * Sin transacciones. did == id (post-insert).
  */
-export async function createVarianteCategoria(dbConnection, req) {
-    const { codigo, nombre, descripcion, habilitado, orden, subcategorias } = req.body;
-    const { userId } = req.user;
+export async function createVariante(dbConnection, req) {
+    const { codigo, nombre, descripcion, habilitado, orden, categorias } = req.body;
+    const userId = Number(req.user?.userId ?? req.user?.id ?? 0) || null;
 
-    // ---------- Normalizaciones ----------
+    // -------- Normalizaciones --------
     const codigoTrim = String(codigo ?? "").trim();
     const nombreTrim = String(nombre ?? "").trim();
     const descTrim = isNonEmpty(descripcion) ? String(descripcion).trim() : null;
@@ -22,7 +25,7 @@ export async function createVarianteCategoria(dbConnection, req) {
     if (!isNonEmpty(codigoTrim) || !isNonEmpty(nombreTrim)) {
         throw new CustomException({
             title: "Datos incompletos",
-            message: "Se requieren 'codigo' y 'nombre' para crear la categoría de variantes",
+            message: "Se requieren 'codigo' y 'nombre' para crear la variante",
             status: Status.badRequest,
         });
     }
@@ -42,142 +45,136 @@ export async function createVarianteCategoria(dbConnection, req) {
 
     const ordenValue = Number.isFinite(Number(orden)) ? Number(orden) : 0;
 
-    // ---------- Duplicados de 'codigo' en variantes_categorias ----------
-    const qDup = `
-    SELECT did
-    FROM variantes_categorias
-    WHERE codigo = ? AND elim = 0 AND superado = 0
-    LIMIT 1
-  `;
-    const dup = await executeQuery(dbConnection, qDup, [codigoTrim]);
-    if (dup && dup.length > 0) {
+    // -------- Unicidad de código (variantes) --------
+    const dup = await executeQuery(
+        dbConnection,
+        `SELECT did
+       FROM variantes
+      WHERE codigo = ? AND elim = 0 AND superado = 0
+      LIMIT 1`,
+        [codigoTrim]
+    );
+    if (dup?.length) {
         throw new CustomException({
             title: "Código duplicado",
-            message: `Ya existe una categoría activa con código "${codigoTrim}"`,
+            message: `Ya existe una variante activa con código "${codigoTrim}"`,
             status: Status.conflict,
         });
     }
 
-    // ---------- Insert categoría ----------
-    const insertCatSql = `
-    INSERT INTO variantes_categorias 
-      (codigo, nombre, descripcion, habilitado, orden, quien, superado, elim)
-    VALUES 
-      (?, ?, ?, ?, ?, ?, 0, 0)
-  `;
-    const insCat = await executeQuery(
+    // -------- Insert variante --------
+    const insVar = await executeQuery(
         dbConnection,
-        insertCatSql,
-        [codigoTrim, nombreTrim, descTrim, habValue, ordenValue, userId],
+        `INSERT INTO variantes
+       (did, codigo, nombre, descripcion, orden, habilitado, quien, superado, elim)
+     VALUES (0, ?, ?, ?, ?, ?, ?, 0, 0)`,
+        [codigoTrim, nombreTrim, descTrim, ordenValue, habValue, userId],
         true
     );
 
-    if (!insCat || insCat.affectedRows === 0) {
+    if (!insVar?.affectedRows) {
         throw new CustomException({
-            title: "Error al crear categoría",
-            message: "No se pudo insertar la categoría de variantes",
+            title: "Error al crear variante",
+            message: "No se pudo insertar la variante",
             status: Status.internalServerError,
         });
     }
 
-    const idCategoria = insCat.insertId;
+    const idVariante = insVar.insertId;
+
+    // set did = id
     await executeQuery(
         dbConnection,
-        `UPDATE variantes_categorias SET did = ? WHERE id = ?`,
-        [idCategoria, idCategoria],
+        `UPDATE variantes SET did = ? WHERE id = ?`,
+        [idVariante, idVariante],
         true
     );
-    const didCategoria = idCategoria;
 
-    // ---------- Subcategorías y valores (opcionales) ----------
-    const insertedSubcats = [];
+    // -------- Categorías y valores (opcionales) --------
+    const insertedCategorias = [];
 
-    if (Array.isArray(subcategorias) && subcategorias.length > 0) {
-        for (const sub of subcategorias) {
-            // Insert subcategoría (sin 'nombre' según tu esquema)
-            const insSubSql = `
-        INSERT INTO variantes_subcategorias (did_categoria, quien, superado, elim)
-        VALUES (?, ?, 0, 0)
-      `;
-            const insSub = await executeQuery(
-                dbConnection,
-                insSubSql,
-                [didCategoria, userId],
-                true
-            );
-
-            if (!insSub || insSub.affectedRows === 0) {
+    if (Array.isArray(categorias) && categorias.length) {
+        for (const cat of categorias) {
+            const nombreCat = String(cat?.nombre ?? "").trim();
+            if (!isNonEmpty(nombreCat)) {
                 throw new CustomException({
-                    title: "Error al crear subcategoría",
-                    message: "No se pudo insertar una subcategoría",
-                    status: Status.internalServerError,
+                    title: "Datos incompletos en categoría",
+                    message: "Cada categoría debe incluir 'nombre'",
+                    status: Status.badRequest,
                 });
             }
 
-            const idSub = insSub.insertId;
-            await executeQuery(
+            // Insert categoría
+            const insCat = await executeQuery(
                 dbConnection,
-                `UPDATE variantes_subcategorias SET did = ? WHERE id = ?`,
-                [idSub, idSub],
+                `INSERT INTO variantes_categorias
+           (did, did_variante, nombre, quien, superado, elim)
+         VALUES (0, ?, ?, ?, 0, 0)`,
+                [idVariante, nombreCat, userId],
                 true
             );
-            const didSubcategoria = idSub;
+            if (!insCat?.affectedRows) {
+                throw new CustomException({
+                    title: "Error al crear categoría",
+                    message: "No se pudo insertar la categoría",
+                    status: Status.internalServerError,
+                });
+            }
+            const idCategoria = insCat.insertId;
 
+            // set did = id
+            await executeQuery(
+                dbConnection,
+                `UPDATE variantes_categorias SET did = ? WHERE id = ?`,
+                [idCategoria, idCategoria],
+                true
+            );
+
+            // valores
             const insertedVals = [];
-
-            if (Array.isArray(sub?.valores) && sub.valores.length > 0) {
-                for (const v of sub.valores) {
-                    const nombreVal = isNonEmpty(v?.nombre) ? String(v.nombre).trim() : null;
-
-                    if (!isNonEmpty(nombreVal)) {
-                        throw new CustomException({
-                            title: "Datos incompletos en valores",
-                            message: "Cada valor debe incluir 'nombre'",
-                            status: Status.badRequest,
-                        });
-                    }
-
-                    const insValSql = `
-            INSERT INTO variantes_subcategoria_valores (did_subcategoria, nombre, quien, superado, elim)
-            VALUES (?, ?, ?, 0, 0)
-          `;
-                    const insVal = await executeQuery(
-                        dbConnection,
-                        insValSql,
-                        [didSubcategoria, nombreVal, userId],
-                        true
-                    );
-
-                    if (!insVal || insVal.affectedRows === 0) {
-                        throw new CustomException({
-                            title: "Error al crear valor",
-                            message: "No se pudo insertar un valor de subcategoría",
-                            status: Status.internalServerError,
-                        });
-                    }
-
-                    const idVal = insVal.insertId;
-
-                    await executeQuery(
-                        dbConnection,
-                        `UPDATE variantes_subcategoria_valores SET did = ? WHERE id = ?`,
-                        [idVal, idVal],
-                        true
-                    );
-
-                    insertedVals.push({
-                        id: idVal,
-                        did: idVal,
-                        didSubcategoria: didSubcategoria,
-                        nombre: nombreVal,
+            const valores = Array.isArray(cat?.valores) ? cat.valores : [];
+            for (const v of valores) {
+                const nombreVal = String(v?.nombre ?? "").trim();
+                if (!isNonEmpty(nombreVal)) {
+                    throw new CustomException({
+                        title: "Datos incompletos en valores",
+                        message: "Cada valor debe incluir 'nombre'",
+                        status: Status.badRequest,
                     });
                 }
+
+                const insVal = await executeQuery(
+                    dbConnection,
+                    `INSERT INTO variantes_categoria_valores
+             (did, did_categoria, nombre, quien, superado, elim)
+           VALUES (0, ?, ?, ?, 0, 0)`,
+                    [idCategoria, nombreVal, userId],
+                    true
+                );
+                if (!insVal?.affectedRows) {
+                    throw new CustomException({
+                        title: "Error al crear valor",
+                        message: "No se pudo insertar un valor de categoría",
+                        status: Status.internalServerError,
+                    });
+                }
+                const idVal = insVal.insertId;
+
+                // set did = id
+                await executeQuery(
+                    dbConnection,
+                    `UPDATE variantes_categoria_valores SET did = ? WHERE id = ?`,
+                    [idVal, idVal],
+                    true
+                );
+
+                insertedVals.push({ did: idVal, nombre: nombreVal });
             }
 
-            insertedSubcats.push({
-                id: idSub,
-                did: idSub,
-                didCategoria: didCategoria,
+            insertedCategorias.push({
+                did: idCategoria,
+                did_variante: idVariante,
+                nombre: nombreCat,
                 valores: insertedVals,
             });
         }
@@ -185,18 +182,17 @@ export async function createVarianteCategoria(dbConnection, req) {
 
     return {
         success: true,
-        message: "Categoría de variantes creada correctamente",
+        message: "Variante creada correctamente",
         data: {
-            categoria: {
-                id: idCategoria,
-                did: didCategoria,
+            variante: {
+                did: idVariante,
                 codigo: codigoTrim,
                 nombre: nombreTrim,
                 descripcion: descTrim,
                 habilitado: habValue,
                 orden: ordenValue,
             },
-            subcategorias: insertedSubcats,
+            categorias: insertedCategorias,
         },
         meta: { timestamp: new Date().toISOString() },
     };
