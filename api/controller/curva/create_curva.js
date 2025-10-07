@@ -1,5 +1,6 @@
 import { CustomException, executeQuery, Status, isNonEmpty } from "lightdata-tools";
 
+
 /**
  * Crea una curva y, opcionalmente, asocia categorías a la curva.
  * Body esperado:
@@ -9,7 +10,7 @@ import { CustomException, executeQuery, Status, isNonEmpty } from "lightdata-too
  * }
  */
 export async function createCurva(dbConnection, req) {
-    const { nombre, categorias } = req.body;
+    const { nombre, variantes } = req.body;
     const { userId } = req.user;
 
     const nombreTrim = isNonEmpty(nombre) ? String(nombre).trim() : "";
@@ -24,7 +25,7 @@ export async function createCurva(dbConnection, req) {
 
     // Insert curva
     const insSql = `
-    INSERT INTO variantes_curvas (nombre, quien, superado, elim)
+    INSERT INTO curvas (nombre, quien, superado, elim)
     VALUES (?, ?, 0, 0)
   `;
     const ins = await executeQuery(dbConnection, insSql, [nombreTrim, userId], true);
@@ -40,7 +41,7 @@ export async function createCurva(dbConnection, req) {
     const id = ins.insertId;
     await executeQuery(
         dbConnection,
-        `UPDATE variantes_curvas SET did = ? WHERE id = ?`,
+        `UPDATE curvas SET did = ? WHERE id = ?`,
         [id, id],
         true
     );
@@ -49,13 +50,13 @@ export async function createCurva(dbConnection, req) {
 
     // Asociaciones opcionales con categorías
     let linked = 0;
-    if (Array.isArray(categorias) && categorias.length > 0) {
+    if (Array.isArray(variantes) && variantes.length > 0) {
         // Validar que existan esas categorías activas
-        const validIds = categorias
+        const validIds = variantes
             .map((n) => Number(n))
             .filter((n) => Number.isFinite(n) && n > 0);
 
-        if (validIds.length !== categorias.length) {
+        if (validIds.length !== variantes.length) {
             throw new CustomException({
                 title: "Categorías inválidas",
                 message: "Todas las categorías deben ser números válidos",
@@ -67,7 +68,7 @@ export async function createCurva(dbConnection, req) {
         const placeholders = validIds.map(() => "?").join(", ");
         const qCheck = `
       SELECT did
-      FROM variantes_categorias
+      FROM variantes
       WHERE elim = 0 AND superado = 0 AND did IN (${placeholders})
     `;
         const found = await executeQuery(dbConnection, qCheck, validIds);
@@ -83,16 +84,16 @@ export async function createCurva(dbConnection, req) {
         }
 
         // Insertar links (si ya existiera el par y estuviera elim=1, lo reactivamos)
-        for (const didCategoria of validIds) {
+        for (const didVariante of validIds) {
             // Intentar reactivar
             const upd = await executeQuery(
                 dbConnection,
                 `
-          UPDATE variantes_categorias_curvas
+          UPDATE variantes_curvas
           SET elim = 0, superado = 0, quien = ?
           WHERE did_curva = ? AND did_categoria = ?
         `,
-                [userId, didCurva, didCategoria],
+                [userId, didCurva, didVariante],
                 true
             );
 
@@ -101,10 +102,10 @@ export async function createCurva(dbConnection, req) {
                 const insLink = await executeQuery(
                     dbConnection,
                     `
-            INSERT INTO variantes_categorias_curvas (did_curva, did_categoria, quien, superado, elim)
+            INSERT INTO variantes_curvas (did_curva, did_variante, quien, superado, elim)
             VALUES (?, ?, ?, 0, 0)
           `,
-                    [didCurva, didCategoria, userId],
+                    [didCurva, didVariante, userId],
                     true
                 );
                 if (insLink && insLink.affectedRows > 0) linked += 1;

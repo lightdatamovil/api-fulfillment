@@ -11,10 +11,10 @@ import {
 /**
  * GET /variantes
  * Query: nombre, codigo, habilitado, (page|pagina), (page_size|cantidad), (sort_by|sortBy), (sort_dir|sortDir)
- * Tabla: variantes_categorias
+ * Tabla: variantes  (root)
  */
 export async function getFilteredVariantes(connection, req) {
-    const q = req.query;
+    const q = req.query || {};
 
     // Aliases para paginación y orden
     const qp = {
@@ -25,7 +25,7 @@ export async function getFilteredVariantes(connection, req) {
         sort_dir: q.sort_dir ?? q.sortDir,
     };
 
-    // Filtros normalizados (principal: nombre)
+    // Filtros normalizados
     const filtros = {
         nombre: toStr(q.nombre),
         codigo: toStr(q.codigo),
@@ -41,15 +41,15 @@ export async function getFilteredVariantes(connection, req) {
         maxPageSize: 100,
     });
 
-    // Orden (whitelist)
+    // Orden (whitelist sobre columnas de 'variantes')
     const sortMap = {
-        nombre: "vc.nombre",
-        codigo: "vc.codigo",
-        descripcion: "vc.descripcion",
-        habilitado: "vc.habilitado",
-        orden: "vc.orden",
-        id: "vc.id",
-        did: "vc.did",
+        codigo: "v.codigo",
+        nombre: "v.nombre",
+        descripcion: "v.descripcion",
+        habilitado: "v.habilitado",
+        orden: "v.orden",
+        id: "v.id",
+        did: "v.did",
     };
     const { orderSql } = makeSort(qp, sortMap, {
         defaultKey: "codigo",
@@ -59,20 +59,20 @@ export async function getFilteredVariantes(connection, req) {
 
     // WHERE (incluye ESCAPE para LIKE)
     const where = new SqlWhere()
-        .add("vc.elim = 0")
-        .add("vc.superado = 0");
+        .add("v.elim = 0")
+        .add("v.superado = 0");
 
-    if (filtros.habilitado !== undefined) where.eq("vc.habilitado", filtros.habilitado);
-    if (filtros.codigo) where.likeEscaped("vc.codigo", filtros.codigo, { caseInsensitive: true });
-    if (filtros.nombre) where.likeEscaped("vc.nombre", filtros.nombre, { caseInsensitive: true });
+    if (filtros.habilitado !== undefined) where.eq("v.habilitado", filtros.habilitado);
+    if (filtros.codigo) where.likeEscaped("v.codigo", filtros.codigo, { caseInsensitive: true });
+    if (filtros.nombre) where.likeEscaped("v.nombre", filtros.nombre, { caseInsensitive: true });
 
     const { whereSql, params } = where.finalize();
 
     // SELECT + COUNT con los mismos WHERE/PARAMS
     const { rows, total } = await runPagedQuery(connection, {
         select:
-            "vc.id, vc.did, vc.nombre, vc.codigo, vc.descripcion, vc.habilitado, vc.orden",
-        from: "FROM variantes_categorias vc",
+            "v.id, v.did, v.codigo, v.nombre, v.descripcion, v.habilitado, v.orden",
+        from: "FROM variantes v",
         whereSql,
         orderSql,
         params,
@@ -80,7 +80,7 @@ export async function getFilteredVariantes(connection, req) {
         offset,
     });
 
-    // Meta + filtros (solo los que vinieron)
+    // Meta + filtros (solo los provistos)
     const filtersForMeta = pickNonEmpty({
         nombre: filtros.nombre,
         codigo: filtros.codigo,

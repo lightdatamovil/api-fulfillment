@@ -52,10 +52,11 @@ clientes.get(
   })
 );
 
-clientes.delete(
-  '/:clienteId',
+clientes.put(
+  '/delete/:clienteId',
   buildHandlerWrapper({
     requiredParams: ['clienteId'],
+    optional: ["nombre_fantasia", "razon_social", "codigo", "habilitado", "observaciones", "direcciones", "contactos", "cuentas"],
     controller: async ({ db, req }) => {
       const result = await deleteCliente(db, req);
       return result;

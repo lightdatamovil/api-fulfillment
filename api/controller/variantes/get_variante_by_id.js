@@ -1,10 +1,10 @@
 import { CustomException, executeQuery } from "lightdata-tools";
 
 export async function getVarianteById(dbConnection, req) {
-    const { varianteId } = req.params; // es el DID de la categoría
-    const didCategoria = Number(varianteId);
+    const { varianteId } = req.params; // DID de la variante (root)
+    const didVariante = Number(varianteId);
 
-    if (!Number.isFinite(didCategoria) || didCategoria <= 0) {
+    if (!Number.isFinite(didVariante) || didVariante <= 0) {
         throw new CustomException({
             title: "Parámetro inválido",
             message: "El parámetro varianteId debe ser numérico y mayor que 0",
@@ -13,68 +13,70 @@ export async function getVarianteById(dbConnection, req) {
 
     const selectQuery = `
     SELECT
-      vc.did                AS categoria_did,
-      vc.nombre             AS categoria_nombre,
-      vc.codigo             AS categoria_codigo,
-      vc.descripcion        AS categoria_descripcion,
-      vc.habilitado         AS categoria_habilitado,
-      vc.orden              AS categoria_orden,
+      v.did          AS variante_did,
+      v.codigo       AS variante_codigo,
+      v.nombre       AS variante_nombre,
+      v.descripcion  AS variante_descripcion,
+      v.habilitado   AS variante_habilitado,
+      v.orden        AS variante_orden,
 
-      vs.did                AS sub_did,
+      vc.did         AS categoria_did,
+      vc.nombre      AS categoria_nombre,
 
-      vsv.did               AS valor_did,
-      vsv.nombre            AS valor_nombre
+      vcv.did        AS valor_did,
+      vcv.nombre     AS valor_nombre
 
-    FROM variantes_categorias vc
-    LEFT JOIN variantes_subcategorias vs
-      ON vs.did_categoria = vc.did
-     AND vs.elim = 0
-     AND vs.superado = 0
-    LEFT JOIN variantes_subcategoria_valores vsv
-      ON vsv.did_subcategoria = vs.did
-     AND vsv.elim = 0
-     AND vsv.superado = 0
+    FROM variantes v
+    LEFT JOIN variantes_categorias vc
+      ON vc.did_variante = v.did
+     AND vc.elim = 0
+     AND vc.superado = 0
+    LEFT JOIN variantes_categoria_valores vcv
+      ON vcv.did_categoria = vc.did
+     AND vcv.elim = 0
+     AND vcv.superado = 0
 
-    WHERE vc.elim = 0
-      AND vc.superado = 0
-      AND vc.did = ?
+    WHERE v.elim = 0
+      AND v.superado = 0
+      AND v.did = ?
 
-    ORDER BY vs.did ASC, vsv.did ASC
+    ORDER BY vc.did ASC, vcv.did ASC
   `;
 
-    const rows = await executeQuery(dbConnection, selectQuery, [didCategoria]);
+    const rows = await executeQuery(dbConnection, selectQuery, [didVariante]);
 
     if (!rows || rows.length === 0) {
         throw new CustomException({
-            title: "Categoría no encontrada",
-            message: `No se encontró una categoría activa con el DID ${didCategoria}`,
+            title: "Variante no encontrada",
+            message: `No se encontró una variante activa con el DID ${didVariante}`,
         });
     }
 
     const first = rows[0];
     const resultado = {
-        did: first.categoria_did,
-        nombre: first.categoria_nombre,
-        codigo: first.categoria_codigo,
-        descripcion: first.categoria_descripcion,
-        habilitado: first.categoria_habilitado,
-        orden: first.categoria_orden,
-        subcategorias: [],
+        did: first.variante_did,
+        codigo: first.variante_codigo,
+        nombre: first.variante_nombre,
+        descripcion: first.variante_descripcion,
+        habilitado: first.variante_habilitado,
+        orden: first.variante_orden,
+        categorias: [],
     };
 
-    // Agrupar subcategorías y sus valores
-    const subMap = new Map(); // didSubcategoria -> { did, valores: [] }
+    // Agrupar categorías y sus valores
+    const catMap = new Map(); // didCategoria -> { did, nombre, valores: [] }
 
     for (const r of rows) {
-        if (r.sub_did) {
-            if (!subMap.has(r.sub_did)) {
-                subMap.set(r.sub_did, {
-                    did: r.sub_did,
+        if (r.categoria_did) {
+            if (!catMap.has(r.categoria_did)) {
+                catMap.set(r.categoria_did, {
+                    did: r.categoria_did,
+                    nombre: r.categoria_nombre,
                     valores: [],
                 });
             }
             if (r.valor_did) {
-                subMap.get(r.sub_did).valores.push({
+                catMap.get(r.categoria_did).valores.push({
                     did: r.valor_did,
                     nombre: r.valor_nombre,
                 });
@@ -82,11 +84,11 @@ export async function getVarianteById(dbConnection, req) {
         }
     }
 
-    resultado.subcategorias = Array.from(subMap.values());
+    resultado.categorias = Array.from(catMap.values());
 
     return {
         success: true,
-        message: "Categoría de variantes obtenida correctamente",
+        message: "Variante obtenida correctamente",
         data: resultado,
         meta: { timestamp: new Date().toISOString() },
     };

@@ -1,198 +1,374 @@
-import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
+// variantes.controller.js (ESM)
+import {
+    executeQuery,
+    CustomException,
+    Status,
+    isNonEmpty,
+    isDefined,
+    number01,
+} from "lightdata-tools";
 
 /**
- * Edita una variante existente (versionado por did) y procesa 'data' con acciones sobre variantes_valores.
+ * PUT /api/variantes/:varianteId
  * Body:
- * {
- *   codigo?, nombre?, descripcion?, habilitado?(0/1), orden?,
- *   data?: [
- *     { action: "create", valor, codigo?, habilitado?(0/1), didProducto?, varianteId? },
- *     { action: "delete", varianteValorId } // varianteValorId = did del valor
- *   ]
- * }
- * Param: varianteId (did de la variante)
+ *   root fields opcionales: { codigo?, nombre?, descripcion?, habilitado?(0/1), orden? }
+ *   categorias: { add[], update[], remove[] }
+ *     - add:    { nombre }
+ *     - update: { did, nombre? }
+ *     - remove: [ did | { did } ]
+ *   valores: { add[], update[], remove[] }
+ *     - add:    { did_categoria, nombre }
+ *     - update: { did, nombre? }
+ *     - remove: [ did | { did } ]
+ *
+ * Estrategia: versionado por did (superado=1 + insert con mismo did).
+ * remove = supera + inserta nueva versión con elim=1.
+ * Sin transacciones.
  */
-export async function editVariante(dbConnection, req) {
+export async function editVariante(db, req) {
     const { varianteId } = req.params;
-    const { userId } = req.user ?? {};
-    const { codigo, nombre, descripcion, habilitado, orden, data } = req.body ?? {};
+    const userId = Number(req?.user?.userId ?? req?.user?.id ?? 0) || null;
+    const body = req.body || {};
 
-    // 1) Verificar existencia
-    const qGet = `
-    SELECT did, codigo, nombre, descripcion, habilitado, orden
-    FROM atributos
-    WHERE did = ? AND elim = 0 AND superado = 0
-    LIMIT 1
-  `;
-    const rows = await executeQuery(dbConnection, qGet, [varianteId]);
-    if (!rows || rows.length === 0) {
+    const arr = (x) => (Array.isArray(x) ? x : []);
+    const normRemove = (list) =>
+        arr(list)
+            .map((x) => (typeof x === "object" ? Number(x?.did ?? 0) : Number(x)))
+            .filter((n) => Number.isFinite(n) && n > 0);
+
+    const cAdd = arr(body?.categorias?.add);
+    const cUpd = arr(body?.categorias?.update);
+    const cDel = normRemove(body?.categorias?.remove);
+
+    const vAdd = arr(body?.valores?.add);
+    const vUpd = arr(body?.valores?.update);
+    const vDel = normRemove(body?.valores?.remove);
+
+    const changed = {
+        variante: 0,
+        categorias: { added: 0, updated: 0, removed: 0 },
+        valores: { added: 0, updated: 0, removed: 0 },
+    };
+
+    // ---------- 1) Traer vigente de la variante ----------
+    const vigenteRows = await executeQuery(
+        db,
+        `SELECT did, codigo, nombre, descripcion, habilitado, orden
+       FROM variantes
+      WHERE did = ? AND superado = 0 AND elim = 0
+      LIMIT 1`,
+        [varianteId]
+    );
+    const vigente = vigenteRows?.[0] || null;
+    if (!vigente) {
         throw new CustomException({
             title: "Variante no encontrada",
-            message: `No existe variante con did=${varianteId}`,
+            message: `No existe variante vigente con did=${varianteId}`,
             status: Status.notFound,
         });
     }
-    const current = rows[0];
 
-    // 2) Duplicado de código si cambia
-    const newCodigo = isNonEmpty(codigo) ? String(codigo).trim() : current.codigo;
-    if (newCodigo !== current.codigo) {
-        const qDup = `
-      SELECT did
-      FROM atributos
-      WHERE codigo = ? AND elim = 0 AND superado = 0 AND did <> ?
-      LIMIT 1
-    `;
-        const dup = await executeQuery(dbConnection, qDup, [newCodigo, varianteId]);
-        if (dup?.length) {
-            throw new CustomException({
-                title: "Código duplicado",
-                message: `Ya existe una variante activa con código "${newCodigo}"`,
-                status: Status.conflict,
-            });
-        }
-    }
+    // ---------- 2) Root variante (patch + versionado) ----------
+    const baseFields = ["codigo", "nombre", "descripcion", "habilitado", "orden"];
+    const hayPatch = baseFields.some((k) => body[k] !== undefined);
 
-    // 3) Nuevos valores de la variante
-    const newNombre = isNonEmpty(nombre) ? String(nombre).trim() : current.nombre;
-    const newDesc = isDefined(descripcion) ? (isNonEmpty(descripcion) ? String(descripcion).trim() : null) : current.descripcion;
-
-    let newHab = current.habilitado;
-    if (isDefined(habilitado)) {
-        const h = number01(habilitado);
-        if (h !== 0 && h !== 1) {
-            throw new CustomException({
-                title: "Valor inválido",
-                message: "habilitado debe ser 0 o 1",
-                status: Status.badRequest,
-            });
-        }
-        newHab = h;
-    }
-    const newOrden = Number.isFinite(Number(orden)) ? Number(orden) : (current.orden ?? 0);
-
-    // 4) Versionar variante (supero actual + nueva versión)
-    await executeQuery(
-        dbConnection,
-        `UPDATE atributos SET superado = 1 WHERE did = ? AND elim = 0 AND superado = 0`,
-        [varianteId]
-    );
-
-    const insAttr = await executeQuery(
-        dbConnection,
-        `
-      INSERT INTO atributos (did, codigo, nombre, descripcion, habilitado, orden, quien, superado, elim)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
-    `,
-        [varianteId, newCodigo, newNombre, newDesc, newHab, newOrden, userId]
-    );
-
-    if (!insAttr || insAttr.affectedRows === 0) {
-        throw new CustomException({
-            title: "Error al versionar variante",
-            message: "No se pudo crear la nueva versión de la variante",
-            status: Status.internalServerError,
-        });
-    }
-
-    // 5) Acciones sueltas en 'data'
-    const created = [];
-    const deleted = [];
-
-    if (Array.isArray(data)) {
-        for (const item of data) {
-            const action = String(item?.action || "").toLowerCase();
-
-            if (action === "create") {
-                const didVar = Number(item?.atributoId ?? varianteId) || Number(varianteId);
-                const valValor = isNonEmpty(item?.valor) ? String(item.valor).trim() : null;
-                if (!valValor) {
-                    throw new CustomException({
-                        title: "Dato inválido",
-                        message: "data.create requiere 'valor'",
-                        status: Status.badRequest,
-                    });
-                }
-                const valCodigo = isNonEmpty(item?.codigo) ? String(item.codigo).trim() : null;
-
-                let valHab = 1;
-                if (isDefined(item?.habilitado)) {
-                    const h = number01(item.habilitado);
-                    if (h !== 0 && h !== 1) {
-                        throw new CustomException({
-                            title: "Dato inválido",
-                            message: "habilitado en data.create debe ser 0 o 1",
-                            status: Status.badRequest,
-                        });
-                    }
-                    valHab = h;
-                }
-
-                const didProducto = Number(item?.didProducto ?? 0) || 0;
-
-                const ins = await executeQuery(
-                    dbConnection,
-                    `
-            INSERT INTO atributos_valores
-              (didProducto, didAtributo, valor, codigo, habilitado, quien, superado, elim)
-            VALUES (?, ?, ?, ?, ?, ?, 0, 0)
-          `,
-                    [didProducto, didVar, valValor, valCodigo, valHab, userId],
-                    true
-                );
-
-                if (!ins || ins.affectedRows === 0) {
-                    throw new CustomException({
-                        title: "Error al crear valor",
-                        message: "No se pudo insertar un valor (data.create)",
-                        status: Status.internalServerError,
-                    });
-                }
-
-                const id = ins.insertId;
-                await executeQuery(dbConnection, `UPDATE atributos_valores SET did = ? WHERE id = ?`, [id, id], true);
-
-                created.push({
-                    id, did: id, didVar, didProducto, valor: valValor, codigo: valCodigo, habilitado: valHab
+    if (hayPatch) {
+        // Validaciones y normalizaciones
+        const nextCodigo = isNonEmpty(body.codigo) ? String(body.codigo).trim() : vigente.codigo;
+        if (nextCodigo !== vigente.codigo) {
+            const dup = await executeQuery(
+                db,
+                `SELECT did FROM variantes
+          WHERE codigo = ? AND elim = 0 AND superado = 0 AND did <> ?
+          LIMIT 1`,
+                [nextCodigo, varianteId]
+            );
+            if (dup?.length) {
+                throw new CustomException({
+                    title: "Código duplicado",
+                    message: `Ya existe una variante activa con código "${nextCodigo}"`,
+                    status: Status.conflict,
                 });
             }
+        }
 
-            else if (action === "delete") {
-                const didVal = Number(item?.atributoValorId);
-                if (!Number.isFinite(didVal) || didVal <= 0) {
-                    throw new CustomException({
-                        title: "Dato inválido",
-                        message: "varianteValorId inválido en data.delete",
-                        status: Status.badRequest,
-                    });
-                }
-                const del = await executeQuery(
-                    dbConnection,
-                    `UPDATE atributos_valores SET elim = 1 WHERE did = ? AND elim = 0`,
-                    [didVal],
-                    true
-                );
-                deleted.push({ did: didVal, affectedRows: del?.affectedRows ?? 0 });
-            }
+        const nextNombre = isNonEmpty(body.nombre) ? String(body.nombre).trim() : vigente.nombre;
+        const nextDesc = isDefined(body.descripcion)
+            ? isNonEmpty(body.descripcion)
+                ? String(body.descripcion).trim()
+                : null
+            : vigente.descripcion;
 
-            else {
+        let nextHab = vigente.habilitado;
+        if (isDefined(body.habilitado)) {
+            const h = number01(body.habilitado);
+            if (h !== 0 && h !== 1) {
                 throw new CustomException({
-                    title: "Acción inválida",
-                    message: `action debe ser "create" o "delete"`,
+                    title: "Valor inválido",
+                    message: "habilitado debe ser 0 o 1",
                     status: Status.badRequest,
                 });
             }
+            nextHab = h;
         }
+        const nextOrden = Number.isFinite(Number(body.orden)) ? Number(body.orden) : (vigente.orden ?? 0);
+
+        // Superar + nueva versión
+        const upd = await executeQuery(
+            db,
+            `UPDATE variantes
+          SET superado = 1, quien = ?
+        WHERE did = ? AND superado = 0 AND elim = 0`,
+            [userId, varianteId]
+        );
+        if (!upd?.affectedRows) {
+            throw new CustomException({
+                title: "Error al versionar variante",
+                message: "La variante ya no está vigente o fue modificada concurrentemente",
+                status: Status.notFound,
+            });
+        }
+
+        await executeQuery(
+            db,
+            `INSERT INTO variantes
+         (did, codigo, nombre, descripcion, habilitado, orden, quien, superado, elim)
+       VALUES (?,   ?,      ?,      ?,           ?,          ?,     ?,     0,        0)`,
+            [Number(varianteId), nextCodigo, nextNombre, nextDesc, nextHab, nextOrden, userId],
+            true
+        );
+
+        changed.variante = 1;
+    }
+
+    // ---------- 3) CATEGORÍAS ----------
+    // add
+    for (const c of cAdd) {
+        const nombre = isNonEmpty(c?.nombre) ? String(c.nombre).trim() : null;
+        if (!nombre) {
+            throw new CustomException({
+                title: "Datos incompletos en categoría",
+                message: "categorias.add requiere 'nombre'",
+                status: Status.badRequest,
+            });
+        }
+
+        const ins = await executeQuery(
+            db,
+            `INSERT INTO variantes_categorias
+         (did, did_variante, nombre, quien, superado, elim)
+       VALUES (0, ?, ?, ?, 0, 0)`,
+            [varianteId, nombre, userId],
+            true
+        );
+        const newId = ins?.insertId || 0;
+        if (newId) {
+            await executeQuery(
+                db,
+                `UPDATE variantes_categorias SET did = ? WHERE id = ?`,
+                [newId, newId],
+                true
+            );
+        }
+        changed.categorias.added++;
+    }
+
+    // update (versionado)
+    for (const c of cUpd) {
+        if (!c?.did) continue;
+
+        const curRows = await executeQuery(
+            db,
+            `SELECT * FROM variantes_categorias
+        WHERE did = ? AND did_variante = ? AND superado = 0 AND elim = 0
+        LIMIT 1`,
+            [c.did, varianteId]
+        );
+        const cur = curRows?.[0];
+        if (!cur) continue;
+
+        const nombre = isNonEmpty(c?.nombre) ? String(c.nombre).trim() : cur.nombre ?? null;
+
+        await executeQuery(
+            db,
+            `UPDATE variantes_categorias
+          SET superado = 1, quien = ?
+        WHERE did_variante = ? AND did = ? AND superado = 0 AND elim = 0`,
+            [userId, varianteId, c.did]
+        );
+
+        await executeQuery(
+            db,
+            `INSERT INTO variantes_categorias
+         (did, did_variante, nombre, quien, superado, elim)
+       VALUES (?,   ?,            ?,      ?,     0,        0)`,
+            [Number(c.did), varianteId, nombre, userId],
+            true
+        );
+
+        changed.categorias.updated++;
+    }
+
+    // remove (versionado: supera + inserta elim=1)
+    for (const did of cDel) {
+        const curRows = await executeQuery(
+            db,
+            `SELECT * FROM variantes_categorias
+        WHERE did = ? AND did_variante = ? AND superado = 0 AND elim = 0
+        LIMIT 1`,
+            [did, varianteId]
+        );
+        const cur = curRows?.[0];
+        if (!cur) continue;
+
+        await executeQuery(
+            db,
+            `UPDATE variantes_categorias
+          SET superado = 1, quien = ?
+        WHERE did_variante = ? AND did = ? AND superado = 0 AND elim = 0`,
+            [userId, varianteId, did]
+        );
+
+        await executeQuery(
+            db,
+            `INSERT INTO variantes_categorias
+         (did, did_variante, nombre, quien, superado, elim)
+       VALUES (?,   ?,            ?,      ?,     0,        1)`,
+            [Number(did), varianteId, cur.nombre ?? null, userId],
+            true
+        );
+
+        changed.categorias.removed++;
+    }
+
+    // ---------- 4) VALORES ----------
+    // add
+    for (const v of vAdd) {
+        const didCategoria = Number(v?.did_categoria ?? 0);
+        const nombre = isNonEmpty(v?.nombre) ? String(v.nombre).trim() : null;
+
+        if (!Number.isFinite(didCategoria) || didCategoria <= 0) {
+            throw new CustomException({
+                title: "Datos inválidos en valor",
+                message: "valores.add requiere 'did_categoria' numérico",
+                status: Status.badRequest,
+            });
+        }
+        if (!nombre) {
+            throw new CustomException({
+                title: "Datos inválidos en valor",
+                message: "valores.add requiere 'nombre'",
+                status: Status.badRequest,
+            });
+        }
+
+        // (opcional) validar categoría vigente
+        const catRows = await executeQuery(
+            db,
+            `SELECT did FROM variantes_categorias
+        WHERE did = ? AND superado = 0 AND elim = 0
+        LIMIT 1`,
+            [didCategoria]
+        );
+        if (!catRows?.length) {
+            throw new CustomException({
+                title: "Categoría no encontrada",
+                message: "La categoría no existe o no está vigente",
+                status: Status.notFound,
+            });
+        }
+
+        const ins = await executeQuery(
+            db,
+            `INSERT INTO variantes_categoria_valores
+         (did, did_categoria, nombre, quien, superado, elim)
+       VALUES (0,   ?,             ?,      ?,     0,        0)`,
+            [didCategoria, nombre, userId],
+            true
+        );
+        const newId = ins?.insertId || 0;
+        if (newId) {
+            await executeQuery(
+                db,
+                `UPDATE variantes_categoria_valores SET did = ? WHERE id = ?`,
+                [newId, newId],
+                true
+            );
+        }
+        changed.valores.added++;
+    }
+
+    // update (versionado)
+    for (const v of vUpd) {
+        if (!v?.did) continue;
+
+        const curRows = await executeQuery(
+            db,
+            `SELECT * FROM variantes_categoria_valores
+        WHERE did = ? AND superado = 0 AND elim = 0
+        LIMIT 1`,
+            [v.did]
+        );
+        const cur = curRows?.[0];
+        if (!cur) continue;
+
+        const nombre = isNonEmpty(v?.nombre) ? String(v.nombre).trim() : cur.nombre ?? null;
+
+        await executeQuery(
+            db,
+            `UPDATE variantes_categoria_valores
+          SET superado = 1, quien = ?
+        WHERE did = ? AND superado = 0 AND elim = 0`,
+            [userId, v.did]
+        );
+
+        await executeQuery(
+            db,
+            `INSERT INTO variantes_categoria_valores
+         (did, did_categoria, nombre, quien, superado, elim)
+       VALUES (?,   ?,             ?,      ?,     0,        0)`,
+            [Number(v.did), cur.did_categoria, nombre, userId],
+            true
+        );
+
+        changed.valores.updated++;
+    }
+
+    // remove (versionado: supera + inserta elim=1)
+    for (const did of vDel) {
+        const curRows = await executeQuery(
+            db,
+            `SELECT * FROM variantes_categoria_valores
+        WHERE did = ? AND superado = 0 AND elim = 0
+        LIMIT 1`,
+            [did]
+        );
+        const cur = curRows?.[0];
+        if (!cur) continue;
+
+        await executeQuery(
+            db,
+            `UPDATE variantes_categoria_valores
+          SET superado = 1, quien = ?
+        WHERE did = ? AND superado = 0 AND elim = 0`,
+            [userId, did]
+        );
+        await executeQuery(
+            db,
+            `INSERT INTO variantes_categoria_valores
+         (did, did_categoria, nombre, quien, superado, elim)
+       VALUES (?,   ?,             ?,      ?,     0,        1)`,
+            [Number(did), cur.did_categoria, cur.nombre ?? null, userId],
+            true
+        );
+
+        changed.valores.removed++;
     }
 
     return {
         success: true,
-        message: "Variante actualizada correctamente",
-        data: {
-            did: Number(varianteId),
-            created: created.length ? created : undefined,
-            deleted: deleted.length ? deleted : undefined
-        },
-        meta: { timestamp: new Date().toISOString() },
+        message: "Variante actualizada correctamente (versionado)",
+        data: { did: Number(varianteId) },
+        meta: { changed, timestamp: new Date().toISOString() },
     };
 }
