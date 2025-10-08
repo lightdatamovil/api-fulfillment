@@ -1,5 +1,9 @@
 // controller/productos/create_producto.js
+import axios from "axios";
 import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
+
+
+const UPLOAD_URL = "url-generico";
 
 /**
  * Crea un producto y sus asociaciones opcionales.
@@ -29,7 +33,6 @@ export async function createProducto(dbConnection, req) {
         did_cliente,
         titulo,
         descripcion,
-        imagen,
         habilitado,
         es_combo,
         posicion,
@@ -42,6 +45,8 @@ export async function createProducto(dbConnection, req) {
         insumos,
         variantesValores,
         ecommerce,
+
+        image, //agregar imagen
 
         combo, // SOLO si es_combo = 1
     } = req.body;
@@ -59,7 +64,7 @@ export async function createProducto(dbConnection, req) {
     }
 
     const descTrim = isNonEmpty(descripcion) ? String(descripcion).trim() : null;
-    const imagenTrim = isNonEmpty(imagen) ? String(imagen).trim() : null;
+    // const imagenTrim = isNonEmpty(imagen) ? String(imagen).trim() : null;
 
     const didClienteValue =
         isDefined(did_cliente) && Number.isFinite(Number(did_cliente))
@@ -108,6 +113,13 @@ export async function createProducto(dbConnection, req) {
         });
     }
 
+    //subir imagen al microservicio de archivos que reciba la url de la imagen  
+    const uploadImageUrl = await axios.post(
+        UPLOAD_URL,
+        { image: image },
+        { headers: { "Content-Type": "application/json" } }
+    );
+
     // ---------- Insert producto ----------
     const insSql = `
     INSERT INTO productos (
@@ -124,7 +136,7 @@ export async function createProducto(dbConnection, req) {
             didClienteValue,
             tituloTrim,
             descTrim,
-            imagenTrim,
+            uploadImageUrl, //image
             habValue,
             comboValue,
             posValue,
@@ -402,7 +414,7 @@ export async function createProducto(dbConnection, req) {
                 did_cliente: didClienteValue,
                 titulo: tituloTrim,
                 descripcion: descTrim,
-                imagen: imagenTrim,
+                imagen: uploadImageUrl, //image
                 habilitado: habValue,
                 es_combo: comboValue,
                 posicion: posValue,

@@ -1,5 +1,6 @@
-import { CustomException, executeQuery, Status, toStr, toBool01, toInt, hashPassword, emptyToNull } from "lightdata-tools";
-
+import axios from "axios";
+import { CustomException, Status, toStr, toBool01, toInt, hashPassword, emptyToNull, LightdataQuerys } from "lightdata-tools";
+const UPLOAD_URL = "url-generico";
 export async function createUsuario(dbConnection, req) {
     const b = req?.body ?? {};
 
@@ -16,6 +17,7 @@ export async function createUsuario(dbConnection, req) {
     const telefono = toStr(b.telefono);
     const codigo_cliente = toStr(b.codigo_cliente);
     const modulo_inicial = toStr(b.modulo_inicial);
+    const imagen = toStr(b.imagen);
 
     const usuarioRegex = /^[a-zA-Z0-9_]+$/;
     if (!usuarioRegex.test(usuario)) {
@@ -26,82 +28,57 @@ export async function createUsuario(dbConnection, req) {
         });
     }
 
-    // --- unicidad (case-insensitive) ---
-    const existsUser = await executeQuery(
-        dbConnection,
-        `SELECT 1 FROM usuarios WHERE LOWER(usuario)=LOWER(?) AND superado=0 AND elim=0 LIMIT 1`,
-        [usuario]
-    );
-    if (existsUser?.length) {
-        throw new CustomException({ status: Status.conflict, message: "El usuario ya existe." });
-    }
 
-    const existsMail = await executeQuery(
+    // --- unicidad (case-insensitive) ---
+    await LightdataQuerys.select({
         dbConnection,
-        `SELECT 1 FROM usuarios WHERE LOWER(mail)=LOWER(?) AND superado=0 AND elim=0 LIMIT 1`,
-        [email]
-    );
-    if (existsMail?.length) {
-        throw new CustomException({ status: Status.conflict, message: "El email ya está registrado." });
-    }
+        table: "usuarios",
+        column: "did",
+        value: usuario,
+        throwExceptionIfAlreadyExists: true
+    });
 
     // --- INSERT (no permito setear did/superado/elim/accesos/quien desde el front) ---
     const pass = await hashPassword(passRaw);
 
-    const insertSql = `
-    INSERT INTO usuarios
-      (nombre, apellido, mail, usuario, pass, perfil, habilitado,
-       modulo_inicial, app_habilitada, telefono, codigo_cliente,
-       superado, elim)
-    VALUES
-      (?, ?, ?, ?, ?, ?, ?,
-       ?, ?, ?, ?,
-       0, 0)
-  `;
-    const insertParams = [
-        nombre,
-        emptyToNull(apellido),
-        email,
-        usuario,
-        pass,
-        perfil,
-        habilitado,
-        emptyToNull(modulo_inicial),
-        app_habilitada,
-        emptyToNull(telefono),
-        emptyToNull(codigo_cliente)
-    ];
+    //subir imagen al microservicio de archivos
+    const uploadRes = await axios.post(
+        UPLOAD_URL,
+        { image: imagen },
+        { headers: { "Content-Type": "application/json" } }
+    );
 
-    const ins = await executeQuery(dbConnection, insertSql, insertParams);
-    const insertedId = ins?.insertId ?? ins?.[0]?.insertId;
-    if (!insertedId) {
-        throw new CustomException({
-            status: Status.internalServerError,
-            title: "Error de inserción",
-            message: "No se obtuvo insertId."
-        });
-    }
+    const data = uploadRes?.data;
 
-    // --- did = id ---
-    await executeQuery(dbConnection, `UPDATE usuarios SET did = ? WHERE id = ?`, [insertedId, insertedId]);
+    const insertImage = null;
 
-    // --- fetch final limpio ---
-    const row = (await executeQuery(
+    const userIdInsert = await LightdataQuerys.insert({
         dbConnection,
-        `SELECT
-        did, perfil, nombre, apellido, mail, usuario, habilitado,
-        modulo_inicial, app_habilitada, telefono, codigo_cliente
-     FROM usuarios
-     WHERE id = ? AND elim = 0 AND superado = 0
-     LIMIT 1`,
-        [insertedId]
-    ))?.[0];
+        table: "usuarios",
+        data: {
+            nombre,
+            apellido: emptyToNull(apellido),
+            mail: email,
+            usuario,
+            pass,
+            perfil,
+            habilitado,
+            modulo_inicial: emptyToNull(modulo_inicial),
+            app_habilitada,
+            telefono: emptyToNull(telefono),
+            codigo_cliente: emptyToNull(codigo_cliente),
+            image: insertImage,
+            superado: 0,
+            elim: 0
+        }
+    });
+
 
     return {
         success: true,
         message: "Usuario creado correctamente",
-        data: row ?? {
-            did: insertedId,
+        data: {
+            did: userIdInsert,
             perfil, nombre, apellido: apellido ?? null, email: email, usuario, habilitado,
             modulo_inicial: modulo_inicial ?? null,
             app_habilitada,
