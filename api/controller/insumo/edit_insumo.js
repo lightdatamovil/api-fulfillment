@@ -1,4 +1,4 @@
-import { executeQuery, isNonEmpty, isDefined, LightdataQuerys, CustomException } from "lightdata-tools";
+import { isNonEmpty, isDefined, LightdataQuerys, CustomException } from "lightdata-tools";
 import { DbUtils } from "../../src/functions/db_utils.js";
 
 export async function editInsumo(dbConnection, req) {
@@ -70,21 +70,12 @@ export async function editInsumo(dbConnection, req) {
         });
     }
 
-    const activos = await executeQuery(
-        dbConnection,
-        `SELECT did_cliente
-     FROM insumos_clientes
-     WHERE did_insumo = ? AND superado = 0 AND elim = 0
-     ORDER BY did_cliente ASC`,
-        [insumoId]
-    );
-
     return {
         success: true,
         message: "Insumo actualizado correctamente",
         data: {
             did: Number(insumoId),
-            clientes_ids: activos.map(r => r.did_cliente),
+            clientes_dids: Array.from(toAdd),
         },
         meta: { timestamp: new Date().toISOString() },
     };

@@ -1,4 +1,5 @@
-import { executeQuery, LightdataQuerys } from "lightdata-tools";
+import { LightdataQuerys } from "lightdata-tools";
+import { DbUtils } from "../../src/functions/db_utils";
 
 
 export async function deleteInsumo(dbConnection, req) {
@@ -12,12 +13,20 @@ export async function deleteInsumo(dbConnection, req) {
         quien: userId
     });
 
-    const qDelLinks = `
-        UPDATE insumos_clientes
-        SET elim = 1
-        WHERE did_insumo = ? AND superado = 0 AND elim = 0
-    `;
-    await executeQuery(dbConnection, qDelLinks, [insumoId]);
+    const links = await DbUtils.verifyExistsAndSelect({
+        db: dbConnection,
+        table: "insumos_clientes",
+        column: "did_insumo",
+        valor: insumoId,
+        select: "did"
+    });
+
+    await LightdataQuerys.delete({
+        dbConnection,
+        tabla: "insumos_clientes",
+        did: links,
+        quien: userId
+    });
 
     return {
         success: true,
