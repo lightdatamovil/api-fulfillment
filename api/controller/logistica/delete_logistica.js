@@ -8,22 +8,23 @@ export async function deleteLogistica(dbConnection, req) {
 
     await LightdataQuerys.delete({
         dbConnection,
-        tabla: "logisticas",
+        table: "logisticas",
         did: logisticaDid,
         quien: userId
+
     });
 
-    const links = await DbUtils.verifyExistsAndSelect({
-        db: dbConnection,
-        table: "logisticas_clientes",
+    const links = await LightdataQuerys.select({
+        dbConnection,
+        table: "logisticas_direcciones",
         column: "did_logistica",
-        valor: logisticaDid,
+        value: logisticaDid,
         select: "did"
     });
 
     await LightdataQuerys.delete({
         dbConnection,
-        tabla: "logisticas_direcciones",
+        table: "logisticas_direcciones",
         did: links,
         quien: userId
     });
