@@ -1,36 +1,19 @@
-import { CustomException, executeQuery, LightdataQuerys, Status } from "lightdata-tools";
+import { executeQuery, LightdataQuerys, } from "lightdata-tools";
 
 
-export async function editLogistica(db, req) {
+export async function editLogistica(dbConnection, req) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user ?? {};
     const { nombre, logisticaLD, codigo, codigoLD, habilitado } = req.body ?? {};
 
     const verifyLogistica = await LightdataQuerys.select({
-        db,
-
+        dbConnection: dbConnection,
         table: "logisticas",
         column: "did",
-        valor: logisticaDid,
+        value: logisticaDid,
         select: "nombre, codigo, codigoLD, logisticaLD, habilitado"
     });
     const { nombreActual, logisticaLDActual, codigoActual, codigoLDActual, habilitadoActual } = verifyLogistica;
-
-    //duplicados
-    const logisticaDuplicada = await executeQuery(
-        db,
-        `SELECT * FROM logisticas WHERE 
-            (nombre = ? OR codigo = ? ) AND superado = 0 AND elim = 0
-            LIMIT 1;`,
-        [nombre, codigo], true
-    );
-    if (logisticaDuplicada?.length) {
-        throw new CustomException({
-            title: "Duplicado",
-            message: "Ya existe un logistica activo con los mismos datos",
-            status: Status.conflict,
-        });
-    }
 
     //mapear
     const topAllowed = ["nombre", "codigo", "codigoLD", "logisticaLD", "habilitado"];
@@ -43,8 +26,8 @@ export async function editLogistica(db, req) {
     const habilitadoInsert = isDefined(topPatch.habilitado) ? topPatch.habilitado : habilitadoActual;
 
     await LightdataQuerys.update({
-        db,
-        tabla: "logisticas",
+        dbConnection: dbConnection,
+        table: "logisticas",
         did: logisticaDid,
         quien: userId,
         data: {
@@ -79,8 +62,8 @@ export async function editLogistica(db, req) {
         }));
 
         await LightdataQuerys.insert({
-            db,
-            tabla: "logisticas_direcciones",
+            dbConnection,
+            table: "logisticas_direcciones",
             quien: userId,
             data
         });
@@ -88,8 +71,8 @@ export async function editLogistica(db, req) {
     }
     if (hayDirecciones.hasRemove) {
         await LightdataQuerys.delete({
-            db,
-            tabla: "logisticas_direcciones",
+            dbConnection,
+            table: "logisticas_direcciones",
             did: hayDirecciones.didsRemove,
             quien: userId,
         });
@@ -97,38 +80,22 @@ export async function editLogistica(db, req) {
 
     if (hayDirecciones.hasUpdate) {
         console.log("entre a direcciones update");
-        const didsUpdate = hayDirecciones.update.map(d => d.id);
         const normalized = normalizeDireccionesInsert(hayDirecciones.update);
+        await LightdataQuerys.update({
+            dbConnection,
+            table: "logisticas_direcciones",
+            did: hayDirecciones.didsUpdate,
+            quien: userId,
+            data: normalized
+        });
 
-        // update sup = 1
-        const sqlUpdate = `UPDATE logisticas_direcciones SET superado = 1 WHERE did_logistica = ? AND id IN (${didsUpdate.map(() => "?").join(",")})`;
-        await executeQuery(db, sqlUpdate, [logisticaDid, ...didsUpdate]);
 
-        // insert nuevo
-        const cols = "(did_logistica, cp, calle, pais, localidad, numero, provincia, address_line, autofecha, quien, superado, elim)";
-        const placeholders = normalized.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 0, 0)").join(", ");
-        const sql = `INSERT INTO logisticas_direcciones ${cols} VALUES ${placeholders}`;
-
-        const params = [];
-        for (const d of normalized) {
-            params.push(logisticaDid, d.cp, d.calle, d.pais, d.localidad, d.numero, d.provincia, d.address_line, userId
-            );
-        }
-
-        const r = await executeQuery(db, sql, params);
-
-        // 4) chequear que se insertaron todas
-        if (r.affectedRows !== normalized.length) {
-            throw new CustomException({
-                title: "Inserción parcial",
-                message: `Se insertaron ${r.affectedRows} de ${normalized.length} direcciones`,
-            });
-        }
 
     }
+
     // select de todas las direcciones para devolver
     let direccionesReturn = [];
-    const direccionesSelect = await executeQuery(db, "SELECT id, did, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid]);
+    const direccionesSelect = await executeQuery(dbConnection, "SELECT id, did, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid]);
 
     if (direccionesSelect.length > 0) {
         direccionesReturn = direccionesSelect
