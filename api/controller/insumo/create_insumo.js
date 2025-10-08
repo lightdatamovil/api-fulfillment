@@ -6,7 +6,7 @@ export async function createInsumo(dbConnection, req) {
 
     const clientesArr = Array.from(new Set(clientes_dids.map(n => Number(n))));
 
-    console.log("1")
+
     await LightdataQuerys.select({
         dbConnection,
         table: "insumos",
@@ -14,7 +14,7 @@ export async function createInsumo(dbConnection, req) {
         value: codigo,
         throwExceptionIfAlreadyExists: true,
     });
-    console.log("2")
+
     const [newId] = await LightdataQuerys.insert({
         dbConnection,
         table: "insumos",
