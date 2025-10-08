@@ -172,18 +172,13 @@ function normalizeDireccionesInsert(adds) {
 }
 
 function getDireccionesOpsState(direcciones) {
-    const addRaw = toArray(direcciones?.add);
-    const updateRaw = toArray(direcciones?.update);
-    const removeRaw = toArray(direcciones?.remove);
+    const add = toArray(direcciones?.add);
+    const update = toArray(direcciones?.update);
+    const remove = toArray(direcciones?.remove);
 
-    const hasAdd = addRaw.length > 0;
-    const hasUpdate = updateRaw.length > 0;
-    const hasRemove = removeRaw.length > 0;
-
-    // Filtrar SOLO las que no estén vacías 
-    const add = hasAdd ? addRaw.filter((x) => !isEmptyAddress(x)) : [];
-    const update = hasUpdate ? updateRaw.filter((x) => !isEmptyAddress(x)) : [];
-    const remove = hasRemove ? removeRaw.filter((x) => !isEmptyValue(x)) : [];
+    const hasAdd = add.length > 0;
+    const hasUpdate = update.length > 0;
+    const hasRemove = remove.length > 0;
 
     const getId = (x) => (x && (x.did ?? x.id)) ?? x ?? null;
     const isValidId = (v) => v !== null && v !== undefined && v !== '';
@@ -200,17 +195,10 @@ function getDireccionesOpsState(direcciones) {
         remove,
         didsUpdate,
         didsRemove,
-
     };
 }
 
-const isEmptyAddress = (obj) => {
-    if (!obj || typeof obj !== "object") return true;
-    return Object.values(obj).every(isEmptyValue);
-};
 const toArray = (v) => Array.isArray(v) ? v : [];
-const isEmptyValue = (v) =>
-    v === undefined || v === null || (typeof v === "string" && v.trim() === "");
 const isDefined = (v) => v !== undefined;
 const pickDefined = (obj = {}, allow = null) => {
     const out = {};
