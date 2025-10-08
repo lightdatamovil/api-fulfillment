@@ -7,7 +7,6 @@ export async function editInsumo(dbConnection, req) {
 
     const norm = (v) => new Set(v.map(n => Number(n)));
 
-
     const [current] = await LightdataQuerys.select({
         dbConnection,
         table: "insumos",

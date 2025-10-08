@@ -1,21 +1,19 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
+import { CustomException, Status, LightdataQuerys } from "lightdata-tools";
 
 export async function deleteCliente(dbConnection, req) {
     const { clienteId } = req.params;
-    const nowUser = Number(req.user?.id ?? 0);
+    const { userId } = req.user ?? {};
 
-    // 1) Traer versión vigente
-    const vigenteRows = await executeQuery(
+    // 1) Traer vigente por did
+    const [vigente] = await LightdataQuerys.select({
         dbConnection,
-        `SELECT did, nombre_fantasia, razon_social, codigo, observaciones, habilitado
-       FROM clientes
-      WHERE did = ? AND superado = 0 AND elim = 0
-      LIMIT 1`,
-        [clienteId]
-    );
+        table: "clientes",
+        column: "did",
+        value: clienteId,
+        throwExceptionIfNotExists: true,
+    });
 
-    const vigente = vigenteRows?.[0] || null;
-    if (!vigente) {
+    if (Number(vigente.superado ?? 0) !== 0 || Number(vigente.elim ?? 0) !== 0) {
         throw new CustomException({
             title: "No se pudo eliminar el cliente.",
             message:
@@ -25,41 +23,30 @@ export async function deleteCliente(dbConnection, req) {
     }
 
     // 2) Superar vigente
-    const upd = await executeQuery(
+    await LightdataQuerys.update({
         dbConnection,
-        `UPDATE clientes
-        SET superado = 1, quien = ?
-      WHERE did = ? AND superado = 0 AND elim = 0`,
-        [nowUser || null, clienteId]
-    );
+        table: "clientes",
+        did: Number(clienteId),
+        quien: userId,
+        data: { superado: 1 },
+    });
 
-    // Por si hubo carrera y no se superó
-    if (upd.affectedRows === 0) {
-        throw new CustomException({
-            title: "No se pudo eliminar el cliente.",
-            message:
-                "No se pudo eliminar el cliente. Puede que ya esté eliminado o superado.",
-            status: Status.notFound,
-        });
-    }
-
-    // 3) Insertar nueva versión con MISMO did y elim = 1
-    await executeQuery(
+    // 3) Insertar nueva versión con mismo did y elim = 1
+    await LightdataQuerys.insert({
         dbConnection,
-        `INSERT INTO clientes
-       (did, nombre_fantasia, razon_social, codigo, observaciones, habilitado, quien, superado, elim)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1)`,
-        [
-            Number(clienteId),
-            vigente.nombre_fantasia ?? null,
-            vigente.razon_social ?? null,
-            vigente.codigo ?? null,
-            vigente.observaciones ?? null,
-            Number(vigente.habilitado ?? 0),
-            nowUser || null,
-        ],
-        true
-    );
+        table: "clientes",
+        quien: userId,
+        data: {
+            did: Number(clienteId),
+            nombre_fantasia: vigente.nombre_fantasia ?? null,
+            razon_social: vigente.razon_social ?? null,
+            codigo: vigente.codigo ?? null,
+            observaciones: vigente.observaciones ?? null,
+            habilitado: Number(vigente.habilitado ?? 0),
+            superado: 0,
+            elim: 1,
+        },
+    });
 
     return {
         success: true,

@@ -1,5 +1,5 @@
-// clientes.controller.js (ESM, simple y directo)
-import { executeQuery } from "lightdata-tools";
+// clientes.controller.js (ESM)
+import { LightdataQuerys } from "lightdata-tools";
 
 /**
  * PUT /api/clientes/:clienteId
@@ -12,10 +12,10 @@ import { executeQuery } from "lightdata-tools";
  * Cambio: "remove" ahora se procesa como un update versionado: se supera la fila vigente
  *         e inserta NUEVA versión con elim=1 (manteniendo el mismo did).
  */
-export async function editCliente(connection, req) {
+export async function editCliente(dbConnection, req) {
     const { clienteId } = req.params;
     const body = req.body || {};
-    const nowUser = Number(req.user?.id ?? 0);
+    const { userId } = req.user ?? {};
 
     const arr = (x) => (Array.isArray(x) ? x : []);
     const dAdd = arr(body?.direcciones?.add);
@@ -45,16 +45,15 @@ export async function editCliente(connection, req) {
 
     try {
         // 1) Traer vigente del cliente
-        const vigenteRows = await executeQuery(
-            connection,
-            `SELECT did, nombre_fantasia, razon_social, codigo, observaciones, habilitado
-       FROM clientes
-       WHERE did = ? AND superado = 0 AND elim = 0
-       LIMIT 1`,
-            [clienteId]
-        );
-        const vigente = vigenteRows?.[0] || null;
-        if (!vigente) {
+        const [vigente] = await LightdataQuerys.select({
+            dbConnection,
+            table: "clientes",
+            column: "did",
+            value: clienteId,
+            throwExceptionIfNotExists: true,
+        });
+
+        if (!(Number(vigente.superado ?? 0) === 0 && Number(vigente.elim ?? 0) === 0)) {
             return { success: false, message: "Cliente no encontrado o no vigente", data: null, meta: null };
         }
 
@@ -69,22 +68,30 @@ export async function editCliente(connection, req) {
             const habilitado = Number(body.habilitado ?? vigente.habilitado ?? 0);
 
             // superar vigente
-            await executeQuery(
-                connection,
-                `UPDATE clientes SET superado = 1, quien = ?
-         WHERE did = ? AND superado = 0 AND elim = 0`,
-                [nowUser || null, clienteId]
-            );
+            await LightdataQuerys.update({
+                dbConnection,
+                table: "clientes",
+                did: Number(clienteId),
+                quien: userId,
+                data: { superado: 1 },
+            });
 
             // insertar nueva versión con MISMO did
-            await executeQuery(
-                connection,
-                `INSERT INTO clientes
-         (did, nombre_fantasia, razon_social, codigo, observaciones, habilitado, quien, superado, elim)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)`,
-                [Number(clienteId), nombre_fantasia, razon_social, codigo, observaciones, habilitado, nowUser || null],
-                true
-            );
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes",
+                quien: userId,
+                data: {
+                    did: Number(clienteId),
+                    nombre_fantasia,
+                    razon_social,
+                    codigo,
+                    observaciones,
+                    habilitado,
+                    superado: 0,
+                    elim: 0,
+                },
+            });
 
             changed.cliente = 1;
         }
@@ -92,29 +99,24 @@ export async function editCliente(connection, req) {
         // 3) Direcciones
         // add
         for (const d of dAdd) {
-            const ins = await executeQuery(
-                connection,
-                `INSERT INTO clientes_direcciones
-         (did, did_cliente, address_line, pais, localidad, numero, calle, cp, provincia, titulo, quien, superado, elim)
-         VALUES (0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
-                [
-                    clienteId,
-                    d.address_line ?? null,
-                    d.pais ?? null,
-                    d.localidad ?? null,
-                    d.numero ?? null,
-                    d.calle ?? null,
-                    d.cp ?? null,
-                    d.provincia ?? null,
-                    d.titulo ?? null,
-                    nowUser || null,
-                ],
-                true
-            );
-            const newId = ins?.insertId || 0;
-            if (newId) {
-                await executeQuery(connection, `UPDATE clientes_direcciones SET did = ? WHERE id = ?`, [newId, newId]);
-            }
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes_direcciones",
+                quien: userId,
+                data: {
+                    did_cliente: Number(clienteId),
+                    address_line: d?.address_line ?? null,
+                    pais: d?.pais ?? null,
+                    localidad: d?.localidad ?? null,
+                    numero: d?.numero ?? null,
+                    calle: d?.calle ?? null,
+                    cp: d?.cp ?? null,
+                    provincia: d?.provincia ?? null,
+                    titulo: d?.titulo ?? null,
+                    superado: 0,
+                    elim: 0,
+                },
+            });
             changed.direcciones.added++;
         }
 
@@ -122,41 +124,45 @@ export async function editCliente(connection, req) {
         for (const d of dUpd) {
             if (!d?.did) continue;
 
-            const curRows = await executeQuery(
-                connection,
-                `SELECT * FROM clientes_direcciones
-         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
-         LIMIT 1`,
-                [d.did, clienteId]
-            );
-            const cur = curRows?.[0];
-            if (!cur) continue;
+            const [cur] = await LightdataQuerys.select({
+                dbConnection,
+                table: "clientes_direcciones",
+                column: "did",
+                value: d.did,
+            });
+            if (
+                !cur ||
+                Number(cur.did_cliente) !== Number(clienteId) ||
+                Number(cur.superado ?? 0) !== 0 ||
+                Number(cur.elim ?? 0) !== 0
+            ) {
+                continue;
+            }
 
-            const address_line = d.address_line ?? cur.address_line ?? null;
-            const pais = d.pais ?? cur.pais ?? null;
-            const localidad = d.localidad ?? cur.localidad ?? null;
-            const numero = d.numero ?? cur.numero ?? null;
-            const calle = d.calle ?? cur.calle ?? null;
-            const cp = d.cp ?? cur.cp ?? null;
-            const provincia = d.provincia ?? cur.provincia ?? null;
-            const titulo = d.titulo ?? cur.titulo ?? null;
+            const address_line = d?.address_line ?? cur.address_line ?? null;
+            const pais = d?.pais ?? cur.pais ?? null;
+            const localidad = d?.localidad ?? cur.localidad ?? null;
+            const numero = d?.numero ?? cur.numero ?? null;
+            const calle = d?.calle ?? cur.calle ?? null;
+            const cp = d?.cp ?? cur.cp ?? null;
+            const provincia = d?.provincia ?? cur.provincia ?? null;
+            const titulo = d?.titulo ?? cur.titulo ?? null;
 
-            await executeQuery(
-                connection,
-                `UPDATE clientes_direcciones
-         SET superado = 1, quien = ?
-         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
-                [nowUser || null, clienteId, d.did]
-            );
+            await LightdataQuerys.update({
+                dbConnection,
+                table: "clientes_direcciones",
+                did: Number(d.did),
+                quien: userId,
+                data: { superado: 1 },
+            });
 
-            await executeQuery(
-                connection,
-                `INSERT INTO clientes_direcciones
-         (did, did_cliente, address_line, pais, localidad, numero, calle, cp, provincia, titulo, quien, superado, elim)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
-                [
-                    Number(d.did),
-                    clienteId,
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes_direcciones",
+                quien: userId,
+                data: {
+                    did: Number(d.did),
+                    did_cliente: Number(clienteId),
                     address_line,
                     pais,
                     localidad,
@@ -165,54 +171,58 @@ export async function editCliente(connection, req) {
                     cp,
                     provincia,
                     titulo,
-                    nowUser || null,
-                ],
-                true
-            );
+                    superado: 0,
+                    elim: 0,
+                },
+            });
 
             changed.direcciones.updated++;
         }
 
         // remove (versionado: supera e inserta nueva versión con elim=1)
         for (const did of normalizeRemoveList(dDel)) {
-            const curRows = await executeQuery(
-                connection,
-                `SELECT * FROM clientes_direcciones
-         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
-         LIMIT 1`,
-                [did, clienteId]
-            );
-            const cur = curRows?.[0];
-            if (!cur) continue;
+            const [cur] = await LightdataQuerys.select({
+                dbConnection,
+                table: "clientes_direcciones",
+                column: "did",
+                value: did,
+            });
+            if (
+                !cur ||
+                Number(cur.did_cliente) !== Number(clienteId) ||
+                Number(cur.superado ?? 0) !== 0 ||
+                Number(cur.elim ?? 0) !== 0
+            ) {
+                continue;
+            }
 
-            await executeQuery(
-                connection,
-                `UPDATE clientes_direcciones
-         SET superado = 1, quien = ?
-         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
-                [nowUser || null, clienteId, did]
-            );
+            await LightdataQuerys.update({
+                dbConnection,
+                table: "clientes_direcciones",
+                did: Number(did),
+                quien: userId,
+                data: { superado: 1 },
+            });
 
-            await executeQuery(
-                connection,
-                `INSERT INTO clientes_direcciones
-         (did, did_cliente, address_line, pais, localidad, numero, calle, cp, provincia, titulo, quien, superado, elim)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)`,
-                [
-                    Number(did),
-                    clienteId,
-                    cur.address_line ?? null,
-                    cur.pais ?? null,
-                    cur.localidad ?? null,
-                    cur.numero ?? null,
-                    cur.calle ?? null,
-                    cur.cp ?? null,
-                    cur.provincia ?? null,
-                    cur.titulo ?? null,
-                    nowUser || null,
-                ],
-                true
-            );
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes_direcciones",
+                quien: userId,
+                data: {
+                    did: Number(did),
+                    did_cliente: Number(clienteId),
+                    address_line: cur.address_line ?? null,
+                    pais: cur.pais ?? null,
+                    localidad: cur.localidad ?? null,
+                    numero: cur.numero ?? null,
+                    calle: cur.calle ?? null,
+                    cp: cur.cp ?? null,
+                    provincia: cur.provincia ?? null,
+                    titulo: cur.titulo ?? null,
+                    superado: 0,
+                    elim: 1,
+                },
+            });
 
             changed.direcciones.removed++;
         }
@@ -220,18 +230,18 @@ export async function editCliente(connection, req) {
         // 4) Contactos
         // add
         for (const c of cAdd) {
-            const ins = await executeQuery(
-                connection,
-                `INSERT INTO clientes_contactos
-         (did, did_cliente, tipo, valor, quien, superado, elim)
-         VALUES (0, ?, ?, ?, ?, 0, 0)`,
-                [clienteId, Number(c.tipo ?? 0), c.valor ?? null, nowUser || null],
-                true
-            );
-            const newId = ins?.insertId || 0;
-            if (newId) {
-                await executeQuery(connection, `UPDATE clientes_contactos SET did = ? WHERE id = ?`, [newId, newId]);
-            }
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes_contactos",
+                quien: userId,
+                data: {
+                    did_cliente: Number(clienteId),
+                    tipo: Number(c?.tipo ?? 0),
+                    valor: c?.valor ?? null,
+                    superado: 0,
+                    elim: 0,
+                },
+            });
             changed.contactos.added++;
         }
 
@@ -239,67 +249,87 @@ export async function editCliente(connection, req) {
         for (const c of cUpd) {
             if (!c?.did) continue;
 
-            const curRows = await executeQuery(
-                connection,
-                `SELECT * FROM clientes_contactos
-         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
-         LIMIT 1`,
-                [c.did, clienteId]
-            );
-            const cur = curRows?.[0];
-            if (!cur) continue;
+            const [cur] = await LightdataQuerys.select({
+                dbConnection,
+                table: "clientes_contactos",
+                column: "did",
+                value: c.did,
+            });
+            if (
+                !cur ||
+                Number(cur.did_cliente) !== Number(clienteId) ||
+                Number(cur.superado ?? 0) !== 0 ||
+                Number(cur.elim ?? 0) !== 0
+            ) {
+                continue;
+            }
 
-            const tipo = Number(c.tipo ?? cur.tipo ?? 0);
-            const valor = c.valor ?? cur.valor ?? null;
+            const tipo = Number(c?.tipo ?? cur.tipo ?? 0);
+            const valor = c?.valor ?? cur.valor ?? null;
 
-            await executeQuery(
-                connection,
-                `UPDATE clientes_contactos
-         SET superado = 1, quien = ?
-         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
-                [nowUser || null, clienteId, c.did]
-            );
+            await LightdataQuerys.update({
+                dbConnection,
+                table: "clientes_contactos",
+                did: Number(c.did),
+                quien: userId,
+                data: { superado: 1 },
+            });
 
-            await executeQuery(
-                connection,
-                `INSERT INTO clientes_contactos
-         (did, did_cliente, tipo, valor, quien, superado, elim)
-         VALUES (?, ?, ?, ?, ?, 0, 0)`,
-                [Number(c.did), clienteId, tipo, valor, nowUser || null],
-                true
-            );
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes_contactos",
+                quien: userId,
+                data: {
+                    did: Number(c.did),
+                    did_cliente: Number(clienteId),
+                    tipo,
+                    valor,
+                    superado: 0,
+                    elim: 0,
+                },
+            });
 
             changed.contactos.updated++;
         }
 
-        // remove (versionado: supera e inserta nueva versión con elim=1)
+        // remove (versionado)
         for (const did of normalizeRemoveList(cDel)) {
-            const curRows = await executeQuery(
-                connection,
-                `SELECT * FROM clientes_contactos
-         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
-         LIMIT 1`,
-                [did, clienteId]
-            );
-            const cur = curRows?.[0];
-            if (!cur) continue;
+            const [cur] = await LightdataQuerys.select({
+                dbConnection,
+                table: "clientes_contactos",
+                column: "did",
+                value: did,
+            });
+            if (
+                !cur ||
+                Number(cur.did_cliente) !== Number(clienteId) ||
+                Number(cur.superado ?? 0) !== 0 ||
+                Number(cur.elim ?? 0) !== 0
+            ) {
+                continue;
+            }
 
-            await executeQuery(
-                connection,
-                `UPDATE clientes_contactos
-         SET superado = 1, quien = ?
-         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
-                [nowUser || null, clienteId, did]
-            );
+            await LightdataQuerys.update({
+                dbConnection,
+                table: "clientes_contactos",
+                did: Number(did),
+                quien: userId,
+                data: { superado: 1 },
+            });
 
-            await executeQuery(
-                connection,
-                `INSERT INTO clientes_contactos
-         (did, did_cliente, tipo, valor, quien, superado, elim)
-         VALUES (?, ?, ?, ?, ?, 0, 1)`,
-                [Number(did), clienteId, cur.tipo ?? 0, cur.valor ?? null, nowUser || null],
-                true
-            );
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes_contactos",
+                quien: userId,
+                data: {
+                    did: Number(did),
+                    did_cliente: Number(clienteId),
+                    tipo: Number(cur.tipo ?? 0),
+                    valor: cur.valor ?? null,
+                    superado: 0,
+                    elim: 1,
+                },
+            });
 
             changed.contactos.removed++;
         }
@@ -307,26 +337,21 @@ export async function editCliente(connection, req) {
         // 5) Cuentas
         // add
         for (const a of aAdd) {
-            const ins = await executeQuery(
-                connection,
-                `INSERT INTO clientes_cuentas
-         (did, did_cliente, flex, titulo, ml_id_vendedor, ml_user, data, quien, superado, elim)
-         VALUES (0, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
-                [
-                    clienteId,
-                    Number(a.flex ?? 0),
-                    a.titulo ?? null,
-                    String(a.ml_id_vendedor ?? ""),
-                    a.ml_user ?? null,
-                    a.data ?? null,
-                    nowUser || null,
-                ],
-                true
-            );
-            const newId = ins?.insertId || 0;
-            if (newId) {
-                await executeQuery(connection, `UPDATE clientes_cuentas SET did = ? WHERE id = ?`, [newId, newId]);
-            }
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes_cuentas",
+                quien: userId,
+                data: {
+                    did_cliente: Number(clienteId),
+                    flex: Number(a?.flex ?? 0),
+                    titulo: a?.titulo ?? null,
+                    ml_id_vendedor: String(a?.ml_id_vendedor ?? ""),
+                    ml_user: a?.ml_user ?? null,
+                    data: a?.data ?? null,
+                    superado: 0,
+                    elim: 0,
+                },
+            });
             changed.cuentas.added++;
         }
 
@@ -334,79 +359,96 @@ export async function editCliente(connection, req) {
         for (const a of aUpd) {
             if (!a?.did) continue;
 
-            const curRows = await executeQuery(
-                connection,
-                `SELECT * FROM clientes_cuentas
-         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
-         LIMIT 1`,
-                [a.did, clienteId]
-            );
-            const cur = curRows?.[0];
-            if (!cur) continue;
+            const [cur] = await LightdataQuerys.select({
+                dbConnection,
+                table: "clientes_cuentas",
+                column: "did",
+                value: a.did,
+            });
+            if (
+                !cur ||
+                Number(cur.did_cliente) !== Number(clienteId) ||
+                Number(cur.superado ?? 0) !== 0 ||
+                Number(cur.elim ?? 0) !== 0
+            ) {
+                continue;
+            }
 
-            const flex = Number(a.flex ?? cur.flex ?? 0);
-            const titulo = a.titulo ?? cur.titulo ?? null;
-            const ml_id_vendedor = String(a.ml_id_vendedor ?? cur.ml_id_vendedor ?? "");
-            const ml_user = a.ml_user ?? cur.ml_user ?? null;
-            const data = a.data ?? cur.data ?? null;
+            const flex = Number(a?.flex ?? cur.flex ?? 0);
+            const titulo = a?.titulo ?? cur.titulo ?? null;
+            const ml_id_vendedor = String(a?.ml_id_vendedor ?? cur.ml_id_vendedor ?? "");
+            const ml_user = a?.ml_user ?? cur.ml_user ?? null;
+            const data = a?.data ?? cur.data ?? null;
 
-            await executeQuery(
-                connection,
-                `UPDATE clientes_cuentas
-         SET superado = 1, quien = ?
-         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
-                [nowUser || null, clienteId, a.did]
-            );
+            await LightdataQuerys.update({
+                dbConnection,
+                table: "clientes_cuentas",
+                did: Number(a.did),
+                quien: userId,
+                data: { superado: 1 },
+            });
 
-            await executeQuery(
-                connection,
-                `INSERT INTO clientes_cuentas
-         (did, did_cliente, flex, titulo, ml_id_vendedor, ml_user, data, quien, superado, elim)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
-                [Number(a.did), clienteId, flex, titulo, ml_id_vendedor, ml_user, data, nowUser || null],
-                true
-            );
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes_cuentas",
+                quien: userId,
+                data: {
+                    did: Number(a.did),
+                    did_cliente: Number(clienteId),
+                    flex,
+                    titulo,
+                    ml_id_vendedor,
+                    ml_user,
+                    data,
+                    superado: 0,
+                    elim: 0,
+                },
+            });
 
             changed.cuentas.updated++;
         }
 
-        // remove (versionado: supera e inserta nueva versión con elim=1)
+        // remove (versionado)
         for (const did of normalizeRemoveList(aDel)) {
-            const curRows = await executeQuery(
-                connection,
-                `SELECT * FROM clientes_cuentas
-         WHERE did = ? AND did_cliente = ? AND superado = 0 AND elim = 0
-         LIMIT 1`,
-                [did, clienteId]
-            );
-            const cur = curRows?.[0];
-            if (!cur) continue;
+            const [cur] = await LightdataQuerys.select({
+                dbConnection,
+                table: "clientes_cuentas",
+                column: "did",
+                value: did,
+            });
+            if (
+                !cur ||
+                Number(cur.did_cliente) !== Number(clienteId) ||
+                Number(cur.superado ?? 0) !== 0 ||
+                Number(cur.elim ?? 0) !== 0
+            ) {
+                continue;
+            }
 
-            await executeQuery(
-                connection,
-                `UPDATE clientes_cuentas
-         SET superado = 1, quien = ?
-         WHERE did_cliente = ? AND did = ? AND superado = 0 AND elim = 0`,
-                [nowUser || null, clienteId, did]
-            );
+            await LightdataQuerys.update({
+                dbConnection,
+                table: "clientes_cuentas",
+                did: Number(did),
+                quien: userId,
+                data: { superado: 1 },
+            });
 
-            await executeQuery(
-                connection,
-                `INSERT INTO clientes_cuentas
-         (did, did_cliente, flex, titulo, ml_id_vendedor, ml_user, data, quien, superado, elim)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1)`,
-                [
-                    Number(did),
-                    clienteId,
-                    Number(cur.flex ?? 0),
-                    cur.titulo ?? null,
-                    String(cur.ml_id_vendedor ?? ""),
-                    cur.ml_user ?? null,
-                    cur.data ?? null,
-                    nowUser || null,
-                ],
-                true
-            );
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "clientes_cuentas",
+                quien: userId,
+                data: {
+                    did: Number(did),
+                    did_cliente: Number(clienteId),
+                    flex: Number(cur.flex ?? 0),
+                    titulo: cur.titulo ?? null,
+                    ml_id_vendedor: String(cur.ml_id_vendedor ?? ""),
+                    ml_user: cur.ml_user ?? null,
+                    data: cur.data ?? null,
+                    superado: 0,
+                    elim: 1,
+                },
+            });
 
             changed.cuentas.removed++;
         }
