@@ -1,21 +1,11 @@
-import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
+import { CustomException, Status, isNonEmpty, isDefined, number01, executeQuery } from "lightdata-tools";
+import { LightdataQuerys } from "../db_functions/lightdata_querys/lightdata_querys.js";
 
 /**
  * Alta de cliente y derivados (direcciones, contactos, cuentas).
- * - NO edita, NO borra, NO versiona: solo inserta.
- * Body:
- * {
- *   nombre_fantasia: string (req),
- *   razon_social?: string,
- *   codigo?: string,
- *   habilitado?: 0|1,
- *   observaciones?: string,
- *   direcciones?: Array<{ data?: object }>,
- *   contactos?:   Array<{ tipo?: number, valor?: string }>,
- *   cuentas?:     Array<{ tipo?: number, flex?: number, data?: object, depositos?: string, titulo?: string, ml_id_vendedor?: string, ml_user?: string }>
- * }
+ * Usa LightdataQuerys.insert() para todas las inserciones.
  */
-export async function createCliente(db, req) {
+export async function createCliente(dbConnection, req) {
     const {
         nombre_fantasia,
         razon_social,
@@ -29,6 +19,7 @@ export async function createCliente(db, req) {
     } = req.body || {};
     const { userId } = req.user ?? {};
 
+    // ---------- Validaciones básicas ----------
     const nf = String(nombre_fantasia).trim();
     const rs = isNonEmpty(razon_social) ? String(razon_social).trim() : null;
     const cod = isNonEmpty(codigo) ? String(codigo).trim() : null;
@@ -47,9 +38,9 @@ export async function createCliente(db, req) {
         habValue = h;
     }
 
-    // ---------- Duplicados (cliente activo) ----------
+    // ---------- Duplicados ----------
     const dupNF = await executeQuery(
-        db,
+        dbConnection,
         `SELECT did FROM clientes WHERE nombre_fantasia = ? AND superado = 0 AND elim = 0 LIMIT 1`,
         [nf]
     );
@@ -60,9 +51,10 @@ export async function createCliente(db, req) {
             status: Status.conflict,
         });
     }
+
     if (cod) {
         const dupCod = await executeQuery(
-            db,
+            dbConnection,
             `SELECT did FROM clientes WHERE codigo = ? AND superado = 0 AND elim = 0 LIMIT 1`,
             [cod]
         );
@@ -76,115 +68,96 @@ export async function createCliente(db, req) {
     }
 
     // ---------- Insert cliente ----------
-    const ins = await executeQuery(
-        db,
-        `
-      INSERT INTO clientes
-        (nombre_fantasia, razon_social, codigo, habilitado, observaciones, quien, superado, elim, autofecha)
-      VALUES
-        (?, ?, ?, ?, ?, ?, 0, 0, NOW())
-    `,
-        [nf, rs, cod, habValue, obs, userId],
-        true
-    );
-    if (!ins?.affectedRows) {
-        throw new CustomException({
-            title: "Error al crear cliente",
-            message: "No se pudo insertar el cliente",
-            status: Status.internalServerError,
-        });
-    }
-    const clienteId = ins.insertId;
+    const [clienteId] = await LightdataQuerys.insert({
+        dbConnection,
+        tabla: "clientes",
+        quien: userId,
+        data: {
+            nombre_fantasia: nf,
+            razon_social: rs,
+            codigo: cod,
+            habilitado: habValue,
+            observaciones: obs
+        },
+    });
 
-    // did = id
-    await executeQuery(
-        db,
-        `UPDATE clientes SET did = ? WHERE id = ?`,
-        [clienteId, clienteId],
-        true
-    );
-
-    // ========= Direcciones (solo ALTA) =========
-    const insertedDirecciones = [];
+    // ---------- Direcciones ----------
+    let insertedDirecciones = [];
     if (Array.isArray(direcciones) && direcciones.length > 0) {
-        for (const d of direcciones) {
-            const pais = isNonEmpty(d?.pais) ? String(d.pais).trim() : null;
-            const localidad = isNonEmpty(d?.localidad) ? String(d.localidad).trim() : null;
-            const calle = isNonEmpty(d?.calle) ? String(d.calle).trim() : null;
-            const numero = isNonEmpty(d?.numero) ? String(d.numero).trim() : null;
-            const cp = isNonEmpty(d?.cp) ? String(d.cp).trim() : null;
-            const provincia = isNonEmpty(d?.provincia) ? String(d.provincia).trim() : null;
+        const data = direcciones.map(d => ({
+            did_cliente: clienteId,
+            pais: isNonEmpty(d?.pais) ? String(d.pais).trim() : null,
+            localidad: isNonEmpty(d?.localidad) ? String(d.localidad).trim() : null,
+            calle: isNonEmpty(d?.calle) ? String(d.calle).trim() : null,
+            numero: isNonEmpty(d?.numero) ? String(d.numero).trim() : null,
+            cp: isNonEmpty(d?.cp) ? String(d.cp).trim() : null,
+            provincia: isNonEmpty(d?.provincia) ? String(d.provincia).trim() : null,
+        }));
 
-            const insDir = await executeQuery(
-                db,
-                `
-          INSERT INTO clientes_direcciones
-            (did_cliente, pais, localidad, calle, numero, cp,provincia, quien, superado, elim, autofecha)
-          VALUES
-            (?, ?, ?,?, ?, ?, ?,?, 0, 0, NOW())
-        `,
-                [clienteId, pais, localidad, calle, numero, cp, provincia, userId],
-                true
-            );
-            const dirId = insDir.insertId;
-            await executeQuery(db, `UPDATE clientes_direcciones SET did = ? WHERE id = ?`, [dirId, dirId], true);
-            insertedDirecciones.push({ id: dirId, did: dirId, did_cliente: clienteId, pais, localidad, calle, numero, cp, provincia, quien: userId, });
-        }
+        const dirIds = await LightdataQuerys.insert({
+            dbConnection,
+            tabla: "clientes_direcciones",
+            quien: userId,
+            data,
+        });
+
+        insertedDirecciones = data.map((d, i) => ({
+            id: dirIds[i],
+            did: dirIds[i],
+            ...d,
+            quien: userId,
+        }));
     }
 
-    // ========= Contactos (solo ALTA) =========
-    const insertedContactos = [];
+    // ---------- Contactos ----------
+    let insertedContactos = [];
     if (Array.isArray(contactos) && contactos.length > 0) {
-        for (const c of contactos) {
+        const data = contactos.map(c => ({
+            did_cliente: clienteId,
+            tipo: c.tipo ?? 0,
+            valor: c.valor ?? null,
+        }));
 
-            const tipo = c.tipo || 0;
-            const valor = c.valor || null;
-            const insCont = await executeQuery(
-                db,
-                `
-          INSERT INTO clientes_contactos
-            (did_cliente, tipo, valor, quien, superado, elim, autofecha)
-          VALUES
-            (?, ?, ?, ?, 0, 0, NOW())
-        `,
-                [clienteId, tipo, valor, userId],
-                true
-            );
-            const contId = insCont.insertId;
-            await executeQuery(db, `UPDATE clientes_contactos SET did = ? WHERE id = ?`, [contId, contId], true);
-            insertedContactos.push({ id: contId, did: contId, did_cliente: clienteId, tipo: tipo, valor: valor });
-        }
+        const contIds = await LightdataQuerys.insert({
+            dbConnection,
+            tabla: "clientes_contactos",
+            quien: userId,
+            data,
+        });
+
+        insertedContactos = data.map((c, i) => ({
+            id: contIds[i],
+            did: contIds[i],
+            ...c,
+            quien: userId,
+        }));
     }
 
-    // ========= Cuentas (solo ALTA) =========
-    let ctaId;
-    const insertedCuentas = [];
+    // ---------- Cuentas ----------
+    let insertedCuentas = [];
     if (Array.isArray(cuentas) && cuentas.length > 0) {
         for (const c of cuentas) {
-            const flex = Number(c?.flex ?? c?.tipo) || 0; // tu modelo usa 'flex' como tipo
+            const flex = Number(c?.flex ?? c?.tipo) || 0;
             const rawData = c?.data ?? {};
             const dataStr = JSON.stringify(rawData);
-
             const titulo = (c?.titulo ?? "").toString();
+            const ml_id_vendedor = flex === 1 ? (rawData?.ml_id_vendedor ?? c?.ml_id_vendedor ?? "").toString() : "";
+            const ml_user = flex === 1 ? (rawData?.ml_user ?? c?.ml_user ?? "").toString() : "";
 
-            const ml_id_vendedor =
-                flex === 1 ? (rawData?.ml_id_vendedor ?? c?.ml_id_vendedor ?? "").toString() : "";
-            const ml_user =
-                flex === 1 ? (rawData?.ml_user ?? c?.ml_user ?? "").toString() : "";
+            const [ctaId] = await LightdataQuerys.insert({
+                dbConnection,
+                tabla: "clientes_cuentas",
+                quien: userId,
+                data: {
+                    did_cliente: clienteId,
+                    flex,
+                    data: dataStr,
+                    titulo,
+                    ml_id_vendedor,
+                    ml_user,
+                },
+            });
 
-            const insCta = await executeQuery(
-                db,
-                `
-          INSERT INTO clientes_cuentas
-            (did_cliente, flex, data, titulo, ml_id_vendedor, ml_user, quien, superado, elim, autofecha)
-          VALUES
-            (?, ?, ?, ?, ?, ?, ?,  0, 0, NOW())
-        `,
-                [clienteId, flex, dataStr, titulo, ml_id_vendedor, ml_user, userId],
-                true
-            );
-            ctaId = insCta.insertId;
-            await executeQuery(db, `UPDATE clientes_cuentas SET did = ? WHERE id = ?`, [ctaId, ctaId], true);
             insertedCuentas.push({
                 id: ctaId,
                 did: ctaId,
@@ -195,31 +168,23 @@ export async function createCliente(db, req) {
                 ml_id_vendedor,
                 ml_user,
             });
-        }
 
-        const insertDepositos = [];
-        if (Array.isArray(depositos) && depositos.length > 0) {
-            for (const d of depositos) {
-                const did_deposito = Number(d?.did_deposito) || 0;
+            // ---------- Depósitos por cuenta ----------
+            if (Array.isArray(depositos) && depositos.length > 0) {
+                const data = depositos.map(d => ({
+                    did_cliente_cuenta: ctaId,
+                    did_deposito: Number(d?.did_deposito) || 0,
+                }));
 
-                await executeQuery(
-                    db,
-                    `
-              INSERT INTO clientes_cuentas_depositos
-                (did_cliente_cuenta, did_deposito, quien, superado, elim, autofecha)
-              VALUES
-                (?, ?, ?, 0, 0, NOW())
-            `,
-                    [ctaId, did_deposito, userId],
-
-                );
-                insertDepositos.push({ did_cliente_cuenta: ctaId, did_deposito, });
+                await LightdataQuerys.insert({
+                    dbConnection,
+                    tabla: "clientes_cuentas_depositos",
+                    quien: userId,
+                    data,
+                });
             }
         }
     }
-
-
-
 
     // ---------- Respuesta ----------
     return {

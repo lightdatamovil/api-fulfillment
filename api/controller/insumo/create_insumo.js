@@ -19,8 +19,8 @@ export async function createInsumo(dbConnection, req) {
     const [newId] = await LightdataQuerys.insert({
         dbConnection,
         tabla: "insumos",
-        quien: userId,
         data: { codigo, nombre, unidad, habilitado },
+        quien: userId,
     });
 
     if (clientesArr.length > 0) {
