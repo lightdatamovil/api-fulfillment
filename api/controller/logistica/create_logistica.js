@@ -19,7 +19,6 @@ export async function createlogistica(db, req) {
         LIMIT 1;`,
         [nombre, codigo]
     );
-
     if (logisticaDuplicada?.length) {
         throw new CustomException({
             title: "Duplicado",

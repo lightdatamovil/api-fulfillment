@@ -6,7 +6,6 @@ export async function createInsumo(dbConnection, req) {
 
     const clientesArr = Array.from(new Set(clientes_dids.map(n => Number(n))));
 
-
     await LightdataQuerys.select({
         dbConnection,
         table: "insumos",
