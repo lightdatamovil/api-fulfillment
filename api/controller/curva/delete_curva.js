@@ -1,72 +1,55 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
+import { LightdataQuerys } from "lightdata-tools";
 
-/**
- * Soft-delete de curva por DID.
- * Marca elim=1 en:
- *  - variantes_curvas (did = ?)
- *  - variantes_categorias_curvas (did_curva = ?)
- *
- * Entrada: body { did }
- */
 export async function deleteCurva(dbConnection, req) {
-    const didParam = req.body?.did ?? req.params?.did;
-    const didCurva = Number(didParam);
+    const { curvaDid } = req.params;
+    const { userId } = req.user;
 
-    if (!Number.isFinite(didCurva) || didCurva <= 0) {
-        throw new CustomException({
-            title: "Parámetro inválido",
-            message: "Se requiere 'did' numérico válido",
-            status: Status.badRequest,
+    // Borra la curva principal
+    await LightdataQuerys.delete({
+        dbConnection,
+        table: "curvas",
+        did: curvaDid,
+        quien: userId,
+    });
+
+    // Borra links a variantes
+    const vlinks = await LightdataQuerys.select({
+        dbConnection,
+        table: "variantes_curvas",
+        column: "did_curva",
+        value: curvaDid,
+    });
+
+    if (vlinks.length > 0) {
+        await LightdataQuerys.delete({
+            dbConnection,
+            table: "variantes_curvas",
+            did: vlinks.map((l) => l.did),
+            quien: userId,
         });
     }
 
-    const cur = await executeQuery(
+    // Borra links a categorías de variantes
+    const clinks = await LightdataQuerys.select({
         dbConnection,
-        `SELECT did, elim FROM variantes_curvas WHERE did = ? LIMIT 1`,
-        [didCurva]
-    );
+        table: "variantes_categorias_curvas",
+        column: "did_curva",
+        value: curvaDid,
+    });
 
-    if (!cur || cur.length === 0) {
-        throw new CustomException({
-            title: "No encontrado",
-            message: `No existe la curva con did ${didCurva}`,
-            status: Status.notFound,
+    if (clinks.length > 0) {
+        await LightdataQuerys.delete({
+            dbConnection,
+            table: "variantes_categorias_curvas",
+            did: clinks.map((l) => l.did),
+            quien: userId,
         });
     }
-
-    if (Number(cur[0].elim) === 1) {
-        return {
-            success: true,
-            message: "La curva ya estaba eliminada",
-            data: { did: didCurva, affected: { curva: 0, links: 0 } },
-            meta: { timestamp: new Date().toISOString() },
-        };
-    }
-
-    const updLinks = await executeQuery(
-        dbConnection,
-        `UPDATE variantes_categorias_curvas SET elim = 1 WHERE did_curva = ?`,
-        [didCurva],
-        true
-    );
-
-    const updCurva = await executeQuery(
-        dbConnection,
-        `UPDATE variantes_curvas SET elim = 1 WHERE did = ?`,
-        [didCurva],
-        true
-    );
 
     return {
         success: true,
         message: "Curva eliminada correctamente",
-        data: {
-            did: didCurva,
-            affected: {
-                curva: updCurva?.affectedRows ?? 0,
-                links: updLinks?.affectedRows ?? 0,
-            },
-        },
+        data: { did: curvaDid },
         meta: { timestamp: new Date().toISOString() },
     };
 }

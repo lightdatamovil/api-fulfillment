@@ -1,52 +1,64 @@
-import { CustomException, Status, LightdataQuerys } from "lightdata-tools";
+import { LightdataQuerys } from "lightdata-tools";
 
 export async function deleteCliente(dbConnection, req) {
     const { clienteId } = req.params;
     const { userId } = req.user ?? {};
 
-    // 1) Traer vigente por did
-    const [vigente] = await LightdataQuerys.select({
+    // Borra el cliente principal
+    await LightdataQuerys.delete({
         dbConnection,
         table: "clientes",
-        column: "did",
-        value: clienteId,
-        throwExceptionIfNotExists: true,
+        did: clienteId,
+        quien: userId,
     });
 
-    if (Number(vigente.superado ?? 0) !== 0 || Number(vigente.elim ?? 0) !== 0) {
-        throw new CustomException({
-            title: "No se pudo eliminar el cliente.",
-            message:
-                "No se pudo eliminar el cliente. Puede que no exista o ya esté eliminado.",
-            status: Status.notFound,
+    // Borra direcciones vinculadas
+    const dirLinks = await LightdataQuerys.select({
+        dbConnection,
+        table: "clientes_direcciones",
+        column: "did_cliente",
+        value: clienteId,
+    });
+    if (dirLinks.length > 0) {
+        await LightdataQuerys.delete({
+            dbConnection,
+            table: "clientes_direcciones",
+            did: dirLinks.map((l) => l.did),
+            quien: userId,
         });
     }
 
-    // 2) Superar vigente
-    await LightdataQuerys.update({
+    // Borra contactos vinculados
+    const contLinks = await LightdataQuerys.select({
         dbConnection,
-        table: "clientes",
-        did: Number(clienteId),
-        quien: userId,
-        data: { superado: 1 },
+        table: "clientes_contactos",
+        column: "did_cliente",
+        value: clienteId,
     });
+    if (contLinks.length > 0) {
+        await LightdataQuerys.delete({
+            dbConnection,
+            table: "clientes_contactos",
+            did: contLinks.map((l) => l.did),
+            quien: userId,
+        });
+    }
 
-    // 3) Insertar nueva versión con mismo did y elim = 1
-    await LightdataQuerys.insert({
+    // Borra cuentas vinculadas
+    const cuentaLinks = await LightdataQuerys.select({
         dbConnection,
-        table: "clientes",
-        quien: userId,
-        data: {
-            did: Number(clienteId),
-            nombre_fantasia: vigente.nombre_fantasia ?? null,
-            razon_social: vigente.razon_social ?? null,
-            codigo: vigente.codigo ?? null,
-            observaciones: vigente.observaciones ?? null,
-            habilitado: Number(vigente.habilitado ?? 0),
-            superado: 0,
-            elim: 1,
-        },
+        table: "clientes_cuentas",
+        column: "did_cliente",
+        value: clienteId,
     });
+    if (cuentaLinks.length > 0) {
+        await LightdataQuerys.delete({
+            dbConnection,
+            table: "clientes_cuentas",
+            did: cuentaLinks.map((l) => l.did),
+            quien: userId,
+        });
+    }
 
     return {
         success: true,
