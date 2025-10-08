@@ -1,27 +1,32 @@
-import { executeQuery } from "lightdata-tools";
+import { LightdataQuerys } from "lightdata-tools";
 
 export async function getlogisticaById(db, req) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user;
 
-    console.log("logisticaDid", logisticaDid);
-
-    const logistica = await DbUtils.verifyExistsAndSelect({
-        db,
+    const logistica = await LightdataQuerys.select({
+        dbConnection: db,
         table: "logisticas",
         column: "did",
-        valor: logisticaDid,
-        select: "did, nombre, codigo, codigoLD, logisticaLD, habilitado"
+        value: logisticaDid,
+        select: "*",
+        throwExceptionIfNotExists: true
     });
+    console.log(logistica);
 
     const { nombre, codigo, codigoLD, logisticaLD, habilitado } = logistica;
 
-    const sqlDirecciones = 'SELECT id, CP, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0';
+    const logisticaDirecciones = await LightdataQuerys.select({
+        dbConnection: db,
+        table: "logisticas_direcciones",
+        column: "did_logistica",
+        value: logisticaDid,
+        select: ["id", "CP", "calle", "pais", "localidad", "numero", "provincia", "address_line"]
+    });
 
-    const direccionesSelect = await executeQuery(db, sqlDirecciones, [logisticaDid]);
 
     //mapear direcciones a objeto direcciones
-    const direcciones = direccionesSelect.map(d => ({
+    const direcciones = logisticaDirecciones.map(d => ({
         id: d.id,
         cp: d.CP,
         calle: d.calle,

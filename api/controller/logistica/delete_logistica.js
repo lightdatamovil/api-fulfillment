@@ -1,5 +1,5 @@
 import { LightdataQuerys } from "lightdata-tools";
-import { DbUtils } from "../../src/functions/db_utils";
+
 
 
 export async function deleteLogistica(dbConnection, req) {

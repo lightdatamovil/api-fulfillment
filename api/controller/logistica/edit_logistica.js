@@ -1,13 +1,14 @@
 import { CustomException, executeQuery, LightdataQuerys, Status } from "lightdata-tools";
-import { DbUtils } from "../../src/functions/db_utils.js";
+
 
 export async function editLogistica(db, req) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user ?? {};
     const { nombre, logisticaLD, codigo, codigoLD, habilitado } = req.body ?? {};
 
-    const verifyLogistica = await DbUtils.verifyExistsAndSelect({
+    const verifyLogistica = await LightdataQuerys.select({
         db,
+
         table: "logisticas",
         column: "did",
         valor: logisticaDid,
