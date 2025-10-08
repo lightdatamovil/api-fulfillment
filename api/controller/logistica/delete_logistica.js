@@ -1,21 +1,32 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
+import { LightdataQuerys } from "lightdata-tools";
+import { DbUtils } from "../../src/functions/db_utils";
 
 
 export async function deleteLogistica(dbConnection, req) {
     const { logisticaDid } = req.params;
+    const { userId } = req.user;
 
-    const deleteQuery =
-        "UPDATE logisticas SET elim = 1  WHERE did = ? AND superado = 0 AND elim = 0";
-    const result = await executeQuery(dbConnection, deleteQuery, [logisticaDid]);
-    if (result.affectedRows === 0) {
+    await LightdataQuerys.delete({
+        dbConnection,
+        tabla: "logisticas",
+        did: logisticaDid,
+        quien: userId
+    });
 
-        throw new CustomException({
-            title: "No se pudo eliminar el logistica.",
-            message: "No se pudo eliminar el logistica. Puede que no exista o ya esté eliminado.",
-            status: Status.notFound
-        });
-    }
-    await executeQuery(dbConnection, "UPDATE logisticas_direcciones SET elim = 1 WHERE logistica_did = ? and superado = 0 and elim = 0", [logisticaDid]);
+    const links = await DbUtils.verifyExistsAndSelect({
+        db: dbConnection,
+        table: "logisticas_clientes",
+        column: "did_logistica",
+        valor: logisticaDid,
+        select: "did"
+    });
+
+    await LightdataQuerys.delete({
+        dbConnection,
+        tabla: "logisticas_direcciones",
+        did: links,
+        quien: userId
+    });
 
     return {
         success: true,
