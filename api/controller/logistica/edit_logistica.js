@@ -1,10 +1,11 @@
-import { CustomException, executeQuery } from "lightdata-tools";
+import { CustomException, executeQuery, LightdataQuerys, Status } from "lightdata-tools";
+import { DbUtils } from "../../src/functions/db_utils.js";
 
 export async function editLogistica(db, req) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user ?? {};
+    const { nombre, logisticaLD, codigo, codigoLD, habilitado } = req.body ?? {};
 
-    //EXISTE?
     const verifyLogistica = await DbUtils.verifyExistsAndSelect({
         db,
         table: "logisticas",
@@ -12,21 +13,27 @@ export async function editLogistica(db, req) {
         valor: logisticaDid,
         select: "nombre, codigo, codigoLD, logisticaLD, habilitado"
     });
-
     const { nombreActual, logisticaLDActual, codigoActual, codigoLDActual, habilitadoActual } = verifyLogistica;
+
+    //duplicados
+    const logisticaDuplicada = await executeQuery(
+        db,
+        `SELECT * FROM logisticas WHERE 
+            (nombre = ? OR codigo = ? ) AND superado = 0 AND elim = 0
+            LIMIT 1;`,
+        [nombre, codigo], true
+    );
+    if (logisticaDuplicada?.length) {
+        throw new CustomException({
+            title: "Duplicado",
+            message: "Ya existe un logistica activo con los mismos datos",
+            status: Status.conflict,
+        });
+    }
 
     //mapear
     const topAllowed = ["nombre", "codigo", "codigoLD", "logisticaLD", "habilitado"];
     const topPatch = pickDefined(req.body, topAllowed);
-
-    // Mapear nombres de body -> columnas reales
-    const updateTop = {
-        ...(isDefined(topPatch.nombre) ? { nombre: topPatch.nombre } : {}),
-        ...(isDefined(topPatch.codigo) ? { codigo: topPatch.codigo } : {}),
-        ...(isDefined(topPatch.codigoLD) ? { codigoLD: topPatch.codigoLD } : {}),
-        ...(isDefined(topPatch.logisticaLD) ? { logisticaLD: topPatch.logisticaLD } : {}),
-        ...(isDefined(topPatch.habilitado) ? { habilitado: topPatch.habilitado } : {}),
-    };
 
     const nombreInsert = isDefined(topPatch.nombre) ? topPatch.nombre : nombreActual;
     const codigoInsert = isDefined(topPatch.codigo) ? topPatch.codigo : codigoActual;
@@ -34,74 +41,57 @@ export async function editLogistica(db, req) {
     const logisticaLDInsert = isDefined(topPatch.logisticaLD) ? topPatch.logisticaLD : logisticaLDActual;
     const habilitadoInsert = isDefined(topPatch.habilitado) ? topPatch.habilitado : habilitadoActual;
 
-    const huboCambio = nombreInsert !== nombreActual || codigoInsert !== codigoActual || codigoLDInsert !== codigoLDActual || logisticaLDInsert !== logisticaLDActual || habilitadoInsert !== habilitadoActual;
-
-
-    // si varables actual != variables nuevas
-
-    if (huboCambio) {
-
-        //SUPERADO = 1
-        await executeQuery(db, "UPDATE logisticas SET superado = 1 WHERE did = ? AND superado = 0 AND elim = 0", [logisticaDid]);
-
-        // updateo inserto 
-        const queryUpddate = `INSERT INTO logisticas (did, nombre, logisticaLD, codigo, codigoLD, habilitado,  autofecha, quien, superado, elim)
-        VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, 0, 0)`;
-        const insertUpdate = await executeQuery(db, queryUpddate, [logisticaDid, nombreInsert, logisticaLDInsert, codigoInsert, codigoLDInsert, habilitadoInsert, userId]);
-
-        if (insertUpdate.affectedRows !== 1) {
-            throw new CustomException({
-                title: "Error al actualizar logistica",
-                message: "No se pudo actualizar el logistica",
-            });
+    await LightdataQuerys.update({
+        db,
+        tabla: "logisticas",
+        did: logisticaDid,
+        quien: userId,
+        data: {
+            codigo: codigoInsert,
+            nombre: nombreInsert,
+            codigoLD: codigoLDInsert,
+            logisticaLD: logisticaLDInsert,
+            habilitado: habilitadoInsert
         }
-    }
+    });
 
-    // lo mismo en logisticas_direcciones
+    // logisticas_direcciones
     const { direcciones } = req.body ?? {};
     const hayDirecciones = getDireccionesOpsState(direcciones);
 
     if (hayDirecciones.hasAdd) {
         console.log("entre a direcciones add");
 
-        const normalized = normalizeDireccionesInsert(hayDirecciones.add);
-        console.log("normalized", normalized);
+        const data = hayDirecciones.add.map(direccion => ({
+            did_logistica: logisticaDid,
+            cp: direccion.cp,
+            calle: direccion.calle,
+            pais: direccion.pais,
+            localidad: direccion.localidad,
+            numero: direccion.numero,
+            provincia: direccion.provincia,
+            address_line: direccion.address_line,
+            autofecha: new Date(),
+            quien: userId,
+            superado: 0,
+            elim: 0
+        }));
 
-        const cols = "(did_logistica, cp, calle, pais, localidad, numero, provincia, address_line, autofecha, quien, superado, elim)";
-        const placeholders = normalized.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 0, 0)").join(", ");
-        const sql = `INSERT INTO logisticas_direcciones ${cols} VALUES ${placeholders}`;
-
-        const params = [];
-        for (const d of normalized) {
-            params.push(logisticaDid, d.cp, d.calle, d.pais, d.localidad, d.numero, d.provincia, d.address_line, userId
-            );
-        }
-
-        const r = await executeQuery(db, sql, params);
-
-        // 4) chequear que se insertaron todas
-        if (r.affectedRows !== normalized.length) {
-            throw new CustomException({
-                title: "Inserción parcial",
-                message: `Se insertaron ${r.affectedRows} de ${normalized.length} direcciones`,
-            });
-        }
-
-        // 8) Respuesta
+        await LightdataQuerys.insert({
+            db,
+            tabla: "logisticas_direcciones",
+            quien: userId,
+            data
+        });
 
     }
     if (hayDirecciones.hasRemove) {
-        console.log("entre a direcciones remove");
-        const idsRemove = hayDirecciones.remove;
-
-        if (idsRemove.length > 0) {
-            const sql = `UPDATE logisticas_direcciones
-        SET elim = 1 WHERE did_logistica = ?
-        AND id IN (${idsRemove.map(() => "?").join(",")})
-        AND superado = 0
-        AND elim = 0 `;
-            await executeQuery(db, sql, [logisticaDid, ...idsRemove]);
-        }
+        await LightdataQuerys.delete({
+            db,
+            tabla: "logisticas_direcciones",
+            did: hayDirecciones.didsRemove,
+            quien: userId,
+        });
     }
 
     if (hayDirecciones.hasUpdate) {
@@ -147,12 +137,12 @@ export async function editLogistica(db, req) {
         message: "logistica actualizada correctamente",
         data: {
             did: logisticaDid,
-            nombre: nombreInsert,
-            logisticaLD: logisticaLDInsert,
-            codigo: codigoInsert,
-            codigoLD: codigoLDInsert,
+            nombre: nombre,
+            logisticaLD: logisticaLD,
+            codigo: codigo,
+            codigoLD: codigoLD,
             quien: userId,
-            habilitado: habilitadoInsert,
+            habilitado: habilitado,
             direcciones: direccionesReturn
 
         },
@@ -186,26 +176,32 @@ function getDireccionesOpsState(direcciones) {
     const updateRaw = toArray(direcciones?.update);
     const removeRaw = toArray(direcciones?.remove);
 
-    // Filtrar entradas vacías
-    const add = addRaw.filter((x) => !isEmptyAddress(x));
-    const update = updateRaw.filter((x) => !isEmptyAddress(x));
+    const hasAdd = addRaw.length > 0;
+    const hasUpdate = updateRaw.length > 0;
+    const hasRemove = removeRaw.length > 0;
 
-    // Para remove, si envías IDs o claves, filtrá valores vacíos
-    const remove = removeRaw.filter((x) => !isEmptyValue(x));
+    // Filtrar SOLO las que no estén vacías 
+    const add = hasAdd ? addRaw.filter((x) => !isEmptyAddress(x)) : [];
+    const update = hasUpdate ? updateRaw.filter((x) => !isEmptyAddress(x)) : [];
+    const remove = hasRemove ? removeRaw.filter((x) => !isEmptyValue(x)) : [];
 
-    const counts = {
-        add: add.length,
-        update: update.length,
-        remove: remove.length,
+    const getId = (x) => (x && (x.did ?? x.id)) ?? x ?? null;
+    const isValidId = (v) => v !== null && v !== undefined && v !== '';
+
+    const didsUpdate = hasUpdate ? update.map(getId).filter(isValidId) : [];
+    const didsRemove = hasRemove ? remove.map(getId).filter(isValidId) : [];
+
+    return {
+        hasAdd,
+        hasUpdate,
+        hasRemove,
+        add,
+        update,
+        remove,
+        didsUpdate,
+        didsRemove,
+
     };
-
-    const flags = {
-        hasAdd: counts.add > 0,
-        hasUpdate: counts.update > 0,
-        hasRemove: counts.remove > 0,
-    };
-
-    return { add, update, remove, counts, ...flags, hasWork: flags.hasAdd || flags.hasUpdate || flags.hasRemove };
 }
 
 const isEmptyAddress = (obj) => {
@@ -222,4 +218,5 @@ const pickDefined = (obj = {}, allow = null) => {
     for (const k of keys) if (isDefined(obj[k])) out[k] = obj[k];
     return out;
 }
+
 const nn = (v) => (v ?? null);  
