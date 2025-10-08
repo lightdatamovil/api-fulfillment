@@ -1,8 +1,15 @@
-import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataQuerys, } from "lightdata-tools";
+import {
+    CustomException,
+    Status,
+    isNonEmpty,
+    isDefined,
+    number01,
+    LightdataQuerys,
+} from "lightdata-tools";
 
 /**
  * Alta de cliente y derivados (direcciones, contactos, cuentas).
- * - Usa DbUtils para validaciones (duplicados / existencia)
+ * - Usa LightdataQuerys.select() para validaciones (duplicados / existencia)
  * - Usa LightdataQuerys.insert() para todas las inserciones
  */
 export async function createCliente(dbConnection, req) {
@@ -39,21 +46,21 @@ export async function createCliente(dbConnection, req) {
     }
 
     // ---------- Verificación de duplicados ----------
-    await DbUtils.verifyExistsAndSelect({
-        db: dbConnection,
+    await LightdataQuerys.select({
+        dbConnection,
         table: "clientes",
         column: "nombre_fantasia",
-        valor: nf,
+        value: nf,
         throwExceptionIfAlreadyExists: true,
     });
 
     if (cod) {
-        await DbUtils.verifyExistsAndSelect({
-            db: dbConnection,
+        await LightdataQuerys.select({
+            dbConnection,
             table: "clientes",
             column: "codigo",
-            valor: cod,
-            notExist: true,
+            value: cod,
+            throwExceptionIfAlreadyExists: true,
         });
     }
 
@@ -81,9 +88,7 @@ export async function createCliente(dbConnection, req) {
             calle: isNonEmpty(d?.calle) ? String(d.calle).trim() : null,
             numero: isNonEmpty(d?.numero) ? String(d.numero).trim() : null,
             cp: isNonEmpty(d?.cp) ? String(d.cp).trim() : null,
-            provincia: isNonEmpty(d?.provincia)
-                ? String(d.provincia).trim()
-                : null,
+            provincia: isNonEmpty(d?.provincia) ? String(d.provincia).trim() : null,
         }));
 
         const dirIds = await LightdataQuerys.insert({
@@ -106,8 +111,8 @@ export async function createCliente(dbConnection, req) {
     if (Array.isArray(contactos) && contactos.length > 0) {
         const data = contactos.map((c) => ({
             did_cliente: clienteId,
-            tipo: c.tipo ?? 0,
-            valor: c.valor ?? null,
+            tipo: c?.tipo ?? 0,
+            valor: c?.valor ?? null,
         }));
 
         const contIds = await LightdataQuerys.insert({
