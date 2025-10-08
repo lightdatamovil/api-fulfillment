@@ -1,13 +1,9 @@
-import { CustomException, executeQuery, Status, isNonEmpty } from "lightdata-tools";
-
+import { CustomException, Status, isNonEmpty, LightdataQuerys } from "lightdata-tools";
 
 /**
- * Crea una curva y, opcionalmente, asocia categorías a la curva.
- * Body esperado:
- * {
- *   nombre: string (requerido),
- *   categorias: number[] (opcional) // array de did_categoria
- * }
+ * Crea una curva y, opcionalmente, asocia variantes a la curva.
+ * Body:
+ *   { nombre: string, variantes?: number[] }
  */
 export async function createCurva(dbConnection, req) {
     const { nombre, variantes } = req.body;
@@ -24,94 +20,71 @@ export async function createCurva(dbConnection, req) {
     }
 
     // Insert curva
-    const insSql = `
-    INSERT INTO curvas (nombre, quien, superado, elim)
-    VALUES (?, ?, 0, 0)
-  `;
-    const ins = await executeQuery(dbConnection, insSql, [nombreTrim, userId]);
-
-    if (!ins || ins.affectedRows === 0) {
-        throw new CustomException({
-            title: "Error al crear curva",
-            message: "No se pudo insertar la curva",
-            status: Status.internalServerError,
-        });
-    }
-
-    const id = ins.insertId;
-    await executeQuery(
+    const [didCurva] = await LightdataQuerys.insert({
         dbConnection,
-        `UPDATE curvas SET did = ? WHERE id = ?`,
-        [id, id],
-        true
-    );
+        table: "curvas",
+        quien: userId,
+        data: { nombre: nombreTrim, superado: 0, elim: 0 },
+    });
 
-    const didCurva = id;
-
-    // Asociaciones opcionales con categorías
+    // Asociaciones opcionales con variantes
     let linked = 0;
     if (Array.isArray(variantes) && variantes.length > 0) {
-        // Validar que existan esas categorías activas
         const validIds = variantes
             .map((n) => Number(n))
             .filter((n) => Number.isFinite(n) && n > 0);
 
         if (validIds.length !== variantes.length) {
             throw new CustomException({
-                title: "Categorías inválidas",
-                message: "Todas las categorías deben ser números válidos",
+                title: "Variantes inválidas",
+                message: "Todas las variantes deben ser números válidos",
                 status: Status.badRequest,
             });
         }
 
-        // Validar existencia en variantes_categorias (activas)
-        const placeholders = validIds.map(() => "?").join(", ");
-        const qCheck = `
-      SELECT did
-      FROM variantes
-      WHERE elim = 0 AND superado = 0 AND did IN (${placeholders})
-    `;
-        const found = await executeQuery(dbConnection, qCheck, validIds);
-
-        const foundSet = new Set((found || []).map((r) => Number(r.did)));
-        const missing = validIds.filter((d) => !foundSet.has(d));
-        if (missing.length > 0) {
-            throw new CustomException({
-                title: "Categorías no encontradas",
-                message: `No existen/activas las siguientes categorías: [${missing.join(", ")}]`,
-                status: Status.badRequest,
-            });
-        }
-
-        // Insertar links (si ya existiera el par y estuviera elim=1, lo reactivamos)
+        // Validar existencia de cada variante vigente (elim=0, superado=0)
         for (const didVariante of validIds) {
-            // Intentar reactivar
-            const upd = await executeQuery(
+            const [varRow] = await LightdataQuerys.select({
                 dbConnection,
-                `
-          UPDATE variantes_curvas
-          SET elim = 0, superado = 0, quien = ?
-          WHERE did_curva = ? AND did_categoria = ?
-        `,
-                [userId, didCurva, didVariante],
-                true
-            );
+                table: "variantes",
+                column: "did",
+                value: didVariante,
+                throwExceptionIfNotExists: true,
+            });
 
-            if (!upd || upd.affectedRows === 0) {
-                // Si no existía, insertamos
-                const insLink = await executeQuery(
-                    dbConnection,
-                    `
-            INSERT INTO variantes_curvas (did_curva, did_variante, quien, superado, elim)
-            VALUES (?, ?, ?, 0, 0)
-          `,
-                    [didCurva, didVariante, userId],
-                    true
-                );
-                if (insLink && insLink.affectedRows > 0) linked += 1;
-            } else {
-                linked += 1;
+            if (Number(varRow.elim ?? 0) !== 0 || Number(varRow.superado ?? 0) !== 0) {
+                throw new CustomException({
+                    title: "Variantes no encontradas",
+                    message: `No existe/activa la variante ${didVariante}`,
+                    status: Status.badRequest,
+                });
             }
+
+            // Reactivar link si existía (elim=1/superado=1) o insertar si no existía
+            // Primero intento UPDATE por clave compuesta
+            await LightdataQuerys.update({
+                dbConnection,
+                table: "variantes_curvas",
+                quien: userId,
+                // Se asume que LightdataQuerys.update soporta where por columnas
+                where: { did_curva: Number(didCurva), did_variante: Number(didVariante) },
+                data: { elim: 0, superado: 0 },
+            });
+
+            // Luego inserto (si ya existía el par activo, el índice único debería evitar duplicados)
+            await LightdataQuerys.insert({
+                dbConnection,
+                table: "variantes_curvas",
+                quien: userId,
+                data: {
+                    did_curva: Number(didCurva),
+                    did_variante: Number(didVariante),
+                    superado: 0,
+                    elim: 0,
+                },
+            });
+
+            linked += 1;
         }
     }
 

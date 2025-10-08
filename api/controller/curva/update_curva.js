@@ -1,12 +1,12 @@
 // controller/variantes/update_curva.js
-import { CustomException, executeQuery, Status, isNonEmpty } from "lightdata-tools";
+import { CustomException, Status, isNonEmpty, LightdataQuerys } from "lightdata-tools";
 
 /**
- * Versionado de curva (PUT):
- * - Supera la versión vigente de variantes_curvas para el did dado.
- * - Inserta nueva versión con el mismo did (id cambia).
- * - Si viene "categorias" (number[]), supera los links vigentes y re-inserta los nuevos.
- *   Si no viene, no toca links.
+ * Versionado de curva (PUT) usando LightdataQuerys:
+ * - Supera la versión vigente de curvas para el did dado.
+ * - Inserta nueva versión con el mismo did (id cambia internamente).
+ * - Si viene "categorias" (number[]), supera links vigentes en variantes_categorias_curvas
+ *   y re-inserta los nuevos. Si no viene, no toca links.
  *
  * Body:
  *   did: number (requerido)
@@ -14,8 +14,8 @@ import { CustomException, executeQuery, Status, isNonEmpty } from "lightdata-too
  *   categorias?: number[]   // opcional
  */
 export async function updateCurva(dbConnection, req) {
-    const { did, nombre, categorias } = req.body;
-    const { userId } = req.user;
+    const { did, nombre, categorias } = req.body || {};
+    const { userId } = req.user || {};
 
     const didCurva = Number(did);
     if (!Number.isFinite(didCurva) || didCurva <= 0) {
@@ -26,20 +26,16 @@ export async function updateCurva(dbConnection, req) {
         });
     }
 
-    // Traer la versión vigente actual (elim=0, superado=0)
-    const currRows = await executeQuery(
+    // 1) Traer versión vigente actual de la curva (elim=0, superado=0)
+    const [curr] = await LightdataQuerys.select({
         dbConnection,
-        `
-      SELECT id, did, nombre
-      FROM variantes_curvas
-      WHERE did = ? AND elim = 0 AND superado = 0
-      ORDER BY id DESC
-      LIMIT 1
-    `,
-        [didCurva]
-    );
+        table: "curvas",
+        column: "did",
+        value: didCurva,
+        throwExceptionIfNotExists: true,
+    });
 
-    if (!currRows || currRows.length === 0) {
+    if (Number(curr.elim ?? 0) !== 0 || Number(curr.superado ?? 0) !== 0) {
         throw new CustomException({
             title: "No encontrado",
             message: `No existe una curva vigente con did ${didCurva}`,
@@ -47,105 +43,93 @@ export async function updateCurva(dbConnection, req) {
         });
     }
 
-    const curr = currRows[0];
     const newNombre = isNonEmpty(nombre) ? String(nombre).trim() : curr.nombre;
 
-    // 1) Superar versión vigente
-    await executeQuery(
+    // 2) Superar versión vigente
+    await LightdataQuerys.update({
         dbConnection,
-        `
-      UPDATE variantes_curvas
-      SET superado = 1
-      WHERE did = ? AND elim = 0 AND superado = 0
-    `,
-        [didCurva],
-        true
-    );
+        table: "curvas",
+        did: didCurva,
+        quien: userId,
+        data: { superado: 1 },
+    });
 
-    // 2) Insertar nueva versión (con did igual al original)
-    const ins = await executeQuery(
+    // 3) Insertar nueva versión (con el mismo did)
+    const [idVersionNueva] = await LightdataQuerys.insert({
         dbConnection,
-        `
-      INSERT INTO variantes_curvas (nombre, quien, superado, elim)
-      VALUES (?, ?, 0, 0)
-    `,
-        [newNombre, userId],
-        true
-    );
+        table: "curvas",
+        quien: userId,
+        data: {
+            did: didCurva,
+            nombre: newNombre,
+            superado: 0,
+            elim: 0,
+        },
+    });
 
-    if (!ins || ins.affectedRows === 0) {
-        throw new CustomException({
-            title: "Error al versionar curva",
-            message: "No se pudo insertar la nueva versión de la curva",
-            status: Status.internalServerError,
-        });
-    }
-
-    const newId = ins.insertId;
-
-    // Setear el did de la nueva fila al did original
-    await executeQuery(
-        dbConnection,
-        `UPDATE variantes_curvas SET did = ? WHERE id = ?`,
-        [didCurva, newId],
-        true
-    );
-
-    // 3) Links (solo si viene "categorias")
+    // 4) Links (solo si viene "categorias")
     let linked;
     if (Array.isArray(categorias)) {
+        // Normalizar IDs
         const validIds = categorias
             .map((n) => Number(n))
             .filter((n) => Number.isFinite(n) && n > 0);
 
-        // Validar existencia de categorías activas
+        // Validar existencia de categorías vigentes en variantes_categorias
         if (validIds.length > 0) {
-            const placeholders = validIds.map(() => "?").join(", ");
-            const check = await executeQuery(
-                dbConnection,
-                `
-          SELECT did
-          FROM variantes_categorias
-          WHERE elim = 0 AND superado = 0 AND did IN (${placeholders})
-        `,
-                validIds
-            );
-            const okSet = new Set((check || []).map((r) => Number(r.did)));
-            const missing = validIds.filter((d) => !okSet.has(d));
-            if (missing.length > 0) {
-                throw new CustomException({
-                    title: "Categorías no encontradas",
-                    message: `No existen/activas las siguientes categorías: [${missing.join(", ")}]`,
-                    status: Status.badRequest,
+            for (const didCategoria of validIds) {
+                const [cat] = await LightdataQuerys.select({
+                    dbConnection,
+                    table: "variantes_categorias",
+                    column: "did",
+                    value: didCategoria,
+                    throwExceptionIfNotExists: true,
+                });
+                if (Number(cat.elim ?? 0) !== 0 || Number(cat.superado ?? 0) !== 0) {
+                    throw new CustomException({
+                        title: "Categorías no encontradas",
+                        message: `No existe/activa la categoría ${didCategoria}`,
+                        status: Status.badRequest,
+                    });
+                }
+            }
+        }
+
+        // 4.a) Superar links vigentes (por did_curva)
+        const linksVigentes = await LightdataQuerys.select({
+            dbConnection,
+            table: "variantes_categorias_curvas",
+            column: "did_curva",
+            value: didCurva,
+        });
+
+        for (const l of linksVigentes) {
+            if (Number(l.elim ?? 0) === 0 && Number(l.superado ?? 0) === 0) {
+                await LightdataQuerys.update({
+                    dbConnection,
+                    table: "variantes_categorias_curvas",
+                    did: Number(l.did),
+                    quien: userId,
+                    data: { superado: 1 },
                 });
             }
         }
 
-        // 3.a) Superar links vigentes de esa curva
-        await executeQuery(
-            dbConnection,
-            `
-        UPDATE variantes_categorias_curvas
-        SET superado = 1
-        WHERE did_curva = ? AND elim = 0 AND superado = 0
-      `,
-            [didCurva],
-            true
-        );
-
-        // 3.b) Insertar nuevos links (misma curva, superado=0, elim=0)
+        // 4.b) Insertar nuevos links (misma curva)
         linked = 0;
         for (const didCategoria of validIds) {
-            const insLink = await executeQuery(
+            await LightdataQuerys.insert({
                 dbConnection,
-                `
-          INSERT INTO variantes_categorias_curvas (did_curva, did_categoria, quien, superado, elim)
-          VALUES (?, ?, ?, 0, 0)
-        `,
-                [didCurva, didCategoria, userId],
-                true
-            );
-            if (insLink && insLink.affectedRows > 0) linked += 1;
+                table: "variantes_categorias_curvas",
+                quien: userId,
+                data: {
+                    did_curva: didCurva,
+                    did_categoria: didCategoria,
+                    superado: 0,
+                    elim: 0,
+                },
+            });
+            linked += 1;
         }
     }
 
@@ -154,7 +138,7 @@ export async function updateCurva(dbConnection, req) {
         message: "Curva versionada correctamente",
         data: {
             did: didCurva,
-            idVersionNueva: newId,
+            idVersionNueva,
             nombre: newNombre,
             ...(linked !== undefined ? { categoriasVinculadas: linked } : {}),
         },
