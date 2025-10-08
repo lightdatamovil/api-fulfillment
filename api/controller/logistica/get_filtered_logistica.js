@@ -90,7 +90,7 @@ ${orderSql /* calificado: ORDER BY l.nombre ASC, por ej. */}
 LIMIT ? OFFSET ?;
   `;
 
-  const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset], true);
+  const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset]);
 
   // Parse seguro (depende de tu driver, a veces ya viene como objeto)
   const logisticasFinal = rows.map(l => ({

@@ -4,7 +4,7 @@ export async function deleteUsuario(dbConnection, req) {
     const { userId } = req.params;
 
     const deleteQuery = "UPDATE usuarios SET elim = 1 WHERE did = ?";
-    const result = await executeQuery(dbConnection, deleteQuery, [userId], true);
+    const result = await executeQuery(dbConnection, deleteQuery, [userId]);
 
     if (result.affectedRows === 0) {
         throw new CustomException({

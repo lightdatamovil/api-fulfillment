@@ -38,7 +38,7 @@ export async function createOrdenTrabajo(db, req) {
     }
 
     const id = ins.insertId;
-    await executeQuery(db, `UPDATE ordenes_trabajo SET did = ? WHERE id = ?`, [id, id], true);
+    await executeQuery(db, `UPDATE ordenes_trabajo SET did = ? WHERE id = ?`, [id, id]);
     const did_ot = id;
 
     // Asignación inicial de pedidos (opcional)

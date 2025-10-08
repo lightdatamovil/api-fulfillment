@@ -72,7 +72,7 @@ export async function createUsuario(dbConnection, req) {
         emptyToNull(codigo_cliente)
     ];
 
-    const ins = await executeQuery(dbConnection, insertSql, insertParams, true);
+    const ins = await executeQuery(dbConnection, insertSql, insertParams);
     const insertedId = ins?.insertId ?? ins?.[0]?.insertId;
     if (!insertedId) {
         throw new CustomException({
@@ -83,7 +83,7 @@ export async function createUsuario(dbConnection, req) {
     }
 
     // --- did = id ---
-    await executeQuery(dbConnection, `UPDATE usuarios SET did = ? WHERE id = ?`, [insertedId, insertedId], true);
+    await executeQuery(dbConnection, `UPDATE usuarios SET did = ? WHERE id = ?`, [insertedId, insertedId]);
 
     // --- fetch final limpio ---
     const row = (await executeQuery(

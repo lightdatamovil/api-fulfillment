@@ -1,29 +1,29 @@
-import { isNonEmpty, isDefined, LightdataQuerys, CustomException } from "lightdata-tools";
-import { DbUtils } from "../../src/functions/db_utils.js";
+import { isNonEmpty, isDefined, LightdataQuerys } from "lightdata-tools";
 
 export async function editInsumo(dbConnection, req) {
     const { userId } = req.user;
     const { insumoId } = req.params;
-    const { codigo, nombre, unidad, habilitado, clientes_dids_add, clientes_dids_remove } = req.body;
+    const { codigo, nombre, unidad, habilitado, clientes } = req.body;
 
     const norm = (v) => new Set(v.map(n => Number(n)));
 
-    const current = await DbUtils.verifyExistsAndSelect({
+
+    const [current] = await LightdataQuerys.select({
         dbConnection,
         table: "insumos",
         column: "did",
-        valor: insumoId,
-        select: "*"
+        value: insumoId,
+        throwExceptionIfNotExists: true,
     });
 
     if (isNonEmpty(codigo)) {
-        const exists = await DbUtils.existsInDb(dbConnection, "insumos", "codigo", codigo);
-        if (exists) {
-            throw new CustomException({
-                title: "Código duplicado",
-                message: `El código ${codigo} ya existe en otro insumo.`,
-            });
-        }
+        await LightdataQuerys.select({
+            dbConnection,
+            table: "insumos",
+            column: "codigo",
+            value: codigo,
+            throwExceptionIfAlreadyExists: true,
+        });
     }
 
     const newCodigo = isDefined(codigo) ? codigo : current.codigo;
@@ -33,7 +33,7 @@ export async function editInsumo(dbConnection, req) {
 
     await LightdataQuerys.update({
         dbConnection,
-        tabla: "insumos",
+        table: "insumos",
         did: insumoId,
         quien: userId,
         data: {
@@ -44,13 +44,13 @@ export async function editInsumo(dbConnection, req) {
         }
     });
 
-    const toAdd = norm(clientes_dids_add);
-    const toRemove = norm(clientes_dids_remove);
+    const toAdd = Array.from(norm(clientes?.add || []));
+    const toRemove = Array.from(norm(clientes?.remove || []));
 
     if (toRemove.length > 0) {
         await LightdataQuerys.delete({
             dbConnection,
-            tabla: "insumos_clientes",
+            table: "insumos_clientes",
             did: toRemove,
             quien: userId,
         });
@@ -64,7 +64,7 @@ export async function editInsumo(dbConnection, req) {
 
         await LightdataQuerys.insert({
             dbConnection,
-            tabla: "insumos_clientes",
+            table: "insumos_clientes",
             quien: userId,
             data
         });

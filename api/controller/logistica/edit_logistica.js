@@ -1,5 +1,4 @@
 import { CustomException, executeQuery } from "lightdata-tools";
-import { DbUtils } from "../../src/functions/db_utils.js";
 
 export async function editLogistica(db, req) {
     const logisticaDid = req.params.logisticaDid;
@@ -43,12 +42,12 @@ export async function editLogistica(db, req) {
     if (huboCambio) {
 
         //SUPERADO = 1
-        await executeQuery(db, "UPDATE logisticas SET superado = 1 WHERE did = ? AND superado = 0 AND elim = 0", [logisticaDid], true);
+        await executeQuery(db, "UPDATE logisticas SET superado = 1 WHERE did = ? AND superado = 0 AND elim = 0", [logisticaDid]);
 
         // updateo inserto 
         const queryUpddate = `INSERT INTO logisticas (did, nombre, logisticaLD, codigo, codigoLD, habilitado,  autofecha, quien, superado, elim)
         VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, 0, 0)`;
-        const insertUpdate = await executeQuery(db, queryUpddate, [logisticaDid, nombreInsert, logisticaLDInsert, codigoInsert, codigoLDInsert, habilitadoInsert, userId], true);
+        const insertUpdate = await executeQuery(db, queryUpddate, [logisticaDid, nombreInsert, logisticaLDInsert, codigoInsert, codigoLDInsert, habilitadoInsert, userId]);
 
         if (insertUpdate.affectedRows !== 1) {
             throw new CustomException({
@@ -78,7 +77,7 @@ export async function editLogistica(db, req) {
             );
         }
 
-        const r = await executeQuery(db, sql, params, true);
+        const r = await executeQuery(db, sql, params);
 
         // 4) chequear que se insertaron todas
         if (r.affectedRows !== normalized.length) {
@@ -125,7 +124,7 @@ export async function editLogistica(db, req) {
             );
         }
 
-        const r = await executeQuery(db, sql, params, true);
+        const r = await executeQuery(db, sql, params);
 
         // 4) chequear que se insertaron todas
         if (r.affectedRows !== normalized.length) {
@@ -138,7 +137,7 @@ export async function editLogistica(db, req) {
     }
     // select de todas las direcciones para devolver
     let direccionesReturn = [];
-    const direccionesSelect = await executeQuery(db, "SELECT id, did, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid], true);
+    const direccionesSelect = await executeQuery(db, "SELECT id, did, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid]);
 
     if (direccionesSelect.length > 0) {
         direccionesReturn = direccionesSelect

@@ -62,7 +62,7 @@ export async function createPedido(db, payload, userId) {
     if (!ins?.insertId) throw new Error("No se pudo insertar pedido");
 
     const id = ins.insertId;
-    await executeQuery(db, `UPDATE pedidos SET did = ? WHERE id = ?`, [id, id], true);
+    await executeQuery(db, `UPDATE pedidos SET did = ? WHERE id = ?`, [id, id]);
     const did = id;
 
     // Insert items (dimensions y variacion NUNCA null)
