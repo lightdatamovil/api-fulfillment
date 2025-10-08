@@ -75,7 +75,7 @@ export async function updatePedido(db, req) {
 
     if (sets.length > 0) {
         params.push(did);
-        await executeQuery(db, `UPDATE pedidos SET ${sets.join(", ")} WHERE did = ? AND elim = 0`, params, true);
+        await executeQuery(db, `UPDATE pedidos SET ${sets.join(", ")} WHERE did = ? AND elim = 0`, params);
     }
 
     // ------- Resync de items si vienen en el body

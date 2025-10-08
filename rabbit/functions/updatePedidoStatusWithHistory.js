@@ -49,7 +49,7 @@ export
     );
     const idh = insH?.insertId;
     if (idh) {
-        await executeQuery(db, `UPDATE pedidos_historial SET did = ? WHERE id = ?`, [idh, idh], true);
+        await executeQuery(db, `UPDATE pedidos_historial SET did = ? WHERE id = ?`, [idh, idh]);
     }
 
 }

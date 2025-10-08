@@ -1,6 +1,4 @@
 import { executeQuery } from "lightdata-tools";
-import { DbUtils } from "../../src/functions/db_utils.js";
-
 
 export async function getlogisticaById(db, req) {
     const logisticaDid = req.params.logisticaDid;
@@ -20,7 +18,7 @@ export async function getlogisticaById(db, req) {
 
     const sqlDirecciones = 'SELECT id, CP, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0';
 
-    const direccionesSelect = await executeQuery(db, sqlDirecciones, [logisticaDid], true);
+    const direccionesSelect = await executeQuery(db, sqlDirecciones, [logisticaDid]);
 
     //mapear direcciones a objeto direcciones
     const direcciones = direccionesSelect.map(d => ({

@@ -1,5 +1,4 @@
 import { LightdataQuerys } from "lightdata-tools";
-import { DbUtils } from "../../src/functions/db_utils";
 
 
 export async function deleteInsumo(dbConnection, req) {
@@ -8,23 +7,22 @@ export async function deleteInsumo(dbConnection, req) {
 
     await LightdataQuerys.delete({
         dbConnection,
-        tabla: "insumos",
+        table: "insumos",
         did: insumoId,
         quien: userId
     });
 
-    const links = await DbUtils.verifyExistsAndSelect({
-        db: dbConnection,
+    const links = await LightdataQuerys.select({
+        dbConnection,
         table: "insumos_clientes",
         column: "did_insumo",
-        valor: insumoId,
-        select: "did"
+        value: insumoId,
     });
 
     await LightdataQuerys.delete({
         dbConnection,
-        tabla: "insumos_clientes",
-        did: links,
+        table: "insumos_clientes",
+        did: links.map(l => l.did),
         quien: userId
     });
 

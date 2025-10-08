@@ -28,7 +28,7 @@ export async function createCurva(dbConnection, req) {
     INSERT INTO curvas (nombre, quien, superado, elim)
     VALUES (?, ?, 0, 0)
   `;
-    const ins = await executeQuery(dbConnection, insSql, [nombreTrim, userId], true);
+    const ins = await executeQuery(dbConnection, insSql, [nombreTrim, userId]);
 
     if (!ins || ins.affectedRows === 0) {
         throw new CustomException({

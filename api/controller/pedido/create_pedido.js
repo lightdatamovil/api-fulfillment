@@ -86,14 +86,14 @@ export async function createPedido(db, req) {
     const estadoInicial = isNonEmpty(body.status) ? String(body.status) : "created";
 
     const insSql = `INSERT INTO pedidos (${cols.join(",")}) VALUES (${phs.join(",")})`;
-    const ins = await executeQuery(db, insSql, vals, true);
+    const ins = await executeQuery(db, insSql, vals);
     if (!ins || ins.affectedRows === 0) {
         throw new CustomException({ title: "Error", message: "No se pudo crear el pedido", status: Status.internalServerError });
     }
 
     // did = id
     const id = ins.insertId;
-    await executeQuery(db, `UPDATE pedidos SET did = ? WHERE id = ?`, [id, id], true);
+    await executeQuery(db, `UPDATE pedidos SET did = ? WHERE id = ?`, [id, id]);
     const did = id;
 
     // -------- INSERT items

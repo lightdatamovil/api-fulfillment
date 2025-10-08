@@ -31,7 +31,7 @@ export async function createlogistica(db, req) {
         `SELECT * FROM logisticas WHERE 
         (nombre = ? OR codigo = ? OR codigoLD = ?) AND superado = 0 AND elim = 0
         LIMIT 1;`,
-        [nombre, codigo, codigoLD], true
+        [nombre, codigo, codigoLD]
     );
 
     if (logisticaDuplicada?.length) {
@@ -64,7 +64,7 @@ export async function createlogistica(db, req) {
 
 
     //actualizar did
-    const did = await executeQuery(db, "UPDATE logisticas SET did = ?  WHERE id = ?", [logisticaId, logisticaId], true);
+    const did = await executeQuery(db, "UPDATE logisticas SET did = ?  WHERE id = ?", [logisticaId, logisticaId]);
     if (!did?.affectedRows) {
         throw new CustomException({
             title: "Error al actualizar did del logistica",
@@ -80,7 +80,7 @@ export async function createlogistica(db, req) {
       VALUES
         (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0, 0)
     `,
-        [logisticaId, cp, calle, pais, localidad, numero, provincia, address_line, userId], true
+        [logisticaId, cp, calle, pais, localidad, numero, provincia, address_line, userId]
     );
     if (!direccionInsert?.affectedRows) {
         throw new CustomException({
@@ -93,7 +93,7 @@ export async function createlogistica(db, req) {
 
     //actualizar did
 
-    const insertDidDirecciones = await executeQuery(db, "UPDATE logisticas_direcciones SET did = ? WHERE id = ?", [didDirecciones, didDirecciones], true);
+    const insertDidDirecciones = await executeQuery(db, "UPDATE logisticas_direcciones SET did = ? WHERE id = ?", [didDirecciones, didDirecciones]);
     if (!insertDidDirecciones?.affectedRows) {
         throw new CustomException({
             title: "Error al actualizar did de la direccion",

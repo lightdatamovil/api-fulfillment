@@ -66,7 +66,7 @@ export async function deleteVarianteCategoria(dbConnection, req) {
       SELECT did FROM variantes_subcategorias WHERE did_categoria = ?
     )
   `;
-    const updVals = await executeQuery(dbConnection, delValsSql, [didCategoria], true);
+    const updVals = await executeQuery(dbConnection, delValsSql, [didCategoria]);
 
     // 2) Eliminar subcategorías de esta categoría
     const delSubSql = `
@@ -74,7 +74,7 @@ export async function deleteVarianteCategoria(dbConnection, req) {
     SET elim = 1
     WHERE did_categoria = ?
   `;
-    const updSub = await executeQuery(dbConnection, delSubSql, [didCategoria], true);
+    const updSub = await executeQuery(dbConnection, delSubSql, [didCategoria]);
 
     // 3) Eliminar la categoría
     const delCatSql = `
@@ -82,7 +82,7 @@ export async function deleteVarianteCategoria(dbConnection, req) {
     SET elim = 1
     WHERE did = ?
   `;
-    const updCat = await executeQuery(dbConnection, delCatSql, [didCategoria], true);
+    const updCat = await executeQuery(dbConnection, delCatSql, [didCategoria]);
 
     return {
         success: true,
