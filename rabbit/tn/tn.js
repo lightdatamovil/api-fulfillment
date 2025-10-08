@@ -20,23 +20,16 @@ import {
     portFulFillement,
 } from "../db.js";
 
-// Reusamos tus funciones existentes (las de ML), no cambies su firma.
 import { createPedido } from "../functions/createPedido.js";
 import { getPedidoDidByNumber } from "../functions/getDidPedidoByNumber.js";
 import { updatePedidoStatusWithHistory } from "../functions/updatePedidoStatusWithHistory.js";
-import { mapMlToPedidoPayload } from "../functions/mapMLToPedidoPayload.js";
 import { mapTNToPedidoPayload } from "../functions/mapTNToPedidoPayload.js";
 
-// =============== CONFIG ===============
 
-// Header exigido por TN (igual que tu PHP)
 const USER_AGENT = "API Lightdata (administracion@lightdata.com.ar)";
+const TOKEN_REGISTRY_URL = "https://cuentasarg.lightdata.com.ar/getTokenTNAll.php";
 
-// URL para obtener tokens TN (mapa enorme por empresa/cuenta/cliente)
-const TOKEN_REGISTRY_URL =
-    "https://cuentasarg.lightdata.com.ar/getTokenTNAll.php";
 
-// Cliente axios con defaults
 const http = axios.create({
     timeout: 15000,
     headers: {
@@ -45,7 +38,6 @@ const http = axios.create({
     },
 });
 
-// =============== HELPERS ===============
 
 // Formatea fecha de hoy a yyyymmdd en la TZ de Buenos Aires
 function hoyYYYYMMDD() {
@@ -126,10 +118,6 @@ async function obtenerOrdenTN(storeId, orderId, token) {
 // Arma observaciones “amistosas” como hacía tu PHP
 
 
-
-
-// Si necesitás derivar “empresa/cuenta” para la conexión de FF.
-// Por ahora usamos lo que trae getTNTokenForStore() para idempresa/did_cuenta.
 async function getSellerDataByStore(storeId) {
     console.log("[TN] Resolviendo token para store_id", storeId);
 
@@ -147,10 +135,6 @@ async function getSellerDataByStore(storeId) {
 // =============== CORE ===============
 
 // Procesa un mensaje TN “crudo” {store_id, event, id}
-// - trae token
-// - baja orden TN
-// - conecta DB empresa
-// - inserta/actualiza pedidos + productos + historial (transacción)
 export async function processTNMessage(rawMsg) {
     // 1) Parsear
     let msg;
@@ -180,14 +164,10 @@ export async function processTNMessage(rawMsg) {
     let db;
     try {
         db = await connectMySQL(cfg);
-        //     console.log(orderTN, sellerData);
 
         // 5) Mapear payload a tu modelo de tablas
         const payload = mapTNToPedidoPayload(orderTN, sellerData);
         console.log(JSON.stringify(payload, null, 2));
-
-
-
 
         // 6) Idempotencia por (seller_id, number)
         const number = String(payload.number);
@@ -196,14 +176,13 @@ export async function processTNMessage(rawMsg) {
             ORDENES_CACHE[keyCache]?.did || (await getPedidoDidByNumber(db, number));
         const isNew = !did;
 
-        await executeQuery(db, "START TRANSACTION");
+        // (Transacciones removidas)
 
         if (isNew) {
             did = await createPedido(db, payload, sellerData?.quien ?? null);
             ORDENES_CACHE[keyCache] = { did };
             ESTADOS_CACHE[did] = payload.status;
 
-            await executeQuery(db, "COMMIT");
             return { ok: true, created: did, number, seller_id: sellerData.seller_id };
         } else {
             // Estado vigente actual vs nuevo
@@ -227,7 +206,6 @@ export async function processTNMessage(rawMsg) {
                 ESTADOS_CACHE[did] = payload.status;
                 ORDENES_CACHE[keyCache] = { did };
 
-                await executeQuery(db, "COMMIT");
                 return {
                     ok: true,
                     status_updated: did,
@@ -235,15 +213,12 @@ export async function processTNMessage(rawMsg) {
                     seller_id: sellerData.seller_id,
                 };
             } else {
-                await executeQuery(db, "COMMIT");
                 return { ok: true, noop: did, number, seller_id: sellerData.seller_id };
             }
         }
     } catch (e) {
         logRed(e);
-        try {
-            await executeQuery(db, "ROLLBACK");
-        } catch { }
+        // (Rollback eliminado)
         return { ok: false, error: "exception", message: String(e?.message ?? e) };
     } finally {
         await db?.end();
@@ -257,7 +232,7 @@ const invoked = process.argv[1] ? path.resolve(process.argv[1]) : "";
 
 if (thisFile === invoked) {
     (async () => {
-        console.log("[TN] arrancando main…");
+        console.log("[TN] arrancando main…]");
         // Simula “llega un mensaje del sistema/cola”
         const demoMsg = {
             store_id: 47586,
