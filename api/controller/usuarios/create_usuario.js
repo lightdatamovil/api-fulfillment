@@ -53,12 +53,13 @@ export async function createUsuario(dbConnection, req) {
         image: null,
     };
 
-    const userIdInsert = await LightdataQuerys.insert({
+    const userInsert = await LightdataQuerys.insert({
         dbConnection,
         table: "usuarios",
         data: dataInsert,
         quien: quien,
     });
+    const userIdInsert = userInsert.did;
 
     let insertImage = null;
 
