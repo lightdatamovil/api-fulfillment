@@ -1,4 +1,6 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
+import { LightdataQuerys } from "lightdata-tools";
+import { CustomException } from "./custom_exception.js";
+import { Status } from "./status.js";
 
 /**
  * Elimina (soft-delete) una categoría de variantes por DID.
@@ -19,6 +21,8 @@ export async function deleteVarianteCategoria(dbConnection, req) {
         req.body?.did;
 
     const didCategoria = Number(didParam);
+    const userId = Number(req.user?.userId ?? req.user?.id ?? 0) || null;
+
     if (!Number.isFinite(didCategoria) || didCategoria <= 0) {
         throw new CustomException({
             title: "Parámetro inválido",
@@ -27,25 +31,15 @@ export async function deleteVarianteCategoria(dbConnection, req) {
         });
     }
 
-    // ¿Existe la categoría?
-    const qCat = `
-    SELECT id, did, elim
-    FROM variantes_categorias
-    WHERE did = ?
-    LIMIT 1
-  `;
-    const cat = await executeQuery(dbConnection, qCat, [didCategoria]);
+    const categoria = await LightdataQuerys.select({
+        dbConnection,
+        table: "variantes_categorias",
+        column: "did",
+        value: didCategoria,
+        throwExceptionIfNotExists: true,
+    });
 
-    if (!cat || cat.length === 0) {
-        throw new CustomException({
-            title: "No encontrado",
-            message: `No existe la categoría con did ${didCategoria}`,
-            status: Status.notFound,
-        });
-    }
-
-    // Si ya estaba eliminada, respondemos idempotente
-    if (Number(cat[0].elim) === 1) {
+    if (Number(categoria[0].elim) === 1) {
         return {
             success: true,
             message: "La categoría ya estaba eliminada",
@@ -57,32 +51,43 @@ export async function deleteVarianteCategoria(dbConnection, req) {
         };
     }
 
-    // 1) Eliminar valores de subcategorías de esta categoría
-    // Usamos subquery para obtener los did de subcategorías
-    const delValsSql = `
-    UPDATE variantes_subcategoria_valores
-    SET elim = 1
-    WHERE did_subcategoria IN (
-      SELECT did FROM variantes_subcategorias WHERE did_categoria = ?
-    )
-  `;
-    const updVals = await executeQuery(dbConnection, delValsSql, [didCategoria]);
+    const subcategorias = await LightdataQuerys.select({
+        dbConnection,
+        table: "variantes_subcategorias",
+        column: "did_categoria",
+        value: didCategoria,
+    });
 
-    // 2) Eliminar subcategorías de esta categoría
-    const delSubSql = `
-    UPDATE variantes_subcategorias
-    SET elim = 1
-    WHERE did_categoria = ?
-  `;
-    const updSub = await executeQuery(dbConnection, delSubSql, [didCategoria]);
+    const didsSubcategorias = subcategorias.map((s) => s.did);
 
-    // 3) Eliminar la categoría
-    const delCatSql = `
-    UPDATE variantes_categorias
-    SET elim = 1
-    WHERE did = ?
-  `;
-    const updCat = await executeQuery(dbConnection, delCatSql, [didCategoria]);
+    let affectedValores = 0;
+    if (didsSubcategorias.length > 0) {
+        await LightdataQuerys.delete({
+            dbConnection,
+            table: "variantes_subcategoria_valores",
+            did: didsSubcategorias,
+            quien: userId,
+        });
+        affectedValores = didsSubcategorias.length;
+    }
+
+    let affectedSubcats = 0;
+    if (didsSubcategorias.length > 0) {
+        await LightdataQuerys.delete({
+            dbConnection,
+            table: "variantes_subcategorias",
+            did: didsSubcategorias,
+            quien: userId,
+        });
+        affectedSubcats = didsSubcategorias.length;
+    }
+
+    await LightdataQuerys.delete({
+        dbConnection,
+        table: "variantes_categorias",
+        did: didCategoria,
+        quien: userId,
+    });
 
     return {
         success: true,
@@ -90,9 +95,9 @@ export async function deleteVarianteCategoria(dbConnection, req) {
         data: {
             did: didCategoria,
             affected: {
-                categoria: updCat?.affectedRows ?? 0,
-                subcategorias: updSub?.affectedRows ?? 0,
-                valores: updVals?.affectedRows ?? 0,
+                categoria: 1,
+                subcategorias: affectedSubcats,
+                valores: affectedValores,
             },
         },
         meta: { timestamp: new Date().toISOString() },
