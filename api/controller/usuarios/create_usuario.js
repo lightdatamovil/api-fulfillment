@@ -1,13 +1,14 @@
 import axios from "axios";
 import { CustomException, Status, toStr, toBool01, toInt, hashPassword, emptyToNull, LightdataQuerys, executeQuery } from "lightdata-tools";
+import { debugHttpError } from "../../src/functions/debugEndpoint";
 
 const UPLOAD_URL = "https://files.lightdata.app/upload_fulfillment_images.php";
 
 
 export async function createUsuario(dbConnection, req) {
-    const didLogistica = req.params.didLogistica;
+    const { companyId } = req.user;
     const data = req?.body ?? {};
-    const quien = req.user;
+    const quien = req.user.userId;
 
     // --- normalización básica ---
     const nombre = toStr(data.nombre);
@@ -33,14 +34,6 @@ export async function createUsuario(dbConnection, req) {
         });
     }
 
-    // --- unicidad (case-insensitive) ---
-    await LightdataQuerys.select({
-        dbConnection,
-        table: "usuarios",
-        column: "did",
-        value: usuario,
-        throwExceptionIfAlreadyExists: true
-    });
 
     // --- INSERT (no permito setear did/superado/elim/accesos/quien desde el front) ---
     const pass = await hashPassword(passRaw);
@@ -67,26 +60,25 @@ export async function createUsuario(dbConnection, req) {
         quien: quien,
     });
 
+    let insertImage = null;
+
     if (data.imagen) {
         try {
+            const payload = {
+                companyId: companyId,
+                userId: userIdInsert,
+                file: imagen
+            };
+
             const uploadRes = await axios.post(
                 UPLOAD_URL,
-                {
-                    companyId: didLogistica,
-                    userId: userIdInsert,
-                    file: imagen
-                },
+                payload,
                 { headers: { "Content-Type": "application/json" } }
             );
-
-            console.log("uploadRes", uploadRes);
-            const insertImage = uploadRes.file.url;
-            console.log("insertImage", insertImage);
-
-
+            insertImage = uploadRes.data.file.url;
             await executeQuery(
                 dbConnection,
-                `UPDATE usuarios SET image = ? WHERE did = ?`,
+                `UPDATE usuarios SET imagen = ? WHERE did = ?`,
                 [insertImage, userIdInsert], true
             );
 
@@ -98,33 +90,24 @@ export async function createUsuario(dbConnection, req) {
             });
         }
 
-
-        return {
-            success: true,
-            message: "Usuario creado correctamente",
-            data: {
-                did: userIdInsert,
-                perfil, nombre, apellido: apellido ?? null, email: email, usuario, habilitado,
-                modulo_inicial: modulo_inicial ?? null,
-                app_habilitada,
-                telefono: telefono ?? null,
-                codigo_cliente: codigo_cliente ?? null
-            },
-            meta: { timestamp: new Date().toISOString() }
-        };
     }
 
+    return {
+        success: true,
+        message: "Usuario creado correctamente",
+        data: {
+            did: userIdInsert,
+            perfil, nombre, apellido: apellido ?? null, email: email, usuario, habilitado,
+            modulo_inicial: modulo_inicial ?? null,
+            app_habilitada,
+            telefono: telefono ?? null,
+            codigo_cliente: codigo_cliente ?? null,
+            imagen: insertImage ?? null,
+        },
+        meta: { timestamp: new Date().toISOString() }
+    };
 
 }
-export function debugHttpError(err, ctx = "http") {
-    const status = err.response?.status;
-    const statusText = err.response?.statusText;
-    const body = err.response?.data;
 
-    console.error(`[${ctx}] AxiosError ${status ?? "(sin status)"} ${statusText ?? ""}`.trim());
-    if (body !== undefined) {
-        console.error(`[${ctx}] body:`, typeof body === "string" ? body : JSON.stringify(body));
-    }
-    console.error(`[${ctx}] message:`, err.message);
 
-}
+
