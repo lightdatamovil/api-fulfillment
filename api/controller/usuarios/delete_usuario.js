@@ -1,25 +1,25 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
+import { LightdataQuerys } from "lightdata-tools";
 
 export async function deleteUsuario(dbConnection, req) {
-    const { userId } = req.params;
+    const { userDid } = req.params;
+    const quien = req.user;
 
-    const deleteQuery = "UPDATE usuarios SET elim = 1 WHERE did = ?";
-    const result = await executeQuery(dbConnection, deleteQuery, [userId]);
+    await LightdataQuerys.delete({
+        dbConnection,
+        table: "logisticas",
+        did: userDid,
+        quien: quien
 
-    if (result.affectedRows === 0) {
-        throw new CustomException({
-            title: "No se pudo eliminar el usuario.",
-            message: "No se pudo eliminar el usuario. Puede que no exista o ya esté eliminado.",
-            status: Status.notFound
-        });
-    }
+    });
 
     return {
         success: true,
         message: "Usuario eliminado correctamente",
-        data: { userId },
+        data: { userDid },
         meta: {
             timestamp: new Date().toISOString()
         }
     };
 }
+
+
