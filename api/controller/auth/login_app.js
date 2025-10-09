@@ -13,7 +13,7 @@ export async function loginApp(dbConnection, req) {
     }
 
     const userSql = `
-        SELECT did, perfil, nombre, apellido, mail, pass, usuario
+        SELECT did, perfil, nombre, apellido, email, pass, usuario
         FROM usuarios
         WHERE usuario = ? AND elim = 0 AND superado = 0
         LIMIT 1
@@ -56,7 +56,7 @@ export async function loginApp(dbConnection, req) {
             perfil: user.perfil,
             nombre: user.nombre,
             apellido: user.apellido,
-            email: user.mail,
+            email: user.email,
             username: user.usuario,
             token: token,
         },

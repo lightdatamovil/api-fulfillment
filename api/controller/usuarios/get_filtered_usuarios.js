@@ -52,7 +52,7 @@ export async function getFilteredUsuarios(connection, req) {
     // --- SELECT + COUNT ---
     const { rows, total } = await runPagedQuery(connection, {
         select:
-            "did, perfil, nombre, apellido, mail AS email, usuario, habilitado, modulo_inicial, app_habilitada, telefono, codigo_cliente",
+            "did, perfil, nombre, apellido, email AS email, usuario, habilitado, modulo_inicial, app_habilitada, telefono, codigo_cliente",
         from: "FROM usuarios",
         whereSql,
         orderSql,
