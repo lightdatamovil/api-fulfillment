@@ -12,7 +12,6 @@ export async function getlogisticaById(db, req) {
         select: "*",
         throwExceptionIfNotExists: true
     });
-    console.log(logistica);
 
     const { nombre, codigo, codigoLD, logisticaLD, habilitado } = logistica;
 
@@ -24,8 +23,6 @@ export async function getlogisticaById(db, req) {
         select: ["id", "CP", "calle", "pais", "localidad", "numero", "provincia", "address_line"]
     });
 
-
-    //mapear direcciones a objeto direcciones
     const direcciones = logisticaDirecciones.map(d => ({
         id: d.id,
         cp: d.CP,
