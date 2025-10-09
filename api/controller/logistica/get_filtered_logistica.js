@@ -63,10 +63,11 @@ SELECT
   l.quien,
   l.habilitado,
    CASE
-    WHEN COUNT(d.id) = 0 THEN JSON_ARRAY()
+    WHEN COUNT(d.did) = 0 THEN JSON_ARRAY()
     ELSE JSON_ARRAYAGG(
       JSON_OBJECT(
-        'id', d.id,
+        'did', d.did,
+        'titulo', d.titulo,
         'cp', d.cp,
         'calle', d.calle,
         'pais', d.pais,

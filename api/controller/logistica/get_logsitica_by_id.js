@@ -21,11 +21,12 @@ export async function getlogisticaById(db, req) {
         table: "logisticas_direcciones",
         column: "did_logistica",
         value: logisticaDid,
-        select: ["id", "cp", "calle", "pais", "localidad", "numero", "provincia", "address_line"]
+        select: ["did", "titulo", "cp", "calle", "pais", "localidad", "numero", "provincia", "address_line"]
     });
 
     const direcciones = logisticaDirecciones.map(d => ({
-        id: d.id,
+        did: d.did,
+        titulo: d.titulo,
         cp: d.cp,
         calle: d.calle,
         pais: d.pais,

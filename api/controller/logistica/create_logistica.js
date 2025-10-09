@@ -37,6 +37,7 @@ export async function createlogistica(db, req) {
     if (direcciones.length > 0) {
         const data = direcciones.map(d => ({
             did_logistica: inserted,
+            titulo: d.titulo,
             cp: d.cp,
             calle: d.calle,
             pais: d.pais,

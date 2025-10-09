@@ -48,6 +48,8 @@ export async function editLogistica(dbConnection, req) {
 
         const data = hayDirecciones.add.map(direccion => ({
             did_logistica: logisticaDid,
+            direccion: direccion.direccion,
+            titulo: direccion.titulo,
             cp: direccion.cp,
             calle: direccion.calle,
             pais: direccion.pais,
@@ -95,7 +97,7 @@ export async function editLogistica(dbConnection, req) {
 
     // select de todas las direcciones para devolver
     let direccionesReturn = [];
-    const direccionesSelect = await executeQuery(dbConnection, "SELECT id, did, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid]);
+    const direccionesSelect = await executeQuery(dbConnection, "SELECT id, did, titulo, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid]);
 
     if (direccionesSelect.length > 0) {
         direccionesReturn = direccionesSelect
@@ -128,6 +130,7 @@ function normalizeDireccionesInsert(adds) {
         const d = adds[i] ?? {};
         out[i] = {
             cp: nn(d.cp),
+            titulo: nn(d.titulo),
             calle: nn(d.calle),
             pais: nn(d.pais),
             localidad: nn(d.localidad),
