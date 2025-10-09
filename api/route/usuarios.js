@@ -12,7 +12,7 @@ usuarios.post(
     '/',
     buildHandlerWrapper({
         required: ['nombre', 'apellido', 'usuario', 'password', 'perfil'],
-        optional: ['email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada'],
+        optional: ['email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada', "imagen"],
         controller: async ({ db, req }) => {
             const result = await createUsuario(db, req);
             return result;
