@@ -69,7 +69,7 @@ export async function editUsuario(dbConnection, req) {
     if (nextMail.toLowerCase() !== String(current.mail).toLowerCase()) {
         const qDupMail = `
             SELECT did FROM usuarios
-            WHERE LOWER(mail)=LOWER(?) AND elim=0 AND superado=0 AND did <> ?
+            WHERE LOWER(email)=LOWER(?) AND elim=0 AND superado=0 AND did <> ?
             LIMIT 1
         `;
         const dupM = await executeQuery(dbConnection, qDupMail, [nextMail, userId]);
