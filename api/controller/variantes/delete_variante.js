@@ -1,6 +1,5 @@
-import { LightdataQuerys } from "lightdata-tools";
-import { CustomException } from "./custom_exception.js";
-import { Status } from "./status.js";
+import { CustomException, LightdataQuerys, Status } from "lightdata-tools";
+
 
 /**
  * Elimina (soft-delete) una categoría de variantes por DID.

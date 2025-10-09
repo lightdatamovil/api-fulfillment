@@ -1,6 +1,6 @@
 import axios from "axios";
 import { CustomException, Status, toStr, toBool01, toInt, hashPassword, emptyToNull, LightdataQuerys, executeQuery } from "lightdata-tools";
-import { debugHttpError } from "../../src/functions/debugEndpoint";
+import { debugHttpError } from "../../src/functions/debugEndpoint.js";
 
 const UPLOAD_URL = "https://files.lightdata.app/upload_fulfillment_images.php";
 
@@ -34,6 +34,20 @@ export async function createUsuario(dbConnection, req) {
         });
     }
 
+    //berificar repetidos por usuario y email
+    const existingUser = await executeQuery(
+        dbConnection,
+        `SELECT did FROM usuarios WHERE (usuario = ? OR email = ?) AND superado = 0 AND elim = 0 LIMIT 1`,
+        [usuario, email]
+    );
+
+    if (existingUser.length > 0) {
+        throw new CustomException({
+            status: Status.conflict,
+            title: "Conflicto de usuario",
+            message: "El 'usuario' o 'email' ya están en uso."
+        });
+    }
 
     // --- INSERT (no permito setear did/superado/elim/accesos/quien desde el front) ---
     const pass = await hashPassword(passRaw);
