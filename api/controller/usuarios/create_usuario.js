@@ -70,7 +70,9 @@ export async function createUsuario(dbConnection, req) {
         data: dataInsert,
         quien: quien,
     });
-    const userIdInsert = userInsert.did;
+
+    const didUserInsert = userInsert[0];
+
 
     let insertImage = null;
 
@@ -78,9 +80,10 @@ export async function createUsuario(dbConnection, req) {
         try {
             const payload = {
                 companyId: companyId,
-                userId: userIdInsert,
+                userId: didUserInsert,
                 file: imagen
             };
+            console.log(payload);
 
             const uploadRes = await axios.post(
                 UPLOAD_URL,
@@ -91,7 +94,7 @@ export async function createUsuario(dbConnection, req) {
             await executeQuery(
                 dbConnection,
                 `UPDATE usuarios SET imagen = ? WHERE did = ?`,
-                [insertImage, userIdInsert], true
+                [insertImage, didUserInsert], true
             );
 
         } catch (err) {
@@ -108,7 +111,7 @@ export async function createUsuario(dbConnection, req) {
         success: true,
         message: "Usuario creado correctamente",
         data: {
-            did: userIdInsert,
+            did: didUserInsert,
             perfil, nombre, apellido: apellido ?? null, email: email, usuario, habilitado,
             modulo_inicial: modulo_inicial ?? null,
             app_habilitada,

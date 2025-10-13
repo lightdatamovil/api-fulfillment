@@ -17,7 +17,7 @@ export async function createlogistica(db, req) {
         `SELECT * FROM logisticas WHERE 
         (nombre = ? OR codigo = ? ) AND superado = 0 AND elim = 0
         LIMIT 1;`,
-        [nombre, codigo]
+        [nombre, codigo], true
     );
     if (logisticaDuplicada?.length) {
         throw new CustomException({
@@ -54,6 +54,13 @@ export async function createlogistica(db, req) {
         });
     }
 
+    const direccionesSelect = await LightdataORM.select({
+        dbConnection: db,
+        table: "logisticas_direcciones",
+        where: { did_logistica: inserted },
+        select: ["did", "titulo", "cp", "calle", "pais", "localidad", "numero", "provincia", "address_line"],
+    });
+
     return {
         success: true,
         message: "logistica creada correctamente",
@@ -64,6 +71,7 @@ export async function createlogistica(db, req) {
             codigo: codigo,
             codigoLD: codigoLD,
             habilitado: habilitado,
+            direcciones: direccionesSelect,
             quien: userId,
         },
         meta: { timestamp: new Date().toISOString() },
