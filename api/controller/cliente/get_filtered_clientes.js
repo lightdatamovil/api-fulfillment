@@ -11,18 +11,15 @@ import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functio
 export async function getFilteredClientes(connection, req) {
   const q = req.query;
 
-  // aliases paginación
   const qp = { ...q, page: q.page ?? q.pagina, page_size: q.page_size ?? q.cantidad };
 
-  // filtros
   const filtros = {
     nombre_fantasia: toStr(q.nombre_fantasia),
     codigo: toStr(q.codigo),
     razon_social: toStr(q.razon_social),
-    habilitado: toBool(q.estado ?? q.habilitado, undefined), // 0/1 o undefined
+    habilitado: toBool(q.estado ?? q.habilitado, undefined),
   };
 
-  // paginación
   const { page, pageSize, offset } = makePagination(qp, {
     pageKey: "page",
     pageSizeKey: "page_size",
@@ -31,7 +28,6 @@ export async function getFilteredClientes(connection, req) {
     maxPageSize: 100,
   });
 
-  // orden
   const sortMap = {
     codigo: "c.codigo",
     nombre_fantasia: "c.nombre_fantasia",
@@ -44,7 +40,6 @@ export async function getFilteredClientes(connection, req) {
     dirKey: "sort_dir",
   });
 
-  // WHERE
   const where = new SqlWhere().add("c.superado = 0").add("c.elim = 0");
   if (filtros.codigo) where.likeEscaped("c.codigo", filtros.codigo, { caseInsensitive: true });
   if (filtros.nombre_fantasia) where.likeEscaped("c.nombre_fantasia", filtros.nombre_fantasia, { caseInsensitive: true });
@@ -53,11 +48,9 @@ export async function getFilteredClientes(connection, req) {
 
   const { whereSql, params } = where.finalize();
 
-  // COUNT
   const countSql = `SELECT COUNT(*) AS total FROM clientes c ${whereSql}`;
   const [{ total = 0 } = {}] = await executeQuery(connection, countSql, params);
 
-  // DATA con subqueries agregadas (nombres REALES de columnas)
   const dataSql = `
     SELECT
       c.did,
@@ -67,10 +60,7 @@ export async function getFilteredClientes(connection, req) {
       c.observaciones,
       c.razon_social,
       c.quien
-
     FROM clientes c
-    
-    
     ${whereSql}
     ${orderSql}
     LIMIT ? OFFSET ?;

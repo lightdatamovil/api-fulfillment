@@ -15,7 +15,6 @@ import {
 export async function getFilteredCurvas(connection, req) {
     const q = req.query;
 
-    // Aliases para paginación/orden
     const qp = {
         ...q,
         page: q.page ?? q.pagina,
@@ -24,12 +23,10 @@ export async function getFilteredCurvas(connection, req) {
         sort_dir: q.sort_dir ?? q.sortDir,
     };
 
-    // Filtros
     const filtros = {
         nombre: toStr(q.nombre),
     };
 
-    // Paginación
     const { page, pageSize, offset } = makePagination(qp, {
         pageKey: "page",
         pageSizeKey: "page_size",
@@ -38,7 +35,6 @@ export async function getFilteredCurvas(connection, req) {
         maxPageSize: 100,
     });
 
-    // Orden (whitelist)
     const sortMap = {
         nombre: "vc.nombre",
         did: "vc.did",
@@ -50,7 +46,6 @@ export async function getFilteredCurvas(connection, req) {
         dirKey: "sort_dir",
     });
 
-    // WHERE
     const where = new SqlWhere()
         .add("vc.elim = 0")
         .add("vc.superado = 0");
@@ -59,7 +54,6 @@ export async function getFilteredCurvas(connection, req) {
 
     const { whereSql, params } = where.finalize();
 
-    // SELECT + COUNT
     const { rows, total } = await runPagedQuery(connection, {
         select: "vc.id, vc.did, vc.nombre",
         from: "FROM curvas vc",

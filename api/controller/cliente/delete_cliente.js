@@ -2,9 +2,8 @@ import { LightdataORM } from "lightdata-tools";
 
 export async function deleteCliente(dbConnection, req) {
     const { clienteId } = req.params;
-    const { userId } = req.user ?? {};
+    const { userId } = req.user;
 
-    // Borra el cliente principal
     await LightdataORM.delete({
         dbConnection,
         table: "clientes",
@@ -12,12 +11,12 @@ export async function deleteCliente(dbConnection, req) {
         quien: userId,
     });
 
-    // Borra direcciones vinculadas
     const dirLinks = await LightdataORM.select({
         dbConnection,
         table: "clientes_direcciones",
         where: { did_cliente: clienteId },
     });
+
     if (dirLinks.length > 0) {
         await LightdataORM.delete({
             dbConnection,
@@ -27,12 +26,12 @@ export async function deleteCliente(dbConnection, req) {
         });
     }
 
-    // Borra contactos vinculados
     const contLinks = await LightdataORM.select({
         dbConnection,
         table: "clientes_contactos",
         where: { did_cliente: clienteId },
     });
+
     if (contLinks.length > 0) {
         await LightdataORM.delete({
             dbConnection,
@@ -41,8 +40,6 @@ export async function deleteCliente(dbConnection, req) {
             quien: userId,
         });
     }
-
-    // Borra cuentas vinculadas
     const cuentaLinks = await LightdataORM.select({
         dbConnection,
         table: "clientes_cuentas",

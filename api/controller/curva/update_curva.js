@@ -1,5 +1,4 @@
-// controller/variantes/update_curva.js
-import { CustomException, Status, isNonEmpty, LightdataORM } from "lightdata-tools";
+import { isNonEmpty, LightdataORM } from "lightdata-tools";
 
 /**
  * Versionado de curva (PUT) usando LightdataORM:
@@ -33,50 +32,36 @@ export async function updateCurva(dbConnection, req) {
     const idVersionNueva = await LightdataORM.update({
         dbConnection,
         table: "curvas",
-        did: didCurva,
+        where: { did: didCurva },
         quien: userId,
         data: { nombre: newNombre },
     });
 
-    let linked;
-    if (Array.isArray(categorias)) {
+    if (categorias.length > 0) {
         const validIds = categorias
             .map((n) => Number(n))
             .filter((n) => Number.isFinite(n) && n > 0);
 
-        for (const didCategoria of validIds) {
-            const [cat] = await LightdataORM.select({
+        if (validIds.length > 0) {
+            await LightdataORM.select({
                 dbConnection,
                 table: "variantes_categorias",
-                column: "did",
-                value: didCategoria,
+                where: { did: validIds },
                 throwExceptionIfNotExists: true,
             });
-            if (Number(cat.elim ?? 0) !== 0 || Number(cat.superado ?? 0) !== 0) {
-                throw new CustomException({
-                    title: "Categorías no encontradas",
-                    message: `No existe/activa la categoría ${didCategoria}`,
-                    status: Status.badRequest,
-                });
-            }
         }
 
         const linksVigentes = await LightdataORM.select({
             dbConnection,
             table: "variantes_categorias_curvas",
-            column: "did_curva",
-            value: didCurva,
+            where: { did_curva: didCurva },
         });
 
-        const didsLinksVigentes = linksVigentes
-            .filter((l) => Number(l.elim ?? 0) === 0 && Number(l.superado ?? 0) === 0)
-            .map((l) => Number(l.did));
-
-        if (didsLinksVigentes.length > 0) {
+        if (linksVigentes.length > 0) {
             await LightdataORM.delete({
                 dbConnection,
                 table: "variantes_categorias_curvas",
-                where: { did: didsLinksVigentes },
+                where: { did: linksVigentes },
                 quien: userId,
             });
         }
@@ -90,7 +75,6 @@ export async function updateCurva(dbConnection, req) {
                 did_categoria: didCategoria,
             })),
         });
-
     }
 
     return {
@@ -100,7 +84,6 @@ export async function updateCurva(dbConnection, req) {
             did: didCurva,
             idVersionNueva,
             nombre: newNombre,
-            ...(linked !== undefined ? { categoriasVinculadas: linked } : {}),
         },
         meta: { timestamp: new Date().toISOString() },
     };

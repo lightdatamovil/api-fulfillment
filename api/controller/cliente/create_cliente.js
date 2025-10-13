@@ -1,11 +1,4 @@
-import {
-    CustomException,
-    Status,
-    isNonEmpty,
-    isDefined,
-    number01,
-    LightdataORM,
-} from "lightdata-tools";
+import { isNonEmpty, isDefined, LightdataORM, } from "lightdata-tools";
 
 export async function createCliente(dbConnection, req) {
     const {
@@ -18,46 +11,22 @@ export async function createCliente(dbConnection, req) {
         contactos,
         cuentas,
         depositos,
-    } = req.body || {};
-    const { userId } = req.user ?? {};
+    } = req.body;
+    const { userId } = req.user;
 
-    // ---------- Validaciones básicas ----------
     const nf = String(nombre_fantasia || "").trim();
     const rs = isNonEmpty(razon_social) ? String(razon_social).trim() : null;
     const cod = isNonEmpty(codigo) ? String(codigo).trim() : null;
     const obs = isNonEmpty(observaciones) ? String(observaciones).trim() : null;
+    const vl = isDefined(habilitado) ? String(habilitado).trim() : null;
 
-    let habValue = 1;
-    if (isDefined(habilitado)) {
-        const h = number01(habilitado);
-        if (h !== 0 && h !== 1) {
-            throw new CustomException({
-                title: "Valor inválido",
-                message: "habilitado debe ser 0 o 1",
-                status: Status.badRequest,
-            });
-        }
-        habValue = h;
-    }
-
-    // ---------- Verificación de duplicados ----------
     await LightdataORM.select({
         dbConnection,
         table: "clientes",
-        where: { nombre_fantasia: nf },
+        where: { nombre_fantasia: nf, codigo: cod },
         throwIfExists: true,
     });
 
-    if (cod) {
-        await LightdataORM.select({
-            dbConnection,
-            table: "clientes",
-            where: { codigo: cod },
-            throwIfExists: true,
-        });
-    }
-
-    // ---------- Insert cliente ----------
     const [clienteId] = await LightdataORM.insert({
         dbConnection,
         table: "clientes",
@@ -66,14 +35,12 @@ export async function createCliente(dbConnection, req) {
             nombre_fantasia: nf,
             razon_social: rs,
             codigo: cod,
-            habilitado: habValue,
+            habilitado: vl,
             observaciones: obs,
         },
     });
 
-    // ---------- Direcciones ----------
-    let insertedDirecciones = [];
-    if (Array.isArray(direcciones) && direcciones.length > 0) {
+    if (direcciones.length > 0) {
         const data = direcciones.map((d) => ({
             did_cliente: clienteId,
             pais: isNonEmpty(d?.pais) ? String(d.pais).trim() : null,
@@ -84,49 +51,31 @@ export async function createCliente(dbConnection, req) {
             provincia: isNonEmpty(d?.provincia) ? String(d.provincia).trim() : null,
         }));
 
-        const dirIds = await LightdataORM.insert({
+        await LightdataORM.insert({
             dbConnection,
             table: "clientes_direcciones",
             quien: userId,
             data,
         });
-
-        insertedDirecciones = data.map((d, i) => ({
-            id: dirIds[i],
-            did: dirIds[i],
-            ...d,
-            quien: userId,
-        }));
     }
 
-    // ---------- Contactos ----------
-    let insertedContactos = [];
-    if (Array.isArray(contactos) && contactos.length > 0) {
+    if (contactos.length > 0) {
         const data = contactos.map((c) => ({
             did_cliente: clienteId,
             tipo: c?.tipo ?? 0,
             valor: c?.valor ?? null,
         }));
 
-        const contIds = await LightdataORM.insert({
+        await LightdataORM.insert({
             dbConnection,
             table: "clientes_contactos",
             quien: userId,
             data,
         });
-
-        insertedContactos = data.map((c, i) => ({
-            id: contIds[i],
-            did: contIds[i],
-            ...c,
-            quien: userId,
-        }));
     }
 
-    // ---------- Cuentas ----------
-    let insertedCuentas = [];
-    if (Array.isArray(cuentas) && cuentas.length > 0) {
-        for (const c of cuentas) {
+    if (cuentas.length > 0) {
+        const cuentasData = cuentas.map((c) => {
             const flex = Number(c?.flex ?? c?.tipo) || 0;
             const rawData = c?.data ?? {};
             const dataStr = JSON.stringify(rawData);
@@ -140,49 +89,41 @@ export async function createCliente(dbConnection, req) {
                     ? (rawData?.ml_user ?? c?.ml_user ?? "").toString()
                     : "";
 
-            const [ctaId] = await LightdataORM.insert({
-                dbConnection,
-                table: "clientes_cuentas",
-                quien: userId,
-                data: {
-                    did_cliente: clienteId,
-                    flex,
-                    data: dataStr,
-                    titulo,
-                    ml_id_vendedor,
-                    ml_user,
-                },
-            });
-
-            insertedCuentas.push({
-                id: ctaId,
-                did: ctaId,
+            return {
                 did_cliente: clienteId,
                 flex,
-                data: rawData,
+                data: dataStr,
                 titulo,
                 ml_id_vendedor,
                 ml_user,
-            });
+            };
+        });
+        const cuentasIds = await LightdataORM.insert({
+            dbConnection,
+            table: "clientes_cuentas",
+            quien: userId,
+            data: cuentasData,
+        });
 
-            // ---------- Depósitos (si hay) ----------
-            if (Array.isArray(depositos) && depositos.length > 0) {
-                const data = depositos.map((d) => ({
+        if (depositos.length > 0) {
+            const depositosData = cuentasIds.flatMap((ctaId) =>
+                depositos.map((d) => ({
                     did_cliente_cuenta: ctaId,
                     did_deposito: Number(d?.did_deposito) || 0,
-                }));
+                }))
+            );
 
+            if (depositosData.length > 0) {
                 await LightdataORM.insert({
                     dbConnection,
                     table: "clientes_cuentas_depositos",
                     quien: userId,
-                    data,
+                    data: depositosData,
                 });
             }
         }
     }
 
-    // ---------- Respuesta ----------
     return {
         success: true,
         message: "Cliente creado correctamente",
@@ -192,11 +133,8 @@ export async function createCliente(dbConnection, req) {
             nombre_fantasia: nf,
             razon_social: rs,
             codigo: cod,
-            habilitado: habValue,
+            habilitado: vl,
             observaciones: obs,
-            direcciones: insertedDirecciones,
-            contactos: insertedContactos,
-            cuentas: insertedCuentas,
             quien: userId,
         },
         meta: { timestamp: new Date().toISOString() },

@@ -1,5 +1,5 @@
 // clientes.controller.js
-import { executeQuery } from "lightdata-tools";
+import { CustomException, executeQuery, Status } from "lightdata-tools";
 
 export async function getClienteById(connection, req) {
     const { clienteId } = req.params;
@@ -53,15 +53,13 @@ export async function getClienteById(connection, req) {
     const rows = await executeQuery(connection, sql, [clienteId]);
 
     if (!rows?.length) {
-        return {
-            success: false,
-            message: "No se encontró el cliente.",
-            data: null,
-            meta: null,
-        };
+        throw new CustomException({
+            title: "Cliente no encontrado",
+            message: "Cliente no encontrado con el ID proporcionado",
+            status: Status.notFound,
+        })
     }
 
-    // base del cliente
     const base = rows[0];
     const cliente = {
         did: base.did,
@@ -74,17 +72,13 @@ export async function getClienteById(connection, req) {
         direcciones: [],
         contactos: [],
         cuentas: [],
-
     };
 
-    // sets para evitar duplicados
     const dirSet = new Set();
     const conSet = new Set();
     const ctaSet = new Set();
 
-
     for (const r of rows) {
-        // direcciones
         if (r.direccion_did && !dirSet.has(r.direccion_did)) {
             dirSet.add(r.direccion_did);
             cliente.direcciones.push({
@@ -99,7 +93,6 @@ export async function getClienteById(connection, req) {
             });
         }
 
-        // contactos
         if (r.contacto_did && !conSet.has(r.contacto_did)) {
             conSet.add(r.contacto_did);
             cliente.contactos.push({
@@ -110,26 +103,23 @@ export async function getClienteById(connection, req) {
             });
         }
 
-        // cuentas
         if (r.cuenta_did && !ctaSet.has(r.cuenta_did)) {
             ctaSet.add(r.cuenta_did);
             cliente.cuentas.push({
                 did: r.cuenta_did,
-                tipo: r.cuenta_flex,                 // campo real: flex (boolean/int)
+                tipo: r.cuenta_flex,
                 titulo: r.cuenta_titulo,
                 ml_id_vendedor: r.cuenta_ml_id_vendedor,
                 ml_user: r.cuenta_ml_user,
                 data: r.data ? JSON.parse(r.data) : null,
             });
         }
-
-
     }
 
     return {
         success: true,
         message: "Cliente obtenido correctamente",
         data: cliente,
-        meta: [],
+        meta: { timestamp: new Date().toISOString() },
     };
 }

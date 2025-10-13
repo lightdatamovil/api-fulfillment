@@ -37,7 +37,6 @@ export async function editCliente(dbConnection, req) {
         throwIfNotExists: true,
     });
 
-
     const updateData = {
         nombre_fantasia: nombre_fantasia ?? vigente.nombre_fantasia,
         razon_social: razon_social ?? vigente.razon_social,
