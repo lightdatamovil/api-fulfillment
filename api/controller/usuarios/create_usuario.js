@@ -7,10 +7,9 @@ const UPLOAD_URL = "https://files.lightdata.app/upload_fulfillment_images.php";
 
 export async function createUsuario(dbConnection, req) {
     const { companyId } = req.user;
-    const data = req?.body ?? {};
+    const data = req.body;
     const quien = req.user.userId;
 
-    // --- normalización básica ---
     const nombre = toStr(data.nombre);
     const apellido = toStr(data.apellido);
     const email = toStr(data.email);
@@ -34,7 +33,6 @@ export async function createUsuario(dbConnection, req) {
         });
     }
 
-    //berificar repetidos por usuario y email
     const existingUser = await executeQuery(
         dbConnection,
         `SELECT did FROM usuarios WHERE (usuario = ? OR email = ?) AND superado = 0 AND elim = 0 LIMIT 1`,
@@ -49,7 +47,6 @@ export async function createUsuario(dbConnection, req) {
         });
     }
 
-    // --- INSERT (no permito setear did/superado/elim/accesos/quien desde el front) ---
     const pass = await hashPassword(passRaw);
 
     const dataInsert = {

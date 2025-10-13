@@ -14,7 +14,6 @@ export async function getUsuarioById(dbConnection, req) {
         }
     )
 
-
     return {
         success: true,
         message: "Usuario obtenido correctamente",

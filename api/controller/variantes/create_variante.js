@@ -1,4 +1,4 @@
-import { isNonEmpty, isDefined, number01, CustomException, Status, LightdataORM } from "lightdata-tools"; // si ya estaban ahí, se mantienen
+import { isNonEmpty, isDefined, number01, CustomException, Status, LightdataORM } from "lightdata-tools";
 
 /**
  * Crea una variante (raíz) y opcionalmente sus categorías y valores.

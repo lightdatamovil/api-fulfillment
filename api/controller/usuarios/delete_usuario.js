@@ -7,9 +7,8 @@ export async function deleteUsuario(dbConnection, req) {
     await LightdataORM.delete({
         dbConnection,
         table: "logisticas",
-        did: userDid,
+        where: { did: userDid },
         quien: quien
-
     });
 
     return {

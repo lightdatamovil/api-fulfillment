@@ -15,10 +15,9 @@ export async function editUsuario(dbConnection, req) {
         imagen, habilitado, perfil,
         modulo_inicial, app_habilitada,
         telefono, codigo_cliente
-    } = req.body ?? {};
-    const { userId } = req.params;      // did del usuario a editar
+    } = req.body;
+    const { userId } = req.params;
 
-    // 1) Verificar existencia (traigo también pass actual)
     const qGet = `
         SELECT did, nombre, apellido, mail, usuario, pass, imagen,
                habilitado, perfil, modulo_inicial, app_habilitada,
@@ -37,11 +36,9 @@ export async function editUsuario(dbConnection, req) {
     }
     const current = rows[0];
 
-    // 2) Validaciones de cambio para usuario/mail (unicidad)
     const nextUsuario = isNonEmpty(usuario) ? String(usuario).trim() : current.usuario;
     const nextMail = isNonEmpty(email ?? mail) ? String(email ?? mail).trim() : current.mail;
 
-    // regex usuario
     if (nextUsuario && !/^[a-zA-Z0-9_]+$/.test(nextUsuario)) {
         throw new CustomException({
             title: "Usuario inválido",
@@ -82,7 +79,6 @@ export async function editUsuario(dbConnection, req) {
         }
     }
 
-    // 3) Preparar nuevos valores (fallback a current)
     const nextNombre = isNonEmpty(nombre) ? String(nombre).trim() : current.nombre;
     const nextApellido = isNonEmpty(apellido) ? String(apellido).trim() : current.apellido;
     const nextImagen = isNonEmpty(imagen) ? String(imagen).trim() : current.imagen;
@@ -117,20 +113,17 @@ export async function editUsuario(dbConnection, req) {
         nextAppHabilitada = a;
     }
 
-    // pass (si viene nueva, se hashea; si no, se mantiene)
     const incomingPass = contrasena ?? contraseña ?? password ?? pass;
     const nextPass = isNonEmpty(incomingPass)
         ? sha256(String(incomingPass))
         : current.pass;
 
-    // 4) Marcar superado=1 en versión activa
     await executeQuery(
         dbConnection,
         `UPDATE usuarios SET superado = 1 WHERE did = ? AND elim = 0 AND superado = 0`,
         [userId]
     );
 
-    // 5) Insertar nueva versión (superado=0)
     const insertSql = `
         INSERT INTO usuarios
             (did, nombre, apellido, mail, usuario, pass, imagen,
