@@ -9,7 +9,7 @@ export async function deleteLogistica(dbConnection, req) {
     await LightdataORM.delete({
         dbConnection,
         table: "logisticas",
-        did: logisticaDid,
+        where: { did: logisticaDid },
         quien: userId
 
     });
@@ -17,15 +17,14 @@ export async function deleteLogistica(dbConnection, req) {
     const links = await LightdataORM.select({
         dbConnection,
         table: "logisticas_direcciones",
-        column: "did_logistica",
-        value: logisticaDid,
+        where: { did_logistica: logisticaDid },
         select: "did"
     });
 
     await LightdataORM.delete({
         dbConnection,
         table: "logisticas_direcciones",
-        did: links,
+        where: { did: links },
         quien: userId
     });
 

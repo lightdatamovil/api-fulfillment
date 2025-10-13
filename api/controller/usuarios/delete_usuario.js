@@ -2,11 +2,12 @@ import { LightdataORM } from "lightdata-tools";
 
 export async function deleteUsuario(dbConnection, req) {
     const { userDid } = req.params;
+    console.log("Deleting user with DID:", userDid);
     const quien = req.user;
 
     await LightdataORM.delete({
         dbConnection,
-        table: "logisticas",
+        table: "usuarios",
         where: { did: userDid },
         quien: quien
     });

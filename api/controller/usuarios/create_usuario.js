@@ -83,7 +83,7 @@ export async function createUsuario(dbConnection, req) {
                 userId: didUserInsert,
                 file: imagen
             };
-            console.log(payload);
+            //  console.log(payload);
 
             const uploadRes = await axios.post(
                 UPLOAD_URL,
@@ -98,7 +98,7 @@ export async function createUsuario(dbConnection, req) {
             );
 
         } catch (err) {
-            debugHttpError(err, "upload");
+            //    debugHttpError(err, "upload");
             throw new CustomException({
                 status: Status.badGateway,
                 message: "Error al subir la imagen"

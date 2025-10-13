@@ -45,7 +45,22 @@ usuarios.put(
     '/:userId',
     buildHandlerWrapper({
         requiredParams: ['userId'],
-        optional: ['nombre', 'apellido', 'usuario', 'password', 'perfil', 'email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada'],
+        optional: [
+            "nombre",
+            "apellido",
+            "email",
+            "usuario",
+            "pass",
+            "imagen",
+            "habilitado",
+            "perfil",
+            "accesos",
+            "tipo",
+            "modulo_inicial",
+            "app_habilitada",
+            "telefono",
+            "codigo_cliente"
+        ],
         controller: async ({ db, req }) => {
             const result = await editUsuario(db, req);
             return result;
@@ -54,9 +69,9 @@ usuarios.put(
 );
 
 usuarios.delete(
-    '/:userId',
+    '/:userDid',
     buildHandlerWrapper({
-        requiredParams: ['userId'],
+        requiredParams: ['userDid'],
         controller: async ({ db, req }) => {
             const result = await deleteUsuario(db, req);
             return result;
