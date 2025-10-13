@@ -1,17 +1,10 @@
-import { executeQuery } from "lightdata-tools";
+import { executeQuery, LightdataORM } from "lightdata-tools";
 
 export async function preloader(dbConnection) {
-    // --- Productos
-    const queryProductos = `
-    SELECT p.did AS did, p.did_cliente, p.titulo, p.habilitado, p.es_combo, p.cm3
-    FROM productos AS p
-    WHERE p.elim = 0 AND p.superado = 0
-    ORDER BY p.did DESC
-  `;
-    const productos = await executeQuery(dbConnection, queryProductos);
+  const productos = await LightdataORM.query(dbConnection, 'productos');
 
-    // --- Variantes (root) con categorías y valores
-    const queryVariantes = `
+  // --- Variantes (root) con categorías y valores
+  const queryVariantes = `
     SELECT
       v.did          AS variante_did,
       v.codigo       AS variante_codigo,
@@ -36,39 +29,39 @@ export async function preloader(dbConnection) {
     WHERE v.elim = 0 AND v.superado = 0
     ORDER BY v.did DESC, vc.did DESC, vcv.did DESC
   `;
-    const rowsVariantes = await executeQuery(dbConnection, queryVariantes, []);
+  const rowsVariantes = await executeQuery(dbConnection, queryVariantes, []);
 
-    // Mapear variantes → categorías → valores
-    const variantesMap = new Map();
-    for (const r of rowsVariantes) {
-        if (!variantesMap.has(r.variante_did)) {
-            variantesMap.set(r.variante_did, {
-                did: r.variante_did,
-                codigo: r.variante_codigo,
-                nombre: r.variante_nombre,
-                descripcion: r.variante_descripcion,
-                habilitado: r.variante_habilitado,
-                orden: r.variante_orden,
-                categorias: [],
-            });
-        }
-        const variante = variantesMap.get(r.variante_did);
-
-        if (r.categoria_did) {
-            let cat = variante.categorias.find((c) => c.did === r.categoria_did);
-            if (!cat) {
-                cat = { did: r.categoria_did, nombre: r.categoria_nombre, valores: [] };
-                variante.categorias.push(cat);
-            }
-            if (r.valor_did) {
-                cat.valores.push({ did: r.valor_did, nombre: r.valor_nombre });
-            }
-        }
+  // Mapear variantes → categorías → valores
+  const variantesMap = new Map();
+  for (const r of rowsVariantes) {
+    if (!variantesMap.has(r.variante_did)) {
+      variantesMap.set(r.variante_did, {
+        did: r.variante_did,
+        codigo: r.variante_codigo,
+        nombre: r.variante_nombre,
+        descripcion: r.variante_descripcion,
+        habilitado: r.variante_habilitado,
+        orden: r.variante_orden,
+        categorias: [],
+      });
     }
-    const variantes = Array.from(variantesMap.values());
+    const variante = variantesMap.get(r.variante_did);
 
-    // --- Curvas (relación curva ↔ variante; y variante ↔ categorías ↔ valores)
-    const queryCurvas = `
+    if (r.categoria_did) {
+      let cat = variante.categorias.find((c) => c.did === r.categoria_did);
+      if (!cat) {
+        cat = { did: r.categoria_did, nombre: r.categoria_nombre, valores: [] };
+        variante.categorias.push(cat);
+      }
+      if (r.valor_did) {
+        cat.valores.push({ did: r.valor_did, nombre: r.valor_nombre });
+      }
+    }
+  }
+  const variantes = Array.from(variantesMap.values());
+
+  // --- Curvas (relación curva ↔ variante; y variante ↔ categorías ↔ valores)
+  const queryCurvas = `
     SELECT
       cu.did           AS curva_did,
       cu.nombre        AS curva_nombre,
@@ -99,57 +92,51 @@ export async function preloader(dbConnection) {
     WHERE cu.elim = 0 AND cu.superado = 0
     ORDER BY cu.did DESC, v.did DESC, vc.did DESC, vcv.did DESC
   `;
-    const rowsCurvas = await executeQuery(dbConnection, queryCurvas, []);
+  const rowsCurvas = await executeQuery(dbConnection, queryCurvas, []);
 
-    // Mapear curvas → variantes (opcional) → categorías → valores
-    const curvasMap = new Map();
-    for (const r of rowsCurvas) {
-        if (!curvasMap.has(r.curva_did)) {
-            curvasMap.set(r.curva_did, {
-                did: r.curva_did,
-                nombre: r.curva_nombre,
-                variantes: [], // cada curva puede linkear a 1+ variantes
-            });
-        }
-        const curva = curvasMap.get(r.curva_did);
-
-        // Ensamblar variante dentro de la curva (si existe link)
-        if (r.variante_did) {
-            let vEntry = curva.variantes.find((x) => x.did === r.variante_did);
-            if (!vEntry) {
-                vEntry = {
-                    did: r.variante_did,
-                    codigo: r.variante_codigo,
-                    nombre: r.variante_nombre,
-                    categorias: [],
-                };
-                curva.variantes.push(vEntry);
-            }
-
-            if (r.categoria_did) {
-                let cat = vEntry.categorias.find((c) => c.did === r.categoria_did);
-                if (!cat) {
-                    cat = { did: r.categoria_did, nombre: r.categoria_nombre, valores: [] };
-                    vEntry.categorias.push(cat);
-                }
-                if (r.valor_did) {
-                    cat.valores.push({ did: r.valor_did, nombre: r.valor_nombre });
-                }
-            }
-        }
+  // Mapear curvas → variantes (opcional) → categorías → valores
+  const curvasMap = new Map();
+  for (const r of rowsCurvas) {
+    if (!curvasMap.has(r.curva_did)) {
+      curvasMap.set(r.curva_did, {
+        did: r.curva_did,
+        nombre: r.curva_nombre,
+        variantes: [], // cada curva puede linkear a 1+ variantes
+      });
     }
-    const curvas = Array.from(curvasMap.values());
+    const curva = curvasMap.get(r.curva_did);
 
-    // --- Insumos
-    const queryInsumos = `
-    SELECT * FROM insumos
-    WHERE elim = 0 AND superado = 0
-    ORDER BY did DESC
-  `;
-    const insumos = await executeQuery(dbConnection, queryInsumos, []);
+    // Ensamblar variante dentro de la curva (si existe link)
+    if (r.variante_did) {
+      let vEntry = curva.variantes.find((x) => x.did === r.variante_did);
+      if (!vEntry) {
+        vEntry = {
+          did: r.variante_did,
+          codigo: r.variante_codigo,
+          nombre: r.variante_nombre,
+          categorias: [],
+        };
+        curva.variantes.push(vEntry);
+      }
 
-    // --- Clientes y cuentas
-    const queryClientes = `
+      if (r.categoria_did) {
+        let cat = vEntry.categorias.find((c) => c.did === r.categoria_did);
+        if (!cat) {
+          cat = { did: r.categoria_did, nombre: r.categoria_nombre, valores: [] };
+          vEntry.categorias.push(cat);
+        }
+        if (r.valor_did) {
+          cat.valores.push({ did: r.valor_did, nombre: r.valor_nombre });
+        }
+      }
+    }
+  }
+  const curvas = Array.from(curvasMap.values());
+
+  const insumos = await LightdataORM.select(dbConnection, "insumos");
+
+  // --- Clientes y cuentas
+  const queryClientes = `
     SELECT 
       c.did AS cliente_did,
       c.codigo, 
@@ -165,33 +152,33 @@ export async function preloader(dbConnection) {
     WHERE c.elim = 0 AND c.superado = 0
     ORDER BY c.did DESC
   `;
-    const rowsClientes = await executeQuery(dbConnection, queryClientes, []);
+  const rowsClientes = await executeQuery(dbConnection, queryClientes, []);
 
-    const clientesMap = new Map();
-    for (const row of rowsClientes) {
-        if (!clientesMap.has(row.cliente_did)) {
-            clientesMap.set(row.cliente_did, {
-                did: row.cliente_did,
-                codigo: row.codigo,
-                nombre_fantasia: row.nombre_fantasia,
-                habilitado: row.habilitado,
-                cuentas: [],
-            });
-        }
-        if (row.cuenta_did) {
-            clientesMap.get(row.cliente_did).cuentas.push({
-                did: row.cuenta_did,
-                flex: row.flex,
-                titulo: row.titulo || "",
-            });
-        }
+  const clientesMap = new Map();
+  for (const row of rowsClientes) {
+    if (!clientesMap.has(row.cliente_did)) {
+      clientesMap.set(row.cliente_did, {
+        did: row.cliente_did,
+        codigo: row.codigo,
+        nombre_fantasia: row.nombre_fantasia,
+        habilitado: row.habilitado,
+        cuentas: [],
+      });
     }
-    const clientes = Array.from(clientesMap.values());
+    if (row.cuenta_did) {
+      clientesMap.get(row.cliente_did).cuentas.push({
+        did: row.cuenta_did,
+        flex: row.flex,
+        titulo: row.titulo || "",
+      });
+    }
+  }
+  const clientes = Array.from(clientesMap.values());
 
-    return {
-        success: true,
-        message: "Datos pre-cargados correctamente",
-        data: { productos, variantes, curvas, insumos, clientes },
-        meta: { timestamp: new Date().toISOString() },
-    };
+  return {
+    success: true,
+    message: "Datos pre-cargados correctamente",
+    data: { productos, variantes, curvas, insumos, clientes },
+    meta: { timestamp: new Date().toISOString() },
+  };
 }

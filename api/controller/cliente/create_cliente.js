@@ -6,11 +6,11 @@ export async function createCliente(dbConnection, req) {
         razon_social,
         codigo,
         habilitado,
-        observaciones,
-        direcciones,
-        contactos,
-        cuentas,
-        depositos,
+        observaciones = [],
+        direcciones = [],
+        contactos = [],
+        cuentas = [],
+        depositos = [],
     } = req.body;
     const { userId } = req.user;
 
