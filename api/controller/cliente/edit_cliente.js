@@ -1,4 +1,3 @@
-// clientes.controller.js (ESM)
 import { LightdataORM } from "lightdata-tools";
 
 /**
@@ -17,18 +16,17 @@ export async function editCliente(dbConnection, req) {
     const { clienteId } = req.params;
     const { direcciones, contactos, cuentas, nombre_fantasia, razon_social, codigo, observaciones, habilitado } = req.body;
 
-    const arr = (x) => (Array.isArray(x) ? x : []);
-    const dAdd = arr(direcciones?.add);
-    const dUpd = arr(direcciones?.update);
-    const dDel = arr(direcciones?.remove);
+    const dAdd = direcciones?.add;
+    const dUpd = direcciones?.update;
+    const dDel = direcciones?.remove;
 
-    const cAdd = arr(contactos?.add);
-    const cUpd = arr(contactos?.update);
-    const cDel = arr(contactos?.remove);
+    const cAdd = contactos?.add;
+    const cUpd = contactos?.update;
+    const cDel = contactos?.remove;
 
-    const aAdd = arr(cuentas?.add);
-    const aUpd = arr(cuentas?.update);
-    const aDel = arr(cuentas?.remove);
+    const aAdd = cuentas?.add;
+    const aUpd = cuentas?.update;
+    const aDel = cuentas?.remove;
 
     const [vigente] = await LightdataORM.select({
         dbConnection,
@@ -55,21 +53,22 @@ export async function editCliente(dbConnection, req) {
     });
 
     if (dAdd.length > 0) {
+        const direccionesAdd = dAdd.map((d) => ({
+            did_cliente: Number(clienteId),
+            address_line: d?.address_line ?? null,
+            pais: d?.pais ?? null,
+            localidad: d?.localidad ?? null,
+            numero: d?.numero ?? null,
+            calle: d?.calle ?? null,
+            cp: d?.cp ?? null,
+            provincia: d?.provincia ?? null,
+            titulo: d?.titulo ?? null,
+        }));
         await LightdataORM.insert({
             dbConnection,
             table: "clientes_direcciones",
             quien: userId,
-            data: dAdd.map((d) => ({
-                did_cliente: Number(clienteId),
-                address_line: d?.address_line ?? null,
-                pais: d?.pais ?? null,
-                localidad: d?.localidad ?? null,
-                numero: d?.numero ?? null,
-                calle: d?.calle ?? null,
-                cp: d?.cp ?? null,
-                provincia: d?.provincia ?? null,
-                titulo: d?.titulo ?? null,
-            })),
+            data: direccionesAdd,
         });
     }
 
@@ -92,26 +91,26 @@ export async function editCliente(dbConnection, req) {
         });
     }
 
-
     if (dDel.length > 0) {
         await LightdataORM.delete({
             dbConnection,
             table: "clientes_direcciones",
-            where: { did: dDel.map(d => d.did) },
+            where: { did: dDel },
             quien: userId,
         });
     }
 
     if (cAdd.length > 0) {
+        const contactosAdd = cAdd.map((c) => ({
+            did_cliente: Number(clienteId),
+            tipo: Number(c?.tipo ?? 0),
+            valor: c?.valor ?? null,
+        }));
         await LightdataORM.insert({
             dbConnection,
             table: "clientes_contactos",
             quien: userId,
-            data: cAdd.map((c) => ({
-                did_cliente: Number(clienteId),
-                tipo: Number(c?.tipo ?? 0),
-                valor: c?.valor ?? null,
-            })),
+            data: contactosAdd,
         });
     }
 
@@ -122,9 +121,8 @@ export async function editCliente(dbConnection, req) {
             where: { did: cUpd.map(c => c.did) },
             quien: userId,
             data: cUpd.map(c => ({
-                tipo: Number(c?.tipo ?? 0),
-                valor: c?.valor ?? null,
-                elim: 0,
+                tipo: c.tipo,
+                valor: c.valor,
             })),
         });
     }
@@ -133,41 +131,44 @@ export async function editCliente(dbConnection, req) {
         await LightdataORM.delete({
             dbConnection,
             table: "clientes_contactos",
-            where: { did: cDel.map(c => c.did) },
+            where: { did: cDel },
             quien: userId,
         });
     }
 
     if (aAdd.length > 0) {
+        const cuentasAdd = aAdd.map((a) => ({
+            did_cliente: Number(clienteId),
+            flex: Number(a?.flex ?? 0),
+            titulo: a?.titulo ?? null,
+            ml_id_vendedor: String(a?.ml_id_vendedor ?? ""),
+            ml_user: a?.ml_user ?? null,
+            data: JSON.stringify(a?.data ?? null),
+        }));
+
         await LightdataORM.insert({
             dbConnection,
             table: "clientes_cuentas",
             quien: userId,
-            data: aAdd.map((a) => ({
-                did_cliente: Number(clienteId),
-                flex: Number(a?.flex ?? 0),
-                titulo: a?.titulo ?? null,
-                ml_id_vendedor: String(a?.ml_id_vendedor ?? ""),
-                ml_user: a?.ml_user ?? null,
-                data: a?.data ?? null,
-            })),
+            data: cuentasAdd,
         });
     }
 
     if (aUpd.length > 0) {
+        const cuentas = aUpd.map(a => ({
+            flex: a.flex,
+            titulo: a.titulo,
+            ml_id_vendedor: a.ml_id_vendedor,
+            ml_user: a.ml_user,
+            data: a.data,
+        }));
+
         await LightdataORM.update({
             dbConnection,
             table: "clientes_cuentas",
             where: { did: aUpd.map(a => a.did) },
             quien: userId,
-            data: aUpd.map(a => ({
-                flex: Number(a?.flex ?? 0),
-                titulo: a?.titulo ?? null,
-                ml_id_vendedor: String(a?.ml_id_vendedor ?? ""),
-                ml_user: a?.ml_user ?? null,
-                data: a?.data ?? null,
-                elim: 0,
-            })),
+            data: cuentas,
         });
     }
 
@@ -175,7 +176,7 @@ export async function editCliente(dbConnection, req) {
         await LightdataORM.delete({
             dbConnection,
             table: "clientes_cuentas",
-            where: { did: aDel.map(a => a.did) },
+            where: { did: aDel },
             quien: userId,
         });
     }
