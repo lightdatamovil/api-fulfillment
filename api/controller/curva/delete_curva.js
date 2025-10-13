@@ -9,6 +9,7 @@ export async function deleteCurva(dbConnection, req) {
         table: "curvas",
         where: { did: curvaDid },
         quien: userId,
+        throwIfNotFound: true,
     });
 
     const vlinks = await LightdataORM.select({
@@ -22,21 +23,6 @@ export async function deleteCurva(dbConnection, req) {
             dbConnection,
             table: "variantes_curvas",
             where: { did: vlinks.map((l) => l.did) },
-            quien: userId,
-        });
-    }
-
-    const clinks = await LightdataORM.select({
-        dbConnection,
-        table: "variantes_categorias_curvas",
-        where: { did_curva: curvaDid },
-    });
-
-    if (clinks.length > 0) {
-        await LightdataORM.delete({
-            dbConnection,
-            table: "variantes_categorias_curvas",
-            where: { did: clinks.map((l) => l.did) },
             quien: userId,
         });
     }

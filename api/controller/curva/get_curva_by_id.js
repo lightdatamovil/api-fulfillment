@@ -9,7 +9,7 @@ import { CustomException, executeQuery } from "lightdata-tools";
  * }
  */
 export async function getCurvaById(dbConnection, req) {
-    const didParam = req.params?.did ?? req.params?.id ?? req.params?.varianteId;
+    const didParam = req.params.curvaDid;
     const didCurva = Number(didParam);
 
     if (!Number.isFinite(didCurva) || didCurva <= 0) {
@@ -48,14 +48,8 @@ export async function getCurvaById(dbConnection, req) {
     const curva = {
         did: rows[0].curva_did,
         nombre: rows[0].curva_nombre,
-        categorias: [],
+        categorias: rows.map((r) => r.cat_did)
     };
-
-    for (const r of rows) {
-        if (r.cat_did) {
-            curva.categorias.push({ did: r.cat_did });
-        }
-    }
 
     return {
         success: true,
