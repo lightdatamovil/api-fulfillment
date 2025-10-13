@@ -7,28 +7,30 @@ export async function getUsuarioById(dbConnection, req) {
         {
             dbConnection,
             table: "usuarios",
-            column: "did",
-            value: userId,
+            where: { did: userId },
             throwExceptionIfNotExists: true,
-            select: "did, perfil, nombre, apellido, mail, usuario, habilitado, modulo_inicial, app_habilitada, telefono, codigo_cliente"
+            select: ["did", "perfil", "nombre", "apellido", "email", "usuario", "habilitado", "modulo_inicial", "app_habilitada", "telefono", "codigo_cliente", "imagen"]
         }
     )
+
+    const [user] = row;
 
     return {
         success: true,
         message: "Usuario obtenido correctamente",
         data: {
-            did: row.did,
-            perfil: row.perfil,
-            nombre: row.nombre,
-            apellido: row.apellido,
-            email: row.mail,
-            usuario: row.usuario,
-            habilitado: row.habilitado,
-            modulo_inicial: row.modulo_inicial,
-            app_habilitada: row.app_habilitada,
-            telefono: row.telefono,
-            codigo_cliente: row.codigo_cliente
+            did: user.did,
+            perfil: user.perfil,
+            nombre: user.nombre,
+            apellido: user.apellido,
+            email: user.email,
+            usuario: user.usuario,
+            habilitado: user.habilitado,
+            modulo_inicial: user.modulo_inicial,
+            app_habilitada: user.app_habilitada,
+            telefono: user.telefono,
+            imagen: user.imagen,
+            codigo_cliente: user.codigo_cliente
         },
         meta: {
             timestamp: new Date().toISOString(),
