@@ -1,8 +1,7 @@
 import axios from "axios";
 import { CustomException, hashPassword, isNonEmpty, LightdataORM, Status } from "lightdata-tools";
 import { debugHttpError } from "../../src/functions/debugEndpoint.js";
-
-const UPLOAD_URL = "https://files.lightdata.app/upload_fulfillment_images.php";
+import { urlSubidaImagenes } from "../../db.js";
 
 /**
  * Edita un usuario existente (versionado por did):
@@ -48,10 +47,9 @@ export async function editUsuario(dbConnection, req) {
                     userId: userId,
                     file: imagen
                 };
-                console.log(payload);
 
                 const uploadRes = await axios.post(
-                    UPLOAD_URL,
+                    urlSubidaImagenes,
                     payload,
                     { headers: { "Content-Type": "application/json" } }
                 );
@@ -92,8 +90,6 @@ export async function editUsuario(dbConnection, req) {
                 codigo_cliente: codigo_cliente
             }
         });
-
-
 
     return {
         success: true,
