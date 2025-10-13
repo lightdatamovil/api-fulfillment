@@ -10,9 +10,8 @@ export async function editInsumo(dbConnection, req) {
     const [current] = await LightdataORM.select({
         dbConnection,
         table: "insumos",
-        column: "did",
-        value: insumoId,
-        throwExceptionIfNotExists: true,
+        where: { did: insumoId },
+        throwIfNotExists: true,
     });
 
     if (isNonEmpty(codigo)) {
@@ -21,7 +20,7 @@ export async function editInsumo(dbConnection, req) {
             table: "insumos",
             column: "codigo",
             value: codigo,
-            throwExceptionIfAlreadyExists: true,
+            throwIfExists: true,
         });
     }
 
@@ -33,7 +32,7 @@ export async function editInsumo(dbConnection, req) {
     await LightdataORM.update({
         dbConnection,
         table: "insumos",
-        did: insumoId,
+        where: { did: insumoId },
         quien: userId,
         data: {
             codigo: newCodigo,
@@ -50,12 +49,18 @@ export async function editInsumo(dbConnection, req) {
         await LightdataORM.delete({
             dbConnection,
             table: "insumos_clientes",
-            did: toRemove,
+            where: { did: toRemove },
             quien: userId,
         });
     }
 
     if (toAdd.length > 0) {
+        await LightdataORM.select({
+            dbConnection,
+            table: "insumos_clientes",
+            where: { did_insumo: insumoId, did_cliente: toAdd },
+            throwIfExists: true,
+        });
         const data = toAdd.map(clienteId => ({
             did_insumo: insumoId,
             did_cliente: clienteId,
@@ -72,10 +77,7 @@ export async function editInsumo(dbConnection, req) {
     return {
         success: true,
         message: "Insumo actualizado correctamente",
-        data: {
-            did: Number(insumoId),
-            clientes_dids: Array.from(toAdd),
-        },
+        data: {},
         meta: { timestamp: new Date().toISOString() },
     };
 }
