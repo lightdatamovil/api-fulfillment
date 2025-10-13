@@ -52,8 +52,8 @@ clientes.get(
   })
 );
 
-clientes.put(
-  '/delete/:clienteId',
+clientes.delete(
+  '/:clienteId',
   buildHandlerWrapper({
     requiredParams: ['clienteId'],
     optional: ["nombre_fantasia", "razon_social", "codigo", "habilitado", "observaciones", "direcciones", "contactos", "cuentas"],

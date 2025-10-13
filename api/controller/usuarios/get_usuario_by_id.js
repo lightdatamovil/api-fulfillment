@@ -1,9 +1,9 @@
-import { LightdataQuerys } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
 export async function getUsuarioById(dbConnection, req) {
     const { userId } = req.params;
 
-    const row = await LightdataQuerys.select(
+    const row = await LightdataORM.select(
         {
             dbConnection,
             table: "usuarios",

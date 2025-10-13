@@ -1,14 +1,13 @@
-import { LightdataQuerys } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
 export async function getlogisticaById(db, req) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user;
 
-    const logistica = await LightdataQuerys.select({
+    const logistica = await LightdataORM.select({
         dbConnection: db,
         table: "logisticas",
-        column: "did",
-        value: logisticaDid,
+        where: { did: logisticaDid },
         select: ["nombre", "codigo", "codigoLD", "logisticaLD", "habilitado"],
         throwExceptionIfNotExists: true
     });
@@ -16,7 +15,7 @@ export async function getlogisticaById(db, req) {
 
     const { nombre, codigo, codigoLD, logisticaLD, habilitado } = logistica[0];
 
-    const logisticaDirecciones = await LightdataQuerys.select({
+    const logisticaDirecciones = await LightdataORM.select({
         dbConnection: db,
         table: "logisticas_direcciones",
         column: "did_logistica",

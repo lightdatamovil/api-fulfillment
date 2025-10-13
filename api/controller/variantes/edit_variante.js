@@ -1,4 +1,4 @@
-import { isNonEmpty, isDefined, number01, LightdataQuerys, CustomException, Status } from "lightdata-tools";
+import { isNonEmpty, isDefined, number01, LightdataORM, CustomException, Status } from "lightdata-tools";
 
 /**
  * PUT /api/variantes/:varianteId
@@ -29,7 +29,7 @@ export async function editVariante(dbConnection, req) {
         valores: { added: 0, updated: 0, removed: 0 },
     };
 
-    const vigenteRows = await LightdataQuerys.select({
+    const vigenteRows = await LightdataORM.select({
         dbConnection,
         table: "variantes",
         column: "did",
@@ -45,7 +45,7 @@ export async function editVariante(dbConnection, req) {
         const nextCodigo = isNonEmpty(body.codigo) ? String(body.codigo).trim() : vigente.codigo;
 
         if (nextCodigo !== vigente.codigo) {
-            await LightdataQuerys.select({
+            await LightdataORM.select({
                 dbConnection,
                 table: "variantes",
                 columns: ["codigo"],
@@ -79,7 +79,7 @@ export async function editVariante(dbConnection, req) {
             ? Number(body.orden)
             : (vigente.orden ?? 0);
 
-        await LightdataQuerys.update({
+        await LightdataORM.update({
             dbConnection,
             table: "variantes",
             did: Number(varianteId),
@@ -104,7 +104,7 @@ export async function editVariante(dbConnection, req) {
         }));
 
     if (batchInsertsCategorias.length > 0) {
-        await LightdataQuerys.insert({
+        await LightdataORM.insert({
             dbConnection,
             table: "variantes_categorias",
             data: batchInsertsCategorias,
@@ -119,7 +119,7 @@ export async function editVariante(dbConnection, req) {
             nombre: isNonEmpty(c?.nombre) ? String(c.nombre).trim() : null,
         }));
 
-        await LightdataQuerys.update({
+        await LightdataORM.update({
             dbConnection,
             table: "variantes_categorias",
             did: dids.length === 1 ? dids[0] : dids,
@@ -131,7 +131,7 @@ export async function editVariante(dbConnection, req) {
     }
 
     if (cDel.length > 0) {
-        await LightdataQuerys.delete({
+        await LightdataORM.delete({
             dbConnection,
             table: "variantes_categorias",
             did: cDel,
@@ -148,7 +148,7 @@ export async function editVariante(dbConnection, req) {
         }));
 
     if (batchInsertValores.length > 0) {
-        await LightdataQuerys.insert({
+        await LightdataORM.insert({
             dbConnection,
             table: "variantes_categoria_valores",
             data: batchInsertValores,
@@ -163,7 +163,7 @@ export async function editVariante(dbConnection, req) {
             nombre: isNonEmpty(v?.nombre) ? String(v.nombre).trim() : null,
         }));
 
-        await LightdataQuerys.update({
+        await LightdataORM.update({
             dbConnection,
             table: "variantes_categoria_valores",
             did: dids.length === 1 ? dids[0] : dids,
@@ -175,7 +175,7 @@ export async function editVariante(dbConnection, req) {
     }
 
     if (vDel.length > 0) {
-        await LightdataQuerys.delete({
+        await LightdataORM.delete({
             dbConnection,
             table: "variantes_categoria_valores",
             did: vDel,

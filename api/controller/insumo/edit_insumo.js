@@ -1,4 +1,4 @@
-import { isNonEmpty, isDefined, LightdataQuerys } from "lightdata-tools";
+import { isNonEmpty, isDefined, LightdataORM } from "lightdata-tools";
 
 export async function editInsumo(dbConnection, req) {
     const { userId } = req.user;
@@ -7,7 +7,7 @@ export async function editInsumo(dbConnection, req) {
 
     const norm = (v) => new Set(v.map(n => Number(n)));
 
-    const [current] = await LightdataQuerys.select({
+    const [current] = await LightdataORM.select({
         dbConnection,
         table: "insumos",
         column: "did",
@@ -16,7 +16,7 @@ export async function editInsumo(dbConnection, req) {
     });
 
     if (isNonEmpty(codigo)) {
-        await LightdataQuerys.select({
+        await LightdataORM.select({
             dbConnection,
             table: "insumos",
             column: "codigo",
@@ -30,7 +30,7 @@ export async function editInsumo(dbConnection, req) {
     const newUnidad = isDefined(unidad) ? unidad : current.unidad;
     const newHabilitado = isDefined(habilitado) ? habilitado : current.habilitado;
 
-    await LightdataQuerys.update({
+    await LightdataORM.update({
         dbConnection,
         table: "insumos",
         did: insumoId,
@@ -47,7 +47,7 @@ export async function editInsumo(dbConnection, req) {
     const toRemove = Array.from(norm(clientes?.remove || []));
 
     if (toRemove.length > 0) {
-        await LightdataQuerys.delete({
+        await LightdataORM.delete({
             dbConnection,
             table: "insumos_clientes",
             did: toRemove,
@@ -61,7 +61,7 @@ export async function editInsumo(dbConnection, req) {
             did_cliente: clienteId,
         }));
 
-        await LightdataQuerys.insert({
+        await LightdataORM.insert({
             dbConnection,
             table: "insumos_clientes",
             quien: userId,

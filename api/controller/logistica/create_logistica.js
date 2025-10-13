@@ -1,4 +1,4 @@
-import { CustomException, executeQuery, LightdataQuerys, Status } from "lightdata-tools";
+import { CustomException, executeQuery, LightdataORM, Status } from "lightdata-tools";
 
 export async function createlogistica(db, req) {
     const {
@@ -27,7 +27,7 @@ export async function createlogistica(db, req) {
         });
     }
 
-    const [inserted] = await LightdataQuerys.insert({
+    const [inserted] = await LightdataORM.insert({
         dbConnection: db,
         table: "logisticas",
         data: { nombre, logisticaLD, codigo, codigoLD, habilitado },
@@ -46,7 +46,7 @@ export async function createlogistica(db, req) {
             provincia: d.provincia,
             address_line: d.address_line
         }))
-        await LightdataQuerys.insert({
+        await LightdataORM.insert({
             dbConnection: db,
             table: "logisticas_direcciones",
             data,

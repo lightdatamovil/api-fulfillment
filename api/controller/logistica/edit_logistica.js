@@ -1,4 +1,4 @@
-import { CustomException, executeQuery, LightdataQuerys, } from "lightdata-tools";
+import { LightdataORM, logCyan } from "lightdata-tools";
 
 
 export async function editLogistica(dbConnection, req) {
@@ -6,12 +6,11 @@ export async function editLogistica(dbConnection, req) {
     const { userId } = req.user ?? {};
     const { nombre, logisticaLD, codigo, codigoLD, habilitado } = req.body ?? {};
 
-    const verifyLogistica = await LightdataQuerys.select({
+    const verifyLogistica = await LightdataORM.select({
         dbConnection: dbConnection,
         table: "logisticas",
-        column: "did",
-        value: logisticaDid,
-        select: "nombre, codigo, codigoLD, logisticaLD, habilitado"
+        where: { did: logisticaDid },
+        throwIfNotExists: true,
     });
     const { nombreActual, logisticaLDActual, codigoActual, codigoLDActual, habilitadoActual } = verifyLogistica;
 
@@ -25,10 +24,10 @@ export async function editLogistica(dbConnection, req) {
     const logisticaLDInsert = isDefined(topPatch.logisticaLD) ? topPatch.logisticaLD : logisticaLDActual;
     const habilitadoInsert = isDefined(topPatch.habilitado) ? topPatch.habilitado : habilitadoActual;
 
-    await LightdataQuerys.update({
+    await LightdataORM.update({
         dbConnection: dbConnection,
         table: "logisticas",
-        did: logisticaDid,
+        where: { did: logisticaDid },
         quien: userId,
         data: {
             codigo: codigoInsert,
@@ -38,14 +37,11 @@ export async function editLogistica(dbConnection, req) {
             habilitado: habilitadoInsert
         }
     });
-
-    // logisticas_direcciones
+    logCyan(`Logistica ${logisticaDid} actualizada por el usuario ${userId}`);
     const { direcciones } = req.body ?? {};
     const hayDirecciones = getDireccionesOpsState(direcciones);
 
     if (hayDirecciones.hasAdd) {
-        console.log("entre a direcciones add");
-
         const data = hayDirecciones.add.map(direccion => ({
             did_logistica: logisticaDid,
             direccion: direccion.direccion,
@@ -56,71 +52,49 @@ export async function editLogistica(dbConnection, req) {
             localidad: direccion.localidad,
             numero: direccion.numero,
             provincia: direccion.provincia,
-            address_line: direccion.address_line,
-            autofecha: new Date(),
-            quien: userId,
-            superado: 0,
-            elim: 0
+            address_line: direccion.address_line
         }));
-
-        await LightdataQuerys.insert({
+        logCyan(`Agregando ${data.length} direcciones a la logistica ${logisticaDid} por el usuario ${userId}`);
+        await LightdataORM.insert({
             dbConnection,
             table: "logisticas_direcciones",
             quien: userId,
             data
         });
-
+        logCyan(`Direcciones agregadas a la logistica ${logisticaDid} por el usuario ${userId}`);
     }
+
     if (hayDirecciones.hasRemove) {
-        await LightdataQuerys.delete({
+        logCyan(`Eliminando ${hayDirecciones.didsRemove.length} direcciones de la logistica ${logisticaDid} por el usuario ${userId}`);
+        await LightdataORM.delete({
             dbConnection,
             table: "logisticas_direcciones",
-            did: hayDirecciones.didsRemove,
+            where: { did: hayDirecciones.didsRemove },
             quien: userId,
         });
+        logCyan(`Direcciones eliminadas de la logistica ${logisticaDid} por el usuario ${userId}`);
     }
 
     if (hayDirecciones.hasUpdate) {
-        console.log("entre a direcciones update");
         const didsUpdate = hayDirecciones.update.map(d => d.did);
         const normalized = normalizeDireccionesInsert(hayDirecciones.update);
-
-        // update sup = 1
-        const sqlUpdate = `UPDATE logisticas_direcciones SET superado = 1 WHERE did_logistica = ? AND superado = 0 AND elim = 0 AND did IN (${didsUpdate.map(() => "?").join(",")})`;
-        await executeQuery(dbConnection, sqlUpdate, [logisticaDid, ...didsUpdate]);
-
-        // insert nuevo
-        const cols = "(did, did_logistica, cp, calle, pais, localidad, numero, provincia, address_line, titulo, autofecha, quien, superado, elim)";
-        const placeholders = normalized.map(() => "(?,?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, 0, 0)").join(", ");
-        const sql = `INSERT INTO logisticas_direcciones ${cols} VALUES ${placeholders}`;
-
-        const params = [];
-        for (const d of normalized) {
-            params.push(d.did, logisticaDid, d.cp, d.calle, d.pais, d.localidad, d.numero, d.provincia, d.address_line, d.titulo, userId
-            );
-        }
-
-        const r = await executeQuery(dbConnection, sql, params, true);
-
-        // 4) chequear que se insertaron todas
-        if (r.affectedRows !== normalized.length) {
-            throw new CustomException({
-                title: "Inserción parcial",
-                message: `Se insertaron ${r.affectedRows} de ${normalized.length} direcciones`,
-            });
-        }
-
+        logCyan(`Actualizando ${didsUpdate.length} direcciones de la logistica ${logisticaDid} por el usuario ${userId}`);
+        await LightdataORM.update({
+            dbConnection,
+            table: "logisticas_direcciones",
+            where: { did: didsUpdate },
+            quien: userId,
+            data: normalized
+        });
+        logCyan(`Direcciones actualizadas de la logistica ${logisticaDid} por el usuario ${userId}`);
     }
 
+    const direccionesSelect = await LightdataORM.select({
+        dbConnection,
+        table: "logisticas_direcciones",
+        where: { did_logistica: logisticaDid },
+    });
 
-
-    // select de todas las direcciones para devolver
-    let direccionesReturn = [];
-    const direccionesSelect = await executeQuery(dbConnection, "SELECT did, titulo, cp, calle, pais, localidad, numero, provincia, address_line FROM logisticas_direcciones WHERE did_logistica = ? AND elim = 0 AND superado = 0", [logisticaDid], true);
-
-    if (direccionesSelect.length > 0) {
-        direccionesReturn = direccionesSelect
-    }
     return {
         success: true,
         message: "logistica actualizada correctamente",

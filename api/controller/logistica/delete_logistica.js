@@ -1,4 +1,4 @@
-import { LightdataQuerys } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
 
 
@@ -6,7 +6,7 @@ export async function deleteLogistica(dbConnection, req) {
     const { logisticaDid } = req.params;
     const { userId } = req.user;
 
-    await LightdataQuerys.delete({
+    await LightdataORM.delete({
         dbConnection,
         table: "logisticas",
         did: logisticaDid,
@@ -14,7 +14,7 @@ export async function deleteLogistica(dbConnection, req) {
 
     });
 
-    const links = await LightdataQuerys.select({
+    const links = await LightdataORM.select({
         dbConnection,
         table: "logisticas_direcciones",
         column: "did_logistica",
@@ -22,7 +22,7 @@ export async function deleteLogistica(dbConnection, req) {
         select: "did"
     });
 
-    await LightdataQuerys.delete({
+    await LightdataORM.delete({
         dbConnection,
         table: "logisticas_direcciones",
         did: links,

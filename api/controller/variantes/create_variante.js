@@ -1,4 +1,4 @@
-import { isNonEmpty, isDefined, number01, CustomException, Status, LightdataQuerys } from "lightdata-tools"; // si ya estaban ahí, se mantienen
+import { isNonEmpty, isDefined, number01, CustomException, Status, LightdataORM } from "lightdata-tools"; // si ya estaban ahí, se mantienen
 
 /**
  * Crea una variante (raíz) y opcionalmente sus categorías y valores.
@@ -36,7 +36,7 @@ export async function createVariante(dbConnection, req) {
 
     const ordenValue = Number.isFinite(Number(orden)) ? Number(orden) : 0;
 
-    await LightdataQuerys.select({
+    await LightdataORM.select({
         dbConnection,
         table: "variantes",
         column: "codigo",
@@ -44,7 +44,7 @@ export async function createVariante(dbConnection, req) {
         throwExceptionIfAlreadyExists: true,
     });
 
-    const [idVariante] = await LightdataQuerys.insert({
+    const [idVariante] = await LightdataORM.insert({
         dbConnection,
         table: "variantes",
         quien: userId,
@@ -70,7 +70,7 @@ export async function createVariante(dbConnection, req) {
                 });
             }
 
-            const [idCategoria] = await LightdataQuerys.insert({
+            const [idCategoria] = await LightdataORM.insert({
                 dbConnection,
                 table: "variantes_categorias",
                 quien: userId,
@@ -93,7 +93,7 @@ export async function createVariante(dbConnection, req) {
                     });
                 }
 
-                const [idVal] = await LightdataQuerys.insert({
+                const [idVal] = await LightdataORM.insert({
                     dbConnection,
                     table: "variantes_categoria_valores",
                     quien: userId,

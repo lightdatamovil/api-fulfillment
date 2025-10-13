@@ -11,7 +11,7 @@ import {
     getFFProductionDbConfig,
     executeQuery,
     logRed,
-    LightdataQuerys,
+    LightdataORM,
 } from "lightdata-tools";
 
 import {

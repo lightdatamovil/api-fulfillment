@@ -1,10 +1,10 @@
-import { LightdataQuerys } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
 export async function deleteUsuario(dbConnection, req) {
     const { userDid } = req.params;
     const quien = req.user;
 
-    await LightdataQuerys.delete({
+    await LightdataORM.delete({
         dbConnection,
         table: "logisticas",
         did: userDid,

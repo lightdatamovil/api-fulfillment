@@ -1,4 +1,4 @@
-import { CustomException, Status, isNonEmpty, LightdataQuerys } from "lightdata-tools";
+import { CustomException, Status, isNonEmpty, LightdataORM } from "lightdata-tools";
 
 /**
  * Crea una curva y, opcionalmente, asocia variantes a la curva.
@@ -20,7 +20,7 @@ export async function createCurva(dbConnection, req) {
     }
 
     // Insert curva
-    const [didCurva] = await LightdataQuerys.insert({
+    const [didCurva] = await LightdataORM.insert({
         dbConnection,
         table: "curvas",
         quien: userId,
@@ -44,7 +44,7 @@ export async function createCurva(dbConnection, req) {
 
         // Validar existencia de cada variante vigente (elim=0, superado=0)
         for (const didVariante of validIds) {
-            const [varRow] = await LightdataQuerys.select({
+            const [varRow] = await LightdataORM.select({
                 dbConnection,
                 table: "variantes",
                 column: "did",
@@ -62,17 +62,17 @@ export async function createCurva(dbConnection, req) {
 
             // Reactivar link si existía (elim=1/superado=1) o insertar si no existía
             // Primero intento UPDATE por clave compuesta
-            await LightdataQuerys.update({
+            await LightdataORM.update({
                 dbConnection,
                 table: "variantes_curvas",
                 quien: userId,
-                // Se asume que LightdataQuerys.update soporta where por columnas
+                // Se asume que LightdataORM.update soporta where por columnas
                 where: { did_curva: Number(didCurva), did_variante: Number(didVariante) },
                 data: { elim: 0, superado: 0 },
             });
 
             // Luego inserto (si ya existía el par activo, el índice único debería evitar duplicados)
-            await LightdataQuerys.insert({
+            await LightdataORM.insert({
                 dbConnection,
                 table: "variantes_curvas",
                 quien: userId,

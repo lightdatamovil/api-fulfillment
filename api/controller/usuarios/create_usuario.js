@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CustomException, Status, toStr, toBool01, toInt, hashPassword, emptyToNull, LightdataQuerys, executeQuery } from "lightdata-tools";
+import { CustomException, Status, toStr, toBool01, toInt, hashPassword, emptyToNull, LightdataORM, executeQuery } from "lightdata-tools";
 import { debugHttpError } from "../../src/functions/debugEndpoint.js";
 
 const UPLOAD_URL = "https://files.lightdata.app/upload_fulfillment_images.php";
@@ -67,7 +67,7 @@ export async function createUsuario(dbConnection, req) {
         image: null,
     };
 
-    const userInsert = await LightdataQuerys.insert({
+    const userInsert = await LightdataORM.insert({
         dbConnection,
         table: "usuarios",
         data: dataInsert,

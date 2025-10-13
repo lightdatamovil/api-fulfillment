@@ -1,8 +1,8 @@
 // controller/variantes/update_curva.js
-import { CustomException, Status, isNonEmpty, LightdataQuerys } from "lightdata-tools";
+import { CustomException, Status, isNonEmpty, LightdataORM } from "lightdata-tools";
 
 /**
- * Versionado de curva (PUT) usando LightdataQuerys:
+ * Versionado de curva (PUT) usando LightdataORM:
  * - Supera la versión vigente de curvas para el did dado.
  * - Inserta nueva versión con el mismo did (id cambia internamente).
  * - Si viene "categorias" (number[]), supera links vigentes en variantes_categorias_curvas
@@ -27,7 +27,7 @@ export async function updateCurva(dbConnection, req) {
     }
 
     // 1) Traer versión vigente actual de la curva (elim=0, superado=0)
-    const [curr] = await LightdataQuerys.select({
+    const [curr] = await LightdataORM.select({
         dbConnection,
         table: "curvas",
         column: "did",
@@ -46,7 +46,7 @@ export async function updateCurva(dbConnection, req) {
     const newNombre = isNonEmpty(nombre) ? String(nombre).trim() : curr.nombre;
 
     // 2) Superar versión vigente
-    await LightdataQuerys.update({
+    await LightdataORM.update({
         dbConnection,
         table: "curvas",
         did: didCurva,
@@ -55,7 +55,7 @@ export async function updateCurva(dbConnection, req) {
     });
 
     // 3) Insertar nueva versión (con el mismo did)
-    const [idVersionNueva] = await LightdataQuerys.insert({
+    const [idVersionNueva] = await LightdataORM.insert({
         dbConnection,
         table: "curvas",
         quien: userId,
@@ -78,7 +78,7 @@ export async function updateCurva(dbConnection, req) {
         // Validar existencia de categorías vigentes en variantes_categorias
         if (validIds.length > 0) {
             for (const didCategoria of validIds) {
-                const [cat] = await LightdataQuerys.select({
+                const [cat] = await LightdataORM.select({
                     dbConnection,
                     table: "variantes_categorias",
                     column: "did",
@@ -96,7 +96,7 @@ export async function updateCurva(dbConnection, req) {
         }
 
         // 4.a) Superar links vigentes (por did_curva)
-        const linksVigentes = await LightdataQuerys.select({
+        const linksVigentes = await LightdataORM.select({
             dbConnection,
             table: "variantes_categorias_curvas",
             column: "did_curva",
@@ -105,7 +105,7 @@ export async function updateCurva(dbConnection, req) {
 
         for (const l of linksVigentes) {
             if (Number(l.elim ?? 0) === 0 && Number(l.superado ?? 0) === 0) {
-                await LightdataQuerys.update({
+                await LightdataORM.update({
                     dbConnection,
                     table: "variantes_categorias_curvas",
                     did: Number(l.did),
@@ -118,7 +118,7 @@ export async function updateCurva(dbConnection, req) {
         // 4.b) Insertar nuevos links (misma curva)
         linked = 0;
         for (const didCategoria of validIds) {
-            await LightdataQuerys.insert({
+            await LightdataORM.insert({
                 dbConnection,
                 table: "variantes_categorias_curvas",
                 quien: userId,

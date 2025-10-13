@@ -1,4 +1,4 @@
-import { CustomException, LightdataQuerys, Status } from "lightdata-tools";
+import { CustomException, LightdataORM, Status } from "lightdata-tools";
 
 
 /**
@@ -30,7 +30,7 @@ export async function deleteVarianteCategoria(dbConnection, req) {
         });
     }
 
-    const categoria = await LightdataQuerys.select({
+    const categoria = await LightdataORM.select({
         dbConnection,
         table: "variantes_categorias",
         column: "did",
@@ -50,7 +50,7 @@ export async function deleteVarianteCategoria(dbConnection, req) {
         };
     }
 
-    const subcategorias = await LightdataQuerys.select({
+    const subcategorias = await LightdataORM.select({
         dbConnection,
         table: "variantes_subcategorias",
         column: "did_categoria",
@@ -61,7 +61,7 @@ export async function deleteVarianteCategoria(dbConnection, req) {
 
     let affectedValores = 0;
     if (didsSubcategorias.length > 0) {
-        await LightdataQuerys.delete({
+        await LightdataORM.delete({
             dbConnection,
             table: "variantes_subcategoria_valores",
             did: didsSubcategorias,
@@ -72,7 +72,7 @@ export async function deleteVarianteCategoria(dbConnection, req) {
 
     let affectedSubcats = 0;
     if (didsSubcategorias.length > 0) {
-        await LightdataQuerys.delete({
+        await LightdataORM.delete({
             dbConnection,
             table: "variantes_subcategorias",
             did: didsSubcategorias,
@@ -81,7 +81,7 @@ export async function deleteVarianteCategoria(dbConnection, req) {
         affectedSubcats = didsSubcategorias.length;
     }
 
-    await LightdataQuerys.delete({
+    await LightdataORM.delete({
         dbConnection,
         table: "variantes_categorias",
         did: didCategoria,

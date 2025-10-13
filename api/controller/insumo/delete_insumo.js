@@ -1,25 +1,25 @@
-import { LightdataQuerys } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
 
 export async function deleteInsumo(dbConnection, req) {
     const { insumoId } = req.params;
     const { userId } = req.user;
 
-    await LightdataQuerys.delete({
+    await LightdataORM.delete({
         dbConnection,
         table: "insumos",
         did: insumoId,
         quien: userId
     });
 
-    const links = await LightdataQuerys.select({
+    const links = await LightdataORM.select({
         dbConnection,
         table: "insumos_clientes",
         column: "did_insumo",
         value: insumoId,
     });
 
-    await LightdataQuerys.delete({
+    await LightdataORM.delete({
         dbConnection,
         table: "insumos_clientes",
         did: links.map(l => l.did),

@@ -4,14 +4,9 @@ import {
     isNonEmpty,
     isDefined,
     number01,
-    LightdataQuerys,
+    LightdataORM,
 } from "lightdata-tools";
 
-/**
- * Alta de cliente y derivados (direcciones, contactos, cuentas).
- * - Usa LightdataQuerys.select() para validaciones (duplicados / existencia)
- * - Usa LightdataQuerys.insert() para todas las inserciones
- */
 export async function createCliente(dbConnection, req) {
     const {
         nombre_fantasia,
@@ -46,26 +41,24 @@ export async function createCliente(dbConnection, req) {
     }
 
     // ---------- Verificación de duplicados ----------
-    await LightdataQuerys.select({
+    await LightdataORM.select({
         dbConnection,
         table: "clientes",
-        column: "nombre_fantasia",
-        value: nf,
-        throwExceptionIfAlreadyExists: true,
+        where: { nombre_fantasia: nf },
+        throwIfExists: true,
     });
 
     if (cod) {
-        await LightdataQuerys.select({
+        await LightdataORM.select({
             dbConnection,
             table: "clientes",
-            column: "codigo",
-            value: cod,
-            throwExceptionIfAlreadyExists: true,
+            where: { codigo: cod },
+            throwIfExists: true,
         });
     }
 
     // ---------- Insert cliente ----------
-    const [clienteId] = await LightdataQuerys.insert({
+    const [clienteId] = await LightdataORM.insert({
         dbConnection,
         table: "clientes",
         quien: userId,
@@ -91,7 +84,7 @@ export async function createCliente(dbConnection, req) {
             provincia: isNonEmpty(d?.provincia) ? String(d.provincia).trim() : null,
         }));
 
-        const dirIds = await LightdataQuerys.insert({
+        const dirIds = await LightdataORM.insert({
             dbConnection,
             table: "clientes_direcciones",
             quien: userId,
@@ -115,7 +108,7 @@ export async function createCliente(dbConnection, req) {
             valor: c?.valor ?? null,
         }));
 
-        const contIds = await LightdataQuerys.insert({
+        const contIds = await LightdataORM.insert({
             dbConnection,
             table: "clientes_contactos",
             quien: userId,
@@ -147,7 +140,7 @@ export async function createCliente(dbConnection, req) {
                     ? (rawData?.ml_user ?? c?.ml_user ?? "").toString()
                     : "";
 
-            const [ctaId] = await LightdataQuerys.insert({
+            const [ctaId] = await LightdataORM.insert({
                 dbConnection,
                 table: "clientes_cuentas",
                 quien: userId,
@@ -179,7 +172,7 @@ export async function createCliente(dbConnection, req) {
                     did_deposito: Number(d?.did_deposito) || 0,
                 }));
 
-                await LightdataQuerys.insert({
+                await LightdataORM.insert({
                     dbConnection,
                     table: "clientes_cuentas_depositos",
                     quien: userId,
