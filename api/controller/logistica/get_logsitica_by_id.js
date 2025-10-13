@@ -12,14 +12,12 @@ export async function getlogisticaById(db, req) {
         throwExceptionIfNotExists: true
     });
 
-
     const { nombre, codigo, codigoLD, logisticaLD, habilitado } = logistica[0];
 
     const logisticaDirecciones = await LightdataORM.select({
         dbConnection: db,
         table: "logisticas_direcciones",
-        column: "did_logistica",
-        value: logisticaDid,
+        where: { did_logistica: logisticaDid },
         select: ["did", "titulo", "cp", "calle", "pais", "localidad", "numero", "provincia", "address_line"]
     });
 
