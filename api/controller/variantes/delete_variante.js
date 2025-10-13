@@ -1,4 +1,4 @@
-import { CustomException, LightdataORM, Status } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
 
 /**
@@ -13,72 +13,41 @@ import { CustomException, LightdataORM, Status } from "lightdata-tools";
  *  - o req.body.did_categoria / req.body.didCategoria / req.body.did
  */
 export async function deleteVarianteCategoria(dbConnection, req) {
-    const didParam =
-        req.params?.did ??
-        req.body?.did_categoria ??
-        req.body?.didCategoria ??
-        req.body?.did;
-
+    const didParam = req.params.did;
     const didCategoria = Number(didParam);
-    const userId = Number(req.user?.userId ?? req.user?.id ?? 0) || null;
+    const userId = Number(req.user.userId);
 
-    if (!Number.isFinite(didCategoria) || didCategoria <= 0) {
-        throw new CustomException({
-            title: "Parámetro inválido",
-            message: "Se requiere un 'did' de categoría numérico válido",
-            status: Status.badRequest,
-        });
-    }
-
-    const categoria = await LightdataORM.select({
+    await LightdataORM.select({
         dbConnection,
         table: "variantes_categorias",
-        column: "did",
-        value: didCategoria,
-        throwExceptionIfNotExists: true,
+        where: { did: didCategoria },
+        throwIfNotExists: true,
     });
-
-    if (Number(categoria[0].elim) === 1) {
-        return {
-            success: true,
-            message: "La categoría ya estaba eliminada",
-            data: {
-                did: didCategoria,
-                affected: { categoria: 0, subcategorias: 0, valores: 0 },
-            },
-            meta: { timestamp: new Date().toISOString() },
-        };
-    }
 
     const subcategorias = await LightdataORM.select({
         dbConnection,
         table: "variantes_subcategorias",
-        column: "did_categoria",
-        value: didCategoria,
+        where: { did_categoria: didCategoria },
     });
 
     const didsSubcategorias = subcategorias.map((s) => s.did);
 
-    let affectedValores = 0;
     if (didsSubcategorias.length > 0) {
         await LightdataORM.delete({
             dbConnection,
             table: "variantes_subcategoria_valores",
-            did: didsSubcategorias,
+            where: { did_subcategoria: didsSubcategorias },
             quien: userId,
         });
-        affectedValores = didsSubcategorias.length;
     }
 
-    let affectedSubcats = 0;
     if (didsSubcategorias.length > 0) {
         await LightdataORM.delete({
             dbConnection,
             table: "variantes_subcategorias",
-            did: didsSubcategorias,
+            where: { did: didsSubcategorias },
             quien: userId,
         });
-        affectedSubcats = didsSubcategorias.length;
     }
 
     await LightdataORM.delete({
@@ -93,11 +62,6 @@ export async function deleteVarianteCategoria(dbConnection, req) {
         message: "Categoría de variantes eliminada correctamente",
         data: {
             did: didCategoria,
-            affected: {
-                categoria: 1,
-                subcategorias: affectedSubcats,
-                valores: affectedValores,
-            },
         },
         meta: { timestamp: new Date().toISOString() },
     };
