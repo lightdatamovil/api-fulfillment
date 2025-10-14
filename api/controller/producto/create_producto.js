@@ -1,9 +1,9 @@
 // controller/productos/create_producto.js
 import axios from "axios";
-import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01 } from "lightdata-tools";
+import { CustomException, executeQuery, Status, isNonEmpty, isDefined, number01, LightdataORM } from "lightdata-tools";
 
 
-const UPLOAD_URL = "url-generico";
+const UPLOAD_URL = "https://files.lightdata.app/upload_fulfillment_images.php";
 
 /**
  * Crea un producto y sus asociaciones opcionales.
@@ -30,143 +30,63 @@ const UPLOAD_URL = "url-generico";
  */
 export async function createProducto(dbConnection, req) {
     const {
-        did_cliente,
-        titulo,
-        descripcion,
-        habilitado,
-        es_combo,
-        posicion,
-        cm3,
-        alto,
-        ancho,
-        profundo,
+        did_cliente, titulo, descripcion,
+        habilitado, es_combo, posicion,
+        cm3, alto, ancho, profundo,
 
         depositos,
         insumos,
         variantesValores,
         ecommerce,
+        sku,
 
-        image, //agregar imagen
+        imagen, //agregar imagen
 
         combo, // SOLO si es_combo = 1
     } = req.body;
 
-    const { userId } = req.user;
+    const { userId, companyId } = req.user;
 
-    // ---------- Normalizaciones ----------
-    const tituloTrim = isNonEmpty(titulo) ? String(titulo).trim() : "";
-    if (!isNonEmpty(tituloTrim)) {
-        throw new CustomException({
-            title: "Datos incompletos",
-            message: "El campo 'titulo' es requerido para crear el producto",
-            status: Status.badRequest,
-        });
-    }
-
-    const descTrim = isNonEmpty(descripcion) ? String(descripcion).trim() : null;
-    // const imagenTrim = isNonEmpty(imagen) ? String(imagen).trim() : null;
-
-    const didClienteValue =
-        isDefined(did_cliente) && Number.isFinite(Number(did_cliente))
-            ? Number(did_cliente)
-            : null;
-
-    let habValue = 1;
-    if (isDefined(habilitado)) {
-        const hv = number01(habilitado);
-        if (hv !== 0 && hv !== 1) {
-            throw new CustomException({
-                title: "Valor inválido",
-                message: "habilitado debe ser 0 o 1",
-                status: Status.badRequest,
-            });
-        }
-        habValue = hv;
-    }
-
-    let comboValue = 0;
-    if (isDefined(es_combo)) {
-        const cv = number01(es_combo);
-        if (cv !== 0 && cv !== 1) {
-            throw new CustomException({
-                title: "Valor inválido",
-                message: "es_combo debe ser 0 o 1",
-                status: Status.badRequest,
-            });
-        }
-        comboValue = cv;
-    }
-
-    const posValue = Number.isFinite(Number(posicion)) ? Number(posicion) : 0;
-    const cm3Value = Number.isFinite(Number(cm3)) ? Number(cm3) : 0;
-    const altoValue = Number.isFinite(Number(alto)) ? Number(alto) : 0;
-    const anchoValue = Number.isFinite(Number(ancho)) ? Number(ancho) : 0;
-    const profundoValue = Number.isFinite(Number(profundo)) ? Number(profundo) : 0;
-
-    const checkexist = "SELECT id FROM productos WHERE titulo = ? AND elim = 0";
-    const exist = await executeQuery(dbConnection, checkexist, [tituloTrim]);
-    if (exist && exist.length > 0) {
-        throw new CustomException({
-            title: "Título duplicado",
-            message: `Ya existe un producto con el título '${tituloTrim}'`,
-            status: Status.badRequest,
-        });
-    }
-
-    //subir imagen al microservicio de archivos que reciba la url de la imagen  
-    const uploadImageUrl = await axios.post(
-        UPLOAD_URL,
-        { image: image },
-        { headers: { "Content-Type": "application/json" } }
-    );
-
-    // ---------- Insert producto ----------
-    const insSql = `
-    INSERT INTO productos (
-      did_cliente, titulo, descripcion, imagen, habilitado, es_combo,
-      posicion, cm3, alto, ancho, profundo,
-      quien, superado, elim
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
-  `;
-    const ins = await executeQuery(
+    // evrifico si esta repetido por SKU
+    await LightdataORM.select({
         dbConnection,
-        insSql,
-        [
-            didClienteValue,
-            tituloTrim,
-            descTrim,
-            uploadImageUrl, //image
-            habValue,
-            comboValue,
-            posValue,
-            cm3Value,
-            altoValue,
-            anchoValue,
-            profundoValue,
-            userId,
-        ],
-        true
-    );
+        table: "productos",
+        where: { sku: sku },
+        throwIfNotExists: true
+    });
 
-    if (!ins || ins.affectedRows === 0) {
-        throw new CustomException({
-            title: "Error al crear producto",
-            message: "No se pudo insertar el producto",
-            status: Status.internalServerError,
-        });
-    }
-
-    const idProducto = ins.insertId;
-
-    // did == id
-    await executeQuery(
+    // verifico si existe el cliente
+    await LightdataORM.select({
         dbConnection,
-        `UPDATE productos SET did = ? WHERE id = ?`,
-        [idProducto, idProducto],
-        true
-    );
-    const didProducto = idProducto;
+        table: "clientes",
+        where: { did: did_cliente },
+        throwIfNotExists: true
+    });
+
+
+    // combos verificar si es producto-combo
+
+
+    // inserto producto
+    const idProducto = await LightdataORM.insert({
+        dbConnection,
+        table: "productos",
+        quien: userId,
+        data: {
+            did_cliente: did_cliente,
+            titulo: titulo,
+            descripcion: descripcion,
+            imagen: null,
+            habilitado: habilitado,
+            es_combo: es_combo,
+            posicion: posicion,
+            cm3: cm3,
+            alto: alto,
+            ancho: ancho,
+            profundo: profundo,
+        }
+    });
+
 
     // ---------- Asociaciones opcionales ----------
 
@@ -192,7 +112,7 @@ export async function createProducto(dbConnection, req) {
           INSERT INTO productos_depositos (did_producto, did_deposito, quien, superado, elim)
           VALUES (?, ?, ?, 0, 0)
         `,
-                [didProducto, didDeposito, userId],
+                [idProducto, didDeposito, userId],
                 true
             );
             if (insDep && insDep.affectedRows > 0) countDepositos += 1;
@@ -231,7 +151,7 @@ export async function createProducto(dbConnection, req) {
           INSERT INTO productos_insumos (did_producto, did_insumo, habilitado, quien, superado, elim)
           VALUES (?, ?, ?, ?, 0, 0)
         `,
-                [didProducto, didInsumo, insHab, userId],
+                [idProducto, didInsumo, insHab, userId],
                 true
             );
             if (insIns && insIns.affectedRows > 0) countInsumos += 1;
@@ -260,7 +180,7 @@ export async function createProducto(dbConnection, req) {
           INSERT INTO productos_variantes_valores (did_producto, did_variante_valor, quien, superado, elim)
           VALUES (?, ?, ?, 0, 0)
         `,
-                [didProducto, didVarVal, userId],
+                [idProducto, didVarVal, userId],
                 true
             );
             if (insVV && insVV.affectedRows > 0) countVarVals += 1;
@@ -310,7 +230,7 @@ export async function createProducto(dbConnection, req) {
             (did_producto, did_cuenta, did_producto_valor, sku, ean, url, sync, quien, superado, elim)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
         `,
-                [didProducto, didCuenta, didProductoValor, sku, ean, url, actualizarSync, userId],
+                [idProducto, didCuenta, didProductoValor, sku, ean, url, actualizarSync, userId],
                 true
             );
             if (insEc && insEc.affectedRows > 0) countEcom += 1;
@@ -346,7 +266,7 @@ export async function createProducto(dbConnection, req) {
                     status: Status.badRequest,
                 });
             }
-            if (didHijo === didProducto) {
+            if (didHijo === idProducto) {
                 throw new CustomException({
                     title: "Referencia inválida",
                     message: "Un combo no puede referenciarse a sí mismo",
@@ -397,12 +317,26 @@ export async function createProducto(dbConnection, req) {
           INSERT INTO productos_combos (did_producto, did_producto_combo, cantidad, quien, superado, elim)
           VALUES (?, ?, ?, ?, 0, 0)
         `,
-                [didProducto, it.did_producto, it.cantidad, userId],
+                [idProducto, it.did_producto, it.cantidad, userId],
                 true
             );
             if (insCombo && insCombo.affectedRows > 0) countComboItems += 1;
         }
     }
+
+
+    //subir imagen al microservicio de archivos que reciba la url de la imagen   ACA y updatear la url en producto
+    const uploadImageUrl = await axios.post(
+        UPLOAD_URL,
+        {
+            file: imagen,
+            companyId: companyId,
+            productId: idProducto
+
+        },
+        { headers: { "Content-Type": "application/json" } }
+    );
+
 
     // ---------- Respuesta ----------
     return {
