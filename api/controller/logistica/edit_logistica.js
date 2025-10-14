@@ -1,10 +1,10 @@
-import { LightdataORM, logCyan } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
 
 export async function editLogistica(dbConnection, req) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user ?? {};
-    const { nombre, logisticaLD, codigo, codigoLD, habilitado } = req.body ?? {};
+    const { nombre, logisticaLD, codigo, codigoLD, habilitado, direcciones } = req.body ?? {};
 
     const verifyLogistica = await LightdataORM.select({
         dbConnection: dbConnection,
@@ -12,17 +12,12 @@ export async function editLogistica(dbConnection, req) {
         where: { did: logisticaDid },
         throwIfNotExists: true,
     });
-    const { nombreActual, logisticaLDActual, codigoActual, codigoLDActual, habilitadoActual } = verifyLogistica;
 
-    //mapear
-    const topAllowed = ["nombre", "codigo", "codigoLD", "logisticaLD", "habilitado"];
-    const topPatch = pickDefined(req.body, topAllowed);
-
-    const nombreInsert = isDefined(topPatch.nombre) ? topPatch.nombre : nombreActual;
-    const codigoInsert = isDefined(topPatch.codigo) ? topPatch.codigo : codigoActual;
-    const codigoLDInsert = isDefined(topPatch.codigoLD) ? topPatch.codigoLD : codigoLDActual;
-    const logisticaLDInsert = isDefined(topPatch.logisticaLD) ? topPatch.logisticaLD : logisticaLDActual;
-    const habilitadoInsert = isDefined(topPatch.habilitado) ? topPatch.habilitado : habilitadoActual;
+    const nombreInsert = isDefined(nombre) ? nombre : verifyLogistica.nombre;
+    const codigoInsert = isDefined(codigo) ? codigo : verifyLogistica.codigo;
+    const codigoLDInsert = isDefined(codigoLD) ? codigoLD : verifyLogistica.codigoLD;
+    const logisticaLDInsert = isDefined(logisticaLD) ? logisticaLD : verifyLogistica.logisticaLD;
+    const habilitadoInsert = isDefined(habilitado) ? habilitado : verifyLogistica.habilitado;
 
     await LightdataORM.update({
         dbConnection: dbConnection,
@@ -37,8 +32,7 @@ export async function editLogistica(dbConnection, req) {
             habilitado: habilitadoInsert
         }
     });
-    logCyan(`Logistica ${logisticaDid} actualizada por el usuario ${userId}`);
-    const { direcciones } = req.body ?? {};
+
     const hayDirecciones = getDireccionesOpsState(direcciones);
 
     if (hayDirecciones.hasAdd) {
@@ -54,31 +48,28 @@ export async function editLogistica(dbConnection, req) {
             provincia: direccion.provincia,
             address_line: direccion.address_line
         }));
-        logCyan(`Agregando ${data.length} direcciones a la logistica ${logisticaDid} por el usuario ${userId}`);
+
         await LightdataORM.insert({
             dbConnection,
             table: "logisticas_direcciones",
             quien: userId,
             data
         });
-        logCyan(`Direcciones agregadas a la logistica ${logisticaDid} por el usuario ${userId}`);
     }
 
     if (hayDirecciones.hasRemove) {
-        logCyan(`Eliminando ${hayDirecciones.didsRemove.length} direcciones de la logistica ${logisticaDid} por el usuario ${userId}`);
         await LightdataORM.delete({
             dbConnection,
             table: "logisticas_direcciones",
             where: { did: hayDirecciones.didsRemove },
             quien: userId,
         });
-        logCyan(`Direcciones eliminadas de la logistica ${logisticaDid} por el usuario ${userId}`);
     }
 
     if (hayDirecciones.hasUpdate) {
         const didsUpdate = hayDirecciones.update.map(d => d.did);
         const normalized = normalizeDireccionesInsert(hayDirecciones.update);
-        logCyan(`Actualizando ${didsUpdate.length} direcciones de la logistica ${logisticaDid} por el usuario ${userId}`);
+
         await LightdataORM.update({
             dbConnection,
             table: "logisticas_direcciones",
@@ -86,7 +77,6 @@ export async function editLogistica(dbConnection, req) {
             quien: userId,
             data: normalized
         });
-        logCyan(`Direcciones actualizadas de la logistica ${logisticaDid} por el usuario ${userId}`);
     }
 
     const direccionesSelect = await LightdataORM.select({
@@ -112,9 +102,6 @@ export async function editLogistica(dbConnection, req) {
         meta: { timestamp: new Date().toISOString() },
     };
 }
-
-
-// Helpers
 
 function normalizeDireccionesInsert(adds) {
 
@@ -165,11 +152,4 @@ function getDireccionesOpsState(direcciones) {
 
 const toArray = (v) => Array.isArray(v) ? v : [];
 const isDefined = (v) => v !== undefined;
-const pickDefined = (obj = {}, allow = null) => {
-    const out = {};
-    const keys = allow ?? Object.keys(obj);
-    for (const k of keys) if (isDefined(obj[k])) out[k] = obj[k];
-    return out;
-}
-
 const nn = (v) => (v ?? null);  

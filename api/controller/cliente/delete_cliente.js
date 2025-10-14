@@ -9,6 +9,7 @@ export async function deleteCliente(dbConnection, req) {
         table: "clientes",
         where: { did: clienteId },
         quien: userId,
+        throwIfNotFound: true,
     });
 
     const dirLinks = await LightdataORM.select({

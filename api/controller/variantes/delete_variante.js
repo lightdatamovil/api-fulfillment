@@ -53,7 +53,7 @@ export async function deleteVarianteCategoria(dbConnection, req) {
     await LightdataORM.delete({
         dbConnection,
         table: "variantes_categorias",
-        did: didCategoria,
+        where: { did: didCategoria },
         quien: userId,
     });
 

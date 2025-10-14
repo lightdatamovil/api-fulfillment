@@ -1,9 +1,6 @@
 import axios from "axios";
 import { CustomException, Status, toStr, toBool01, toInt, hashPassword, emptyToNull, LightdataORM, executeQuery } from "lightdata-tools";
-import { debugHttpError } from "../../src/functions/debugEndpoint.js";
-
-const UPLOAD_URL = "https://files.lightdata.app/upload_fulfillment_images.php";
-
+import { urlSubidaImagenes } from "../../db.js";
 
 export async function createUsuario(dbConnection, req) {
     const { companyId } = req.user;
@@ -83,10 +80,9 @@ export async function createUsuario(dbConnection, req) {
                 userId: didUserInsert,
                 file: imagen
             };
-            //  console.log(payload);
 
             const uploadRes = await axios.post(
-                UPLOAD_URL,
+                urlSubidaImagenes,
                 payload,
                 { headers: { "Content-Type": "application/json" } }
             );
@@ -98,10 +94,10 @@ export async function createUsuario(dbConnection, req) {
             );
 
         } catch (err) {
-            //    debugHttpError(err, "upload");
             throw new CustomException({
+                title: "Error al subir la imagen",
                 status: Status.badGateway,
-                message: "Error al subir la imagen"
+                message: err.message || "No se pudo subir la imagen proporcionada"
             });
         }
 
@@ -121,8 +117,4 @@ export async function createUsuario(dbConnection, req) {
         },
         meta: { timestamp: new Date().toISOString() }
     };
-
 }
-
-
-

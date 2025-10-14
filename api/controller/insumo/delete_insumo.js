@@ -8,21 +8,20 @@ export async function deleteInsumo(dbConnection, req) {
     await LightdataORM.delete({
         dbConnection,
         table: "insumos",
-        did: insumoId,
+        where: { did: insumoId },
         quien: userId
     });
 
     const links = await LightdataORM.select({
         dbConnection,
         table: "insumos_clientes",
-        column: "did_insumo",
-        value: insumoId,
+        where: { did_insumo: insumoId },
     });
 
     await LightdataORM.delete({
         dbConnection,
         table: "insumos_clientes",
-        did: links.map(l => l.did),
+        where: { did: links.map(l => l.did) },
         quien: userId
     });
 

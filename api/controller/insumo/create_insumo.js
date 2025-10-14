@@ -9,9 +9,8 @@ export async function createInsumo(dbConnection, req) {
     await LightdataORM.select({
         dbConnection,
         table: "insumos",
-        column: "codigo",
-        value: codigo,
-        throwExceptionIfAlreadyExists: true,
+        where: { codigo },
+        throwIfExists: true,
     });
 
     const [newId] = await LightdataORM.insert({

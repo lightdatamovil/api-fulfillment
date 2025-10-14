@@ -69,7 +69,7 @@ export async function editVariante(dbConnection, req) {
     await LightdataORM.update({
         dbConnection,
         table: "variantes",
-        did: Number(varianteId),
+        where: { did: varianteId },
         quien: userId,
         data: {
             codigo: nextCodigo,
@@ -79,7 +79,6 @@ export async function editVariante(dbConnection, req) {
             orden: nextOrden,
         },
     });
-
 
     const batchInsertsCategorias = cAdd
         .filter((c) => isNonEmpty(c?.nombre))
@@ -106,8 +105,8 @@ export async function editVariante(dbConnection, req) {
         await LightdataORM.update({
             dbConnection,
             table: "variantes_categorias",
-            did: dids.length === 1 ? dids[0] : dids,
-            data: datas.length === 1 ? datas[0] : datas,
+            where: { did: dids },
+            data: datas,
             quien: userId,
         });
     }
@@ -116,7 +115,7 @@ export async function editVariante(dbConnection, req) {
         await LightdataORM.delete({
             dbConnection,
             table: "variantes_categorias",
-            did: cDel,
+            where: { did: cDel },
             quien: userId,
         });
     }
@@ -146,8 +145,8 @@ export async function editVariante(dbConnection, req) {
         await LightdataORM.update({
             dbConnection,
             table: "variantes_categoria_valores",
-            did: dids.length === 1 ? dids[0] : dids,
-            data: datas.length === 1 ? datas[0] : datas,
+            where: { did: dids },
+            data: datas,
             quien: userId,
         });
     }
@@ -156,7 +155,7 @@ export async function editVariante(dbConnection, req) {
         await LightdataORM.delete({
             dbConnection,
             table: "variantes_categoria_valores",
-            did: vDel,
+            where: { did: vDel },
             quien: userId,
         });
     }

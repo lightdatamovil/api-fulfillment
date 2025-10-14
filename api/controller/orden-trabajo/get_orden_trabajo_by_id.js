@@ -23,7 +23,7 @@ export async function getOrdenTrabajoById(db, req) {
 
     const pedidos = await executeQuery(
         db,
-        `SELECT did_orden_trabajo, did_pedido, flex, estado, quien, autofecha
+        `SELECT did_orden_trabajo, did_pedido, quien, autofecha
      FROM ordenes_trabajo_pedidos
      WHERE did_orden_trabajo = ? AND elim = 0 AND superado = 0`,
         [did]
@@ -31,7 +31,7 @@ export async function getOrdenTrabajoById(db, req) {
 
     const historial = await executeQuery(
         db,
-        `SELECT did, did_pedido, did_orden_trabajo, estado, fecha, quien, autofecha
+        `SELECT did, did_pedido, did_orden_trabajo, fecha, quien, autofecha
      FROM ordenes_trabajo_pedidos_estados
      WHERE did_orden_trabajo = ? AND elim = 0
      ORDER BY fecha DESC, autofecha DESC`,

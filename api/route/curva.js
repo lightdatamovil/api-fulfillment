@@ -1,7 +1,7 @@
 // rutas/curvas.routes.js
 import { Router } from "express";
 import { createCurva } from "../controller/curva/create_curva.js";
-import { updateCurva } from "../controller/curva/update_curva.js";
+import { editCurva } from "../controller/curva/edit_curva.js";
 import { deleteCurva } from "../controller/curva/delete_curva.js";
 import { getCurvaById } from "../controller/curva/get_curva_by_id.js";
 import { getFilteredCurvas } from "../controller/curva/get_filtered_curvas.js";
@@ -14,7 +14,7 @@ curvas.post(
     "/",
     buildHandlerWrapper({
         requiredParams: ["userId"],
-        required: ["categorias", "nombre"], // categorias (number[]) es opcional
+        required: ["variantes", "nombre"],
         controller: async ({ db, req }) => {
             const result = await createCurva(db, req);
             return result;
@@ -22,40 +22,36 @@ curvas.post(
     })
 );
 
-// PUT /curvas/:did  (editar)
+// PUT /curvas/:curvaDid  (editar)
 curvas.put(
-    "/:did",
+    "/:curvaDid",
     buildHandlerWrapper({
-        requiredParams: ["userId", "did"],
-        required: ["nombre", "categorias"], // categorias (number[]) es opcional
+        requiredParams: ["userId", "curvaDid"],
+        required: ["nombre", "variantes"],
         controller: async ({ db, req }) => {
-            // pasamos el did de params → body para el controlador
-            req.body.did = Number(req.params.did);
-            const result = await updateCurva(db, req);
+            const result = await editCurva(db, req);
             return result;
         },
     })
 );
 
-// DELETE /curvas/:did  (eliminar - soft delete)
+// DELETE /curvas/:curvaDid  (eliminar - soft delete)
 curvas.delete(
-    "/:did",
+    "/:curvaDid",
     buildHandlerWrapper({
-        requiredParams: ["userId", "did"],
+        requiredParams: ["userId", "curvaDid"],
         controller: async ({ db, req }) => {
-            // pasamos el did de params → body para el controlador
-            req.body.did = Number(req.params.did);
             const result = await deleteCurva(db, req);
             return result;
         },
     })
 );
 
-// GET /curvas/:did  (by id)
+// GET /curvas/:curvaDid  (by id)
 curvas.get(
-    "/:did",
+    "/:curvaDid",
     buildHandlerWrapper({
-        requiredParams: ["did"],
+        requiredParams: ["curvaDid"],
         controller: async ({ db, req }) => {
             const result = await getCurvaById(db, req);
             return result;

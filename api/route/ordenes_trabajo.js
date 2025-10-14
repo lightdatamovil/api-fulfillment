@@ -2,7 +2,7 @@ import { Router } from "express";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 
 import { createOrdenTrabajo } from "../controller/orden-trabajo/create_orden_trabajo.js";
-import { updateOrdenTrabajo } from "../controller/orden-trabajo/update_orden_trabajo.js";
+import { editOrdenTrabajo } from "../controller/orden-trabajo/edit_orden_trabajo.js";
 import { deleteOrdenTrabajo } from "../controller/orden-trabajo/delete_orden_trabajo.js";
 import { getOrdenTrabajoById } from "../controller/orden-trabajo/get_orden_trabajo_by_id.js";
 import { getFilteredOrdenesTrabajo } from "../controller/orden-trabajo/get_filtered_ordenes_trabajo.js";
@@ -14,7 +14,6 @@ ordenes.post(
     "/",
     buildHandlerWrapper({
         required: ["estado", "asignada", "fecha_inicio", "pedidos", "pedidosEstados"],
-        // No hay required obligatorios; crea la OT y luego se puede asignar pedidos/estados opcionalmente
         controller: async ({ db, req }) => createOrdenTrabajo(db, req),
     })
 );
@@ -24,10 +23,9 @@ ordenes.put(
     "/:did",
     buildHandlerWrapper({
         requiredParams: ["did"],
-        required: ["estado", "asignada", "pedidos", "pedidosEstados"],
+        optional: ["estado", "asignada", "pedidos", "fecha_fin"],
         controller: async ({ db, req }) => {
-            req.body.did = Number(req.params.did);
-            return updateOrdenTrabajo(db, req);
+            return editOrdenTrabajo(db, req);
         },
     })
 );
@@ -37,10 +35,7 @@ ordenes.delete(
     "/:did",
     buildHandlerWrapper({
         requiredParams: ["did"],
-        controller: async ({ db, req }) => {
-            req.body.did = Number(req.params.did);
-            return deleteOrdenTrabajo(db, req);
-        },
+        controller: async ({ db, req }) => deleteOrdenTrabajo(db, req),
     })
 );
 
