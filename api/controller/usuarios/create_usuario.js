@@ -1,6 +1,6 @@
 import axios from "axios";
 import { CustomException, Status, toStr, toBool01, toInt, hashPassword, emptyToNull, LightdataORM, executeQuery } from "lightdata-tools";
-import { urlSubidaImagenes } from "../../db";
+import { urlSubidaImagenes } from "../../db.js";
 
 export async function createUsuario(dbConnection, req) {
     const { companyId } = req.user;

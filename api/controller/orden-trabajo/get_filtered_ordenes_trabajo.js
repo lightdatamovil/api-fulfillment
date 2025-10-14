@@ -46,7 +46,7 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
     };
     const { orderSql } = makeSort(qp, sortMap, { defaultKey: "did", byKey: "sort_by", dirKey: "sort_dir" });
 
-    const where = new SqlWhere().add("ot.elim = 0");
+    const where = new SqlWhere().add("ot.elim = 0").add("ot.superado=0");
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
     if (filtros.asignada !== undefined) where.eq("ot.asignada", filtros.asignada);
     if (filtros.fecha_inicio_from) where.add("ot.fecha_inicio >= ?", [filtros.fecha_inicio_from]);

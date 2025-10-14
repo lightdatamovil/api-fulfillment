@@ -1,7 +1,7 @@
 // rutas/curvas.routes.js
 import { Router } from "express";
 import { createCurva } from "../controller/curva/create_curva.js";
-import { updateCurva } from "../controller/curva/update_curva.js";
+import { editCurva } from "../controller/curva/edit_curva.js";
 import { deleteCurva } from "../controller/curva/delete_curva.js";
 import { getCurvaById } from "../controller/curva/get_curva_by_id.js";
 import { getFilteredCurvas } from "../controller/curva/get_filtered_curvas.js";
@@ -29,7 +29,7 @@ curvas.put(
         requiredParams: ["userId", "curvaDid"],
         required: ["nombre", "variantes"],
         controller: async ({ db, req }) => {
-            const result = await updateCurva(db, req);
+            const result = await editCurva(db, req);
             return result;
         },
     })

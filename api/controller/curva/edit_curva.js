@@ -14,7 +14,7 @@ import { isNonEmpty, LightdataORM } from "lightdata-tools";
  *   nombre?: string
  *   variantes?: number[]   // opcional
  */
-export async function updateCurva(dbConnection, req) {
+export async function editCurva(dbConnection, req) {
     const { nombre, variantes } = req.body;
     const { userId } = req.user;
     const { curvaDid } = req.params;

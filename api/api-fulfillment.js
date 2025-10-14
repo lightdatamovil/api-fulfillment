@@ -37,7 +37,7 @@ app.use("/api/productos", producto);
 app.use("/api/publicaciones", publicacion);
 app.use("/api/usuarios", usuarios);
 app.use("/api/curvas", curvas);
-app.use("/api/ordenesTrabajo", ordenesTrabajo);
+app.use("/api/ordenes-trabajo", ordenesTrabajo);
 
 
 (async () => {

@@ -1,13 +1,14 @@
 import { LightdataORM } from "lightdata-tools";
 
 export async function deleteOrdenTrabajo(db, req) {
-    const didParam = req.body?.did ?? req.params?.did;
-    const did = Number(didParam);
-
+    const { did } = req.params;
+    const { userId } = req.user;
+    console.log(did);
     await LightdataORM.delete({
         dbConnection: db,
         table: "ordenes_trabajo",
-        where: { did_orden_trabajo: did },
+        where: { did: did },
+        quien: userId,
         throwIfNotFound: true
     });
 
@@ -15,12 +16,15 @@ export async function deleteOrdenTrabajo(db, req) {
         dbConnection: db,
         table: "ordenes_trabajo_pedidos",
         where: { did_orden_trabajo: did },
+        quien: userId,
+
     });
 
     await LightdataORM.delete({
         dbConnection: db,
         table: "ordenes_trabajo_pedidos_estados",
         where: { did_orden_trabajo: did },
+        quien: userId,
     });
 
     return {
