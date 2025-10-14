@@ -4,13 +4,14 @@ import { getVarianteById } from "../controller/variantes/get_variante_by_id.js";
 import { deleteVarianteCategoria } from "../controller/variantes/delete_variante.js";
 import { createVariante } from "../controller/variantes/create_variante.js";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
+import { editVariante } from "../controller/variantes/edit_variante.js";
 
 const variantes = Router();
 
 variantes.post(
   '/',
   buildHandlerWrapper({
-    required: ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'subcategorias'],
+    optional: ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', "categorias"],
     controller: async ({ db, req }) => {
       const result = await createVariante(db, req);
       return result;
@@ -57,9 +58,9 @@ variantes.get(
 variantes.put(
   '/:varianteId',
   buildHandlerWrapper({
-    required: ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'variantesValores'],
+    optional: ['codigo', 'nombre', 'descripcion', 'habilitado', 'orden', 'categorias'],
     controller: async ({ db, req }) => {
-      const result = await getFilteredVariantes(db, req);
+      const result = await editVariante(db, req);
       return result;
     },
   })
