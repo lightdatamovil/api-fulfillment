@@ -1,16 +1,5 @@
 import { LightdataORM, CustomException, Status } from "lightdata-tools";
 
-/**
- * DELETE /api/variantes/:varianteId
- * Borra una variante y, en cascada:
- *  - valores de sus categorías (variantes_categoria_valores)
- *  - sus categorías (variantes_categorias)
- *
- * Orden de borrado:
- *  1) variantes (raíz)
- *  2) variantes_categoria_valores (por did_categoria)
- *  3) variantes_categorias (por did)
- */
 export async function deleteVariante(dbConnection, req) {
     const { varianteId } = req.params;
     const userId = Number(req.user?.userId ?? req.user?.id ?? 0) || null;
