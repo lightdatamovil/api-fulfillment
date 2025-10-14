@@ -1,14 +1,14 @@
 import { LightdataORM, CustomException, Status } from "lightdata-tools";
 
 export async function deleteVariante(dbConnection, req) {
-    const { varianteId } = req.params;
+    const { varianteId: did } = req.params;
     const userId = Number(req.user?.userId ?? req.user?.id ?? 0) || null;
 
     // Verificamos que exista
     const existente = await LightdataORM.select({
         dbConnection,
         table: "variantes",
-        where: { did: varianteId },
+        where: { did: did },
         throwIfNotExists: false,
         limit: 1,
     });
@@ -16,7 +16,7 @@ export async function deleteVariante(dbConnection, req) {
     if (!Array.isArray(existente) || existente.length === 0) {
         throw new CustomException({
             title: "No encontrado",
-            message: `No existe la variante con did=${varianteId}`,
+            message: `No existe la variante con did=${did}`,
             status: Status.notFound,
         });
     }
@@ -25,7 +25,7 @@ export async function deleteVariante(dbConnection, req) {
     await LightdataORM.delete({
         dbConnection,
         table: "variantes",
-        where: { did: varianteId },
+        where: { did: did },
         quien: userId,
     });
 
@@ -33,7 +33,7 @@ export async function deleteVariante(dbConnection, req) {
     const categorias = await LightdataORM.select({
         dbConnection,
         table: "variantes_categorias",
-        where: { did_variante: varianteId },
+        where: { did_variante: did },
         throwIfNotExists: false,
     });
 
@@ -62,7 +62,7 @@ export async function deleteVariante(dbConnection, req) {
     return {
         success: true,
         message: "Variante y sus categorías/valores eliminados correctamente",
-        data: { did: Number(varianteId), categorias_borradas: catIds },
+        data: { did: Number(did), categorias_borradas: catIds },
         meta: { timestamp: new Date().toISOString() },
     };
 }
