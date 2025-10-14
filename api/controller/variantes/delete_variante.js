@@ -1,7 +1,7 @@
 import { LightdataORM, CustomException, Status } from "lightdata-tools";
 
 export async function deleteVariante(dbConnection, req) {
-    const { varianteId: did } = req.params;
+    const { did } = req.params;
     const userId = Number(req.user?.userId ?? req.user?.id ?? 0) || null;
 
     // Verificamos que exista
