@@ -16,7 +16,7 @@ export async function getVarianteById(dbConnection, req) {
       v.did          AS variante_did,
       v.codigo       AS variante_codigo,
       v.nombre       AS variante_nombre,
-      v.descripcion  AS variante_descripcion,
+    
       v.habilitado   AS variante_habilitado,
       v.orden        AS variante_orden,
 
@@ -59,7 +59,7 @@ export async function getVarianteById(dbConnection, req) {
         did: first.variante_did,
         codigo: first.variante_codigo,
         nombre: first.variante_nombre,
-        descripcion: first.variante_descripcion,
+
         habilitado: first.variante_habilitado,
         orden: first.variante_orden,
         categorias: [],
