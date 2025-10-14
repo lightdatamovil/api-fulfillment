@@ -24,7 +24,9 @@ export async function getVarianteById(dbConnection, req) {
       vc.nombre      AS categoria_nombre,
 
       vcv.did        AS valor_did,
-      vcv.nombre     AS valor_nombre
+      vcv.nombre     AS valor_nombre,
+      vcv.codigo     AS codigo_valor
+
 
     FROM variantes v
     LEFT JOIN variantes_categorias vc
@@ -79,6 +81,7 @@ export async function getVarianteById(dbConnection, req) {
                 catMap.get(r.categoria_did).valores.push({
                     did: r.valor_did,
                     nombre: r.valor_nombre,
+                    codigo: r.codigo_valor,
                 });
             }
         }
