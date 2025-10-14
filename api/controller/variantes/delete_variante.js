@@ -1,68 +1,79 @@
-import { LightdataORM } from "lightdata-tools";
-
+import { LightdataORM, CustomException, Status } from "lightdata-tools";
 
 /**
- * Elimina (soft-delete) una categoría de variantes por DID.
- * Marca elim = 1 en:
- *  - variantes_categorias (did = ?)
- *  - variantes_subcategorias (did_categoria = ?)
- *  - variantes_subcategoria_valores (did_subcategoria IN (subcats de esa categoría))
+ * DELETE /api/variantes/:varianteId
+ * Borra una variante y, en cascada:
+ *  - valores de sus categorías (variantes_categoria_valores)
+ *  - sus categorías (variantes_categorias)
  *
- * Entrada aceptada:
- *  - req.params.did
- *  - o req.body.did_categoria / req.body.didCategoria / req.body.did
+ * Orden de borrado:
+ *  1) variantes (raíz)
+ *  2) variantes_categoria_valores (por did_categoria)
+ *  3) variantes_categorias (por did)
  */
-export async function deleteVarianteCategoria(dbConnection, req) {
-    const didParam = req.params.did;
-    const didCategoria = Number(didParam);
-    const userId = Number(req.user.userId);
+export async function deleteVariante(dbConnection, req) {
+    const { varianteId } = req.params;
+    const userId = Number(req.user?.userId ?? req.user?.id ?? 0) || null;
 
-    await LightdataORM.select({
+    // Verificamos que exista
+    const existente = await LightdataORM.select({
         dbConnection,
-        table: "variantes_categorias",
-        where: { did: didCategoria },
-        throwIfNotExists: true,
+        table: "variantes",
+        where: { did: varianteId },
+        throwIfNotExists: false,
+        limit: 1,
     });
 
-    const subcategorias = await LightdataORM.select({
-        dbConnection,
-        table: "variantes_subcategorias",
-        where: { did_categoria: didCategoria },
-    });
-
-    const didsSubcategorias = subcategorias.map((s) => s.did);
-
-    if (didsSubcategorias.length > 0) {
-        await LightdataORM.delete({
-            dbConnection,
-            table: "variantes_subcategoria_valores",
-            where: { did_subcategoria: didsSubcategorias },
-            quien: userId,
+    if (!Array.isArray(existente) || existente.length === 0) {
+        throw new CustomException({
+            title: "No encontrado",
+            message: `No existe la variante con did=${varianteId}`,
+            status: Status.notFound,
         });
     }
 
-    if (didsSubcategorias.length > 0) {
-        await LightdataORM.delete({
-            dbConnection,
-            table: "variantes_subcategorias",
-            where: { did: didsSubcategorias },
-            quien: userId,
-        });
-    }
-
+    // 1) Borrar la variante raíz
     await LightdataORM.delete({
         dbConnection,
-        table: "variantes_categorias",
-        where: { did: didCategoria },
+        table: "variantes",
+        where: { did: varianteId },
         quien: userId,
     });
 
+    // 2) Obtener sus categorías
+    const categorias = await LightdataORM.select({
+        dbConnection,
+        table: "variantes_categorias",
+        where: { did_variante: varianteId },
+        throwIfNotExists: false,
+    });
+
+    const catIds = (Array.isArray(categorias) ? categorias : [])
+        .map((c) => Number(c?.did))
+        .filter((n) => Number.isFinite(n) && n > 0);
+
+    if (catIds.length > 0) {
+        // 2a) Borrar valores de esas categorías
+        await LightdataORM.delete({
+            dbConnection,
+            table: "variantes_categoria_valores",
+            where: { did_categoria: catIds },
+            quien: userId,
+        });
+
+        // 2b) Borrar categorías
+        await LightdataORM.delete({
+            dbConnection,
+            table: "variantes_categorias",
+            where: { did: catIds },
+            quien: userId,
+        });
+    }
+
     return {
         success: true,
-        message: "Categoría de variantes eliminada correctamente",
-        data: {
-            did: didCategoria,
-        },
+        message: "Variante y sus categorías/valores eliminados correctamente",
+        data: { did: Number(varianteId), categorias_borradas: catIds },
         meta: { timestamp: new Date().toISOString() },
     };
 }
