@@ -1,27 +1,16 @@
-import { LightdataORM, CustomException, Status } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
 export async function deleteVariante(dbConnection, req) {
     const { did } = req.params;
     const userId = Number(req.user?.userId ?? req.user?.id ?? 0) || null;
 
-    // Verificamos que exista
-    const existente = await LightdataORM.select({
+    await LightdataORM.select({
         dbConnection,
         table: "variantes",
         where: { did: did },
-        throwIfNotExists: false,
-        limit: 1,
+        throwIfNotExists: true,
     });
 
-    if (!Array.isArray(existente) || existente.length === 0) {
-        throw new CustomException({
-            title: "No encontrado",
-            message: `No existe la variante con did=${did}`,
-            status: Status.notFound,
-        });
-    }
-
-    // 1) Borrar la variante raíz
     await LightdataORM.delete({
         dbConnection,
         table: "variantes",
@@ -29,12 +18,11 @@ export async function deleteVariante(dbConnection, req) {
         quien: userId,
     });
 
-    // 2) Obtener sus categorías
     const categorias = await LightdataORM.select({
         dbConnection,
         table: "variantes_categorias",
         where: { did_variante: did },
-        throwIfNotExists: false,
+        throwIfNotExists: true,
     });
 
     const catIds = (Array.isArray(categorias) ? categorias : [])
@@ -42,7 +30,6 @@ export async function deleteVariante(dbConnection, req) {
         .filter((n) => Number.isFinite(n) && n > 0);
 
     if (catIds.length > 0) {
-        // 2a) Borrar valores de esas categorías
         await LightdataORM.delete({
             dbConnection,
             table: "variantes_categoria_valores",
@@ -50,7 +37,6 @@ export async function deleteVariante(dbConnection, req) {
             quien: userId,
         });
 
-        // 2b) Borrar categorías
         await LightdataORM.delete({
             dbConnection,
             table: "variantes_categorias",
@@ -62,7 +48,7 @@ export async function deleteVariante(dbConnection, req) {
     return {
         success: true,
         message: "Variante y sus categorías/valores eliminados correctamente",
-        data: { did: Number(did), categorias_borradas: catIds },
+        data: {},
         meta: { timestamp: new Date().toISOString() },
     };
 }

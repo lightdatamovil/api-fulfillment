@@ -18,14 +18,10 @@ export async function editVariante(dbConnection, req) {
             .map((x) => (typeof x === "object" ? Number(x?.did ?? 0) : Number(x)))
             .filter((n) => Number.isFinite(n) && n > 0);
 
-    // ---- Nuevo body: categorías anidadas (y valores dentro de add/update) ----
     const cAdd = arr(body?.categorias?.add);
     const cUpd = arr(body?.categorias?.update);
     const cDel = normRemove(body?.categorias?.remove);
 
-    // -------------------------------------------------------------------------
-    // Datos de la variante
-    // -------------------------------------------------------------------------
     const [vigente] = await LightdataORM.select({
         dbConnection,
         table: "variantes",
@@ -36,24 +32,12 @@ export async function editVariante(dbConnection, req) {
     const nextCodigo = isNonEmpty(body.codigo) ? String(body.codigo).trim() : vigente.codigo;
 
     if (nextCodigo !== vigente.codigo) {
-        // si existe otra variante con ese código, fallar
-        const dup = await LightdataORM.select({
+        await LightdataORM.select({
             dbConnection,
             table: "variantes",
             where: { codigo: nextCodigo },
-            throwIfNotExists: false,
-            limit: 1,
+            throwIfExists: true,
         });
-        if (Array.isArray(dup) && dup.length > 0) {
-            const otro = dup[0];
-            if (Number(otro?.did) !== Number(varianteId)) {
-                throw new CustomException({
-                    title: "Código duplicado",
-                    message: `Ya existe una variante con código '${nextCodigo}'`,
-                    status: Status.conflict,
-                });
-            }
-        }
     }
 
     const nextNombre = isNonEmpty(body.nombre)
@@ -95,11 +79,6 @@ export async function editVariante(dbConnection, req) {
         },
     });
 
-    // -------------------------------------------------------------------------
-    // Categorías: add / update / remove
-    // -------------------------------------------------------------------------
-
-    // ADD: inserta categorías y, si vienen valores, también los inserta
     const batchInsertsCategorias = cAdd
         .filter((c) => isNonEmpty(c?.nombre))
         .map((c) => ({
@@ -107,7 +86,6 @@ export async function editVariante(dbConnection, req) {
             nombre: String(c.nombre).trim(),
         }));
 
-    /** mapa auxiliar para ubicar el did de las categorías recién creadas por nombre */
     let mapCatNombreToDid = {};
 
     if (batchInsertsCategorias.length > 0) {
@@ -133,7 +111,6 @@ export async function editVariante(dbConnection, req) {
             }
         });
 
-        // insertar valores de las categorías nuevas (si vinieron)
         const valoresNuevos = [];
         for (const c of cAdd) {
             const nombre = String(c?.nombre ?? "");
@@ -159,7 +136,6 @@ export async function editVariante(dbConnection, req) {
         }
     }
 
-    // UPDATE (categorías): solo nombre
     if (cUpd.length > 0) {
         const dids = cUpd.map((c) => Number(c.did)).filter((n) => Number.isFinite(n) && n > 0);
         const datas = cUpd.map((c) => ({
@@ -177,7 +153,6 @@ export async function editVariante(dbConnection, req) {
         }
     }
 
-    // UPDATE (valores dentro de cada categoría en update): { add, update, remove }
     for (const c of cUpd) {
         const didCat = Number(c?.did);
         if (!Number.isFinite(didCat) || didCat <= 0) continue;
@@ -186,7 +161,6 @@ export async function editVariante(dbConnection, req) {
         const vUpd = arr(c?.valores?.update);
         const vDel = normRemove(c?.valores?.remove);
 
-        // add
         if (vAdd.length > 0) {
             const rows = vAdd
                 .filter((v) => isNonEmpty(v?.nombre))
@@ -205,7 +179,6 @@ export async function editVariante(dbConnection, req) {
             }
         }
 
-        // update
         if (vUpd.length > 0) {
             const dids = vUpd.map((v) => Number(v?.did)).filter((n) => Number.isFinite(n) && n > 0);
             const datas = vUpd.map((v) => ({
@@ -223,7 +196,6 @@ export async function editVariante(dbConnection, req) {
             }
         }
 
-        // remove
         if (vDel.length > 0) {
             await LightdataORM.delete({
                 dbConnection,
@@ -234,7 +206,6 @@ export async function editVariante(dbConnection, req) {
         }
     }
 
-    // REMOVE (categorías): borrar primero valores, luego categorías
     if (cDel.length > 0) {
         await LightdataORM.delete({
             dbConnection,
