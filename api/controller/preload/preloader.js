@@ -1,7 +1,7 @@
 import { executeQuery, LightdataORM } from "lightdata-tools";
 
 export async function preloader(dbConnection) {
-  const productos = await LightdataORM.query(dbConnection, 'productos');
+  const productos = await LightdataORM.select(dbConnection, 'productos');
 
   // --- Variantes (root) con categorías y valores
   const queryVariantes = `
