@@ -5,6 +5,7 @@ export async function updateProducto(dbConnection, req) {
     did,
     did_cliente,
     titulo,
+    sku,
     descripcion,
     imagen,
     habilitado,
@@ -52,6 +53,7 @@ export async function updateProducto(dbConnection, req) {
     alto: isDefined(alto) ? Number(alto) : curr.alto ?? 0,
     ancho: isDefined(ancho) ? Number(ancho) : curr.ancho ?? 0,
     profundo: isDefined(profundo) ? Number(profundo) : curr.profundo ?? 0,
+    sku: isNonEmpty(sku) ? String(sku).trim() : curr.sku,
   };
 
   const newIds = await LightdataORM.update({
@@ -130,6 +132,7 @@ export async function updateProducto(dbConnection, req) {
       ean: isNonEmpty(e.ean) ? String(e.ean).trim() : null,
       url: isNonEmpty(e.url) ? String(e.url).trim() : null,
       sync: isDefined(e.actualizar_sync) ? number01(e.actualizar_sync) : 0,
+      actualizar: 0,
     }));
 
     await LightdataORM.insert({ dbConnection, table: "productos_ecommerce", data, quien });

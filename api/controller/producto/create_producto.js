@@ -7,7 +7,7 @@ import {
     number01,
     LightdataORM
 } from "lightdata-tools";
-import { urlSubidaImagenes } from "../../db";
+import { urlSubidaImagenes } from "../../db.js";
 
 export async function createProducto(dbConnection, req) {
     const {
@@ -39,7 +39,7 @@ export async function createProducto(dbConnection, req) {
         throwIfExists: true
     });
 
-    await LightdataORM.select({
+    const [client] = await LightdataORM.select({
         dbConnection,
         table: "clientes",
         where: { did: did_cliente },
@@ -59,6 +59,7 @@ export async function createProducto(dbConnection, req) {
             es_combo,
             posicion,
             cm3,
+            sku,
             alto,
             ancho,
             profundo
@@ -166,6 +167,7 @@ export async function createProducto(dbConnection, req) {
                 sku: skuVal,
                 ean,
                 url,
+                actualizar: 0,
                 sync
             };
         });
@@ -246,16 +248,22 @@ export async function createProducto(dbConnection, req) {
             }))
         });
     }
-
-    const uploadRes = await axios.post(urlSubidaImagenes, {
-        file: imagen,
-        companyId,
-        productId: idProducto
-    }, { headers: { "Content-Type": "application/json" } });
+    await axios.post(
+        urlSubidaImagenes,
+        {
+            file: imagen,         // base64 completa: "data:image/png;base64,..."
+            companyId,            // obligatorio
+            clientId: client.did, // ⚠️ obligatorio para productos
+            productId: idProducto // obligatorio
+        },
+        {
+            headers: { "Content-Type": "application/json" }
+        }
+    );
 
     return {
         success: true,
         message: "Producto creado correctamente",
-        data: { idProducto, imagen: uploadRes?.data?.url ?? null }
+        data: {}
     };
 }
