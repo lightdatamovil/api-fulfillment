@@ -1,89 +1,56 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
-
+import { LightdataORM } from "lightdata-tools";
 /**
- * Soft-delete por DID:
- *  - producto.elim = 1 (todas las versiones o sólo las vigentes, según prefieras)
- *  - asociaciones elim = 1 (vigentes)
+ * Elimina un producto y sus asociaciones usando LightdataORM.
+ *  - Marca las asociaciones como eliminadas (elim=1).
+ *  - Marca el producto principal como eliminado (elim=1).
  */
 export async function deleteProducto(dbConnection, req) {
-    const didParam = req.body?.did ?? req.params?.did;
-    const didProducto = Number(didParam);
+    const { did } = req.params;
+    const quien = req.user.userId;
 
-    if (!Number.isFinite(didProducto) || didProducto <= 0) {
-        throw new CustomException({
-            title: "Parámetro inválido",
-            message: "Se requiere 'did' numérico válido",
-            status: Status.badRequest,
-        });
+    await LightdataORM.select({
+        dbConnection,
+        table: "productos",
+        where: { did: did },
+        throwIfNotExists: true,
+    });
+
+    await LightdataORM.delete({
+        dbConnection,
+        table: "productos",
+        where: { did: did },
+        quien,
+        throwIfNotFound: true,
+    });
+
+    const dependencias = [
+        "productos_depositos",
+        "productos_insumos",
+        "productos_variantes_valores",
+        "productos_ecommerce",
+        "productos_combos",
+    ];
+
+    const affected = {};
+
+    for (const table of dependencias) {
+        try {
+            await LightdataORM.delete({
+                dbConnection,
+                table,
+                where: { did_producto: did },
+                quien,
+            });
+            affected[table] = "OK";
+        } catch (err) {
+            affected[table] = `Error: ${err.message}`;
+        }
     }
-
-    const cur = await executeQuery(
-        dbConnection,
-        `SELECT did FROM productos WHERE did = ? AND elim = 0 LIMIT 1`,
-        [didProducto]
-    );
-    if (!cur || cur.length === 0) {
-        throw new CustomException({
-            title: "No encontrado",
-            message: `No existe producto activo con did ${didProducto}`,
-            status: Status.notFound,
-        });
-    }
-
-    // Asociaciones -> elim=1 (sólo vigentes)
-    const updDep = await executeQuery(
-        dbConnection,
-        `UPDATE productos_depositos SET elim = 1 WHERE did_producto = ? AND elim = 0`,
-        [didProducto],
-        true
-    );
-    const updIns = await executeQuery(
-        dbConnection,
-        `UPDATE productos_insumos SET elim = 1 WHERE did_producto = ? AND elim = 0`,
-        [didProducto],
-        true
-    );
-    const updVV = await executeQuery(
-        dbConnection,
-        `UPDATE productos_variantes_valores SET elim = 1 WHERE did_producto = ? AND elim = 0`,
-        [didProducto],
-        true
-    );
-    const updEc = await executeQuery(
-        dbConnection,
-        `UPDATE productos_ecommerce SET elim = 1 WHERE did_producto = ? AND elim = 0`,
-        [didProducto],
-        true
-    );
-    const updCombo = await executeQuery(
-        dbConnection,
-        `UPDATE productos_combos SET elim = 1 WHERE did_producto = ? AND elim = 0`,
-        [didProducto],
-        true
-    );
-
-    // Producto -> elim=1 (todas las filas del did)
-    const updProd = await executeQuery(
-        dbConnection,
-        `UPDATE producto SET elim = 1 WHERE did = ? AND elim = 0`,
-        [didProducto],
-        true
-    );
 
     return {
         success: true,
-        message: "Producto eliminado correctamente",
-        data: {
-            did: didProducto,
-            affected: {
-                producto: updProd?.affectedRows ?? 0,
-                depositos: updDep?.affectedRows ?? 0,
-                insumos: updIns?.affectedRows ?? 0,
-                variantesValores: updVV?.affectedRows ?? 0,
-                ecommerce: updEc?.affectedRows ?? 0,
-                combo: updCombo?.affectedRows ?? 0,
-            },
-        },
+        message: "Producto eliminado correctamente (soft-delete versionado).",
+        data: {},
         meta: { timestamp: new Date().toISOString() },
     };
 }
