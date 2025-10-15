@@ -144,7 +144,7 @@ export async function createPedido(db, payload, userId) {
         );
 
         const dirCols = [
-            "did", "calle", "numero", "address_line", "cp", "localidad", "provincia", "pais",
+            "did_pedido", "calle", "numero", "address_line", "cp", "localidad", "provincia", "pais",
             "latitud", "longitud", "destination_coments", "hora_desde", "hora_hasta", "prioridad",
             "quien", "superado", "elim"
         ];
