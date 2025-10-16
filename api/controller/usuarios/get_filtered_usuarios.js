@@ -10,7 +10,7 @@ export async function getFilteredUsuarios(connection, req) {
     const sortMap = {
         nombre: "nombre",
         apellido: "apellido",
-        email: "mail",
+        email: "email",
         perfil: "perfil",
         habilitado: "habilitado",
         usuario: "usuario",
@@ -43,7 +43,7 @@ export async function getFilteredUsuarios(connection, req) {
     where
         .likeCI("nombre", filtros.nombre)
         .likeCI("apellido", filtros.apellido)
-        .likeCI("mail", filtros.email)
+        .likeCI("email", filtros.email)
         .likeCI("usuario", filtros.usuario)
         .eq("habilitado", filtros.habilitado);
 

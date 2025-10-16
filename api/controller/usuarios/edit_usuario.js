@@ -6,7 +6,7 @@ import { urlSubidaImagenes } from "../../db.js";
 /**
  * Edita un usuario existente (versionado por did):
  * - Verifica existencia (did = :userId).
- * - Valida unicidad de usuario y mail si se modifican.
+ * - Valida unicidad de usuario y email si se modifican.
  * - Valida campos y normaliza booleanos a 0/1.
  * - Marca superado=1 en versión activa.
  * - Inserta nueva fila con mismo did y cambios.
