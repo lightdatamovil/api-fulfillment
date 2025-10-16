@@ -1,7 +1,12 @@
 import { executeQuery, LightdataORM } from "lightdata-tools";
 
 export async function preloader(dbConnection) {
-  const productos = await LightdataORM.query(dbConnection, 'productos');
+  const productos = await LightdataORM.select({
+    dbConnection,
+    table: 'productos',
+    where: { elim: 0, superado: 0 },
+
+  });
 
   // --- Variantes (root) con categorías y valores
   const queryVariantes = `
@@ -133,7 +138,12 @@ export async function preloader(dbConnection) {
   }
   const curvas = Array.from(curvasMap.values());
 
-  const insumos = await LightdataORM.select(dbConnection, "insumos");
+  const insumos = await LightdataORM.select({
+    dbConnection,
+    table: "insumos",
+    where: { elim: 0, superado: 0 },
+
+  });
 
   // --- Clientes y cuentas
   const queryClientes = `

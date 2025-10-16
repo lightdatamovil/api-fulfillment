@@ -15,6 +15,7 @@ import auth from "./route/auth.js";
 import preload from './route/preload.js';
 import logisticas from './route/logisticas.js';
 import { jwtSecret } from './db.js';
+import configuracion from './route/configuracion.js';
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use("/api/publicaciones", publicacion);
 app.use("/api/usuarios", usuarios);
 app.use("/api/curvas", curvas);
 app.use("/api/ordenes-trabajo", ordenesTrabajo);
+app.use("/api/configuracion", configuracion);
 
 
 (async () => {
