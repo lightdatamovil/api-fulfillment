@@ -14,7 +14,7 @@ curvas.post(
     "/",
     buildHandlerWrapper({
         requiredParams: ["userId"],
-        required: ["variantes", "nombre"],
+        optional: ["categorias", "nombre", "codigo", "habilitado"],
         controller: async ({ db, req }) => {
             const result = await createCurva(db, req);
             return result;
