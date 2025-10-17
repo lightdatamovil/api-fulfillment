@@ -27,7 +27,7 @@ curvas.put(
     "/:curvaDid",
     buildHandlerWrapper({
         requiredParams: ["userId", "curvaDid"],
-        required: ["nombre", "variantes"],
+        optional: ["nombre", "categorias", "codigo", "habilitado"],
         controller: async ({ db, req }) => {
             const result = await editCurva(db, req);
             return result;
