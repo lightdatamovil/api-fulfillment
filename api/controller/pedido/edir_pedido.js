@@ -34,7 +34,7 @@ export async function editPedido(dbConnection, req) {
         await LightdataORM.update({
             dbConnection,
             table: "pedidos",
-            where: { id: didPedido },
+            where: { did: didPedido },
             quien: userId,
             data: updateData,
         });
@@ -90,7 +90,7 @@ export async function editPedido(dbConnection, req) {
                         dbConnection,
                         table: "pedidos_productos",
                         quien: userId,
-                        where: { id: r, did_pedido: didPedido },
+                        where: { did: r, did_pedido: didPedido },
                     });
                     eliminados++;
                 } else if (r?.did_producto) {
