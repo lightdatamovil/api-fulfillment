@@ -23,8 +23,21 @@ export async function getFilteredCurvas(connection, req) {
         sort_dir: q.sort_dir ?? q.sortDir,
     };
 
+    // parseo robusto de habilitado: acepta "1"/"0", "true"/"false", true/false
+    const parseBoolish = (v) => {
+        if (v === undefined || v === null || v === "") return undefined;
+        if (typeof v === "boolean") return v;
+        const s = String(v).trim().toLowerCase();
+        if (s === "1" || s === "true") return true;
+        if (s === "0" || s === "false") return false;
+        // Si llega otra cosa (p.ej. "2"), lo ignoramos
+        return undefined;
+    };
+
     const filtros = {
         nombre: toStr(q.nombre),
+        codigo: toStr(q.codigo),
+        habilitado: parseBoolish(q.habilitado),
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
@@ -52,13 +65,20 @@ export async function getFilteredCurvas(connection, req) {
         .add("vc.elim = 0")
         .add("vc.superado = 0");
 
-    if (filtros.nombre) where.likeEscaped("vc.nombre", filtros.nombre, { caseInsensitive: true });
+    if (filtros.nombre)
+        where.likeEscaped("vc.nombre", filtros.nombre, { caseInsensitive: true });
+
+    if (filtros.codigo)
+        where.likeEscaped("vc.codigo", filtros.codigo, { caseInsensitive: true });
+
+    if (filtros.habilitado !== undefined)
+        where.add("vc.habilitado = ?", filtros.habilitado ? 1 : 0);
 
     const { whereSql, params } = where.finalize();
 
     const { rows, total } = await runPagedQuery(connection, {
         select: "vc.id, vc.did, vc.nombre, vc.codigo, vc.habilitado",
-        from: "FROM curvas vc",
+        from: "FROM curvas vc", // ojo: si la tabla real es 'variantes_curvas', cambiá esto
         whereSql,
         orderSql,
         params,
@@ -66,7 +86,11 @@ export async function getFilteredCurvas(connection, req) {
         offset,
     });
 
-    const filtersForMeta = pickNonEmpty({ nombre: filtros.nombre });
+    const filtersForMeta = pickNonEmpty({
+        nombre: filtros.nombre,
+        codigo: filtros.codigo,
+        habilitado: filtros.habilitado,
+    });
 
     return {
         success: true,
