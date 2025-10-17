@@ -1,12 +1,5 @@
-import { isNonEmpty, number01, LightdataORM } from "lightdata-tools";
+import { isNonEmpty, number01, LightdataORM, executeQuery } from "lightdata-tools";
 
-/**
- * Crea una variante (raíz) y opcionalmente sus categorías y valores.
- * Requiere: codigo, nombre
- * Opcionales: descripcion, habilitado (0/1), orden, categorias: [{ nombre, valores?: [{ nombre, codigo? }] }]
- *
- * Optimizado: inserciones batch.
- */
 export async function createVariante(dbConnection, req) {
     const { codigo, nombre, descripcion, habilitado, orden, categorias } = req.body;
     const userId = Number(req.user.userId);
@@ -17,11 +10,14 @@ export async function createVariante(dbConnection, req) {
     const habValue = number01(habilitado, 1);
     const ordenValue = Number.isFinite(Number(orden)) ? Number(orden) : 0;
 
-    await LightdataORM.select({
+    const existe = await executeQuery(
         dbConnection,
-        table: "variantes",
-        where: { codigo: codigoTrim },
-    });
+        `SELECT id FROM variantes WHERE codigo = ? AND superado = 0 AND elim = 0 LIMIT 1`,
+        [codigoTrim]
+    );
+    if (existe.length > 0) {
+        throw new Error(`Ya existe una variante con el código '${codigoTrim}'`);
+    }
 
     const [idVariante] = await LightdataORM.insert({
         dbConnection,
@@ -40,53 +36,114 @@ export async function createVariante(dbConnection, req) {
         ? categorias.filter((c) => isNonEmpty(c?.nombre))
         : [];
 
-    if (cats.length === 0) {
-        return {
-            success: true,
-            message: "Variante creada correctamente (sin categorías)",
-            data: { did: idVariante },
-            meta: { timestamp: new Date().toISOString() },
-        };
-    }
-
-    const catRows = cats.map((cat) => ({
-        did_variante: idVariante,
-        nombre: String(cat.nombre ?? "").trim(),
-    }));
-
-    const idCats = await LightdataORM.insert({
-        dbConnection,
-        table: "variantes_categorias",
-        quien: userId,
-        data: catRows,
-    });
-
-    const valoresRows = cats.flatMap((cat, idx) => {
-        const didCategoria = idCats[idx];
-        const valores = Array.isArray(cat.valores)
-            ? cat.valores.filter((v) => isNonEmpty(v?.nombre))
-            : [];
-
-        return valores.map((v) => ({
-            did_categoria: didCategoria,
-            codigo: isNonEmpty(v?.codigo) ? String(v.codigo).trim() : null,
-            nombre: String(v.nombre ?? "").trim(),
+    let idCats = [];
+    if (cats.length > 0) {
+        const catRows = cats.map((cat) => ({
+            did_variante: idVariante,
+            nombre: String(cat.nombre ?? "").trim(),
         }));
-    });
 
-    if (valoresRows.length > 0) {
-        await LightdataORM.insert({
+        idCats = await LightdataORM.insert({
             dbConnection,
-            table: "variantes_categoria_valores",
+            table: "variantes_categorias",
             quien: userId,
-            data: valoresRows,
+            data: catRows,
         });
+
+        const valoresRows = cats.flatMap((cat, idx) => {
+            const didCategoria = idCats[idx];
+            const valores = Array.isArray(cat.valores)
+                ? cat.valores.filter((v) => isNonEmpty(v?.nombre))
+                : [];
+            return valores.map((v) => ({
+                did_categoria: didCategoria,
+                codigo: isNonEmpty(v?.codigo) ? String(v.codigo).trim() : null,
+                nombre: String(v.nombre ?? "").trim(),
+            }));
+        });
+
+        if (valoresRows.length > 0) {
+            await LightdataORM.insert({
+                dbConnection,
+                table: "variantes_categoria_valores",
+                quien: userId,
+                data: valoresRows,
+            });
+        }
     }
+
+    const sql = `
+        SELECT 
+            v.id AS variante_id,
+            v.did AS variante_did,
+            v.codigo AS variante_codigo,
+            v.nombre AS variante_nombre,
+            v.descripcion AS variante_descripcion,
+            v.habilitado AS variante_habilitado,
+            v.orden AS variante_orden,
+            vc.id AS categoria_id,
+            vc.did AS categoria_did,
+            vc.nombre AS categoria_nombre,
+            vcv.id AS valor_id,
+            vcv.did AS valor_did,
+            vcv.codigo AS valor_codigo,
+            vcv.nombre AS valor_nombre
+        FROM variantes v
+        LEFT JOIN variantes_categorias vc 
+            ON vc.did_variante = v.did AND vc.superado = 0 AND vc.elim = 0
+        LEFT JOIN variantes_categoria_valores vcv 
+            ON vcv.did_categoria = vc.did AND vcv.superado = 0 AND vcv.elim = 0
+        WHERE v.id = ?
+          AND v.superado = 0 
+          AND v.elim = 0;
+    `;
+
+    const rows = await executeQuery(dbConnection, sql, [idVariante]);
+
+    if (!rows.length) {
+        throw new Error("Error al obtener la variante creada.");
+    }
+
+    const variante = {
+        did: rows[0].variante_did,
+        codigo: rows[0].variante_codigo,
+        nombre: rows[0].variante_nombre,
+        descripcion: rows[0].variante_descripcion,
+        habilitado: rows[0].variante_habilitado,
+        orden: rows[0].variante_orden,
+        categorias: [],
+    };
+
+    const categoriasMap = new Map();
+
+    for (const r of rows) {
+        if (!r.categoria_id) continue;
+
+        if (!categoriasMap.has(r.categoria_did)) {
+            categoriasMap.set(r.categoria_did, {
+                did: r.categoria_did,
+                nombre: r.categoria_nombre,
+                valores: [],
+            });
+        }
+
+        const cat = categoriasMap.get(r.categoria_did);
+
+        if (r.valor_id) {
+            cat.valores.push({
+                did: r.valor_did,
+                codigo: r.valor_codigo,
+                nombre: r.valor_nombre,
+            });
+        }
+    }
+
+    variante.categorias = Array.from(categoriasMap.values());
 
     return {
         success: true,
         message: "Variante creada correctamente",
-        data: {},
+        data: variante,
         meta: { timestamp: new Date().toISOString() },
     };
 }
