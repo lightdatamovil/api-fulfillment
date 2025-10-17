@@ -61,17 +61,17 @@ export async function getCurvaById(dbConnection, req) {
 
     // Base de la curva (la LEFT JOIN garantiza al menos una fila si la curva existe)
     const base = rows[0];
-    const categorias = [];
+    const variantes = [];
 
     // Evitar duplicados por si hay múltiples filas por categoría
     const catSeen = new Set();
 
     for (const r of rows) {
         if (r.categoria_did && !catSeen.has(r.categoria_did)) {
-            categorias.push({
-                did: r.categoria_did,
-                nombre: r.categoria_nombre ?? null,
+            variantes.push({
                 did_variante: r.variante_did ?? null,
+                did_categoria: r.categoria_did,
+
             });
             catSeen.add(r.categoria_did);
         }
@@ -80,7 +80,7 @@ export async function getCurvaById(dbConnection, req) {
     const curva = {
         did: base.curva_did,
         nombre: base.curva_nombre,
-        categorias, // [] si no hay categorías activas
+        variantes, // [] si no hay categorías activas
     };
 
     return {
