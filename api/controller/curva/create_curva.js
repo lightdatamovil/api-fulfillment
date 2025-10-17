@@ -8,7 +8,7 @@ import { CustomException, Status, isNonEmpty, LightdataORM } from "lightdata-too
  * }
  */
 export async function createCurva(dbConnection, req) {
-    const { nombre, didCategoria } = req.body || {};
+    const { nombre, categorias } = req.body || {};
     const { userId } = req.user || {};
 
     const nombreTrim = isNonEmpty(nombre) ? String(nombre).trim() : "";
@@ -29,8 +29,8 @@ export async function createCurva(dbConnection, req) {
     });
 
     // Asociar categorías (opcional)
-    const idsCat = Array.isArray(didCategoria)
-        ? [...new Set(didCategoria.map(Number))].filter((n) => Number.isFinite(n) && n > 0)
+    const idsCat = Array.isArray(categorias)
+        ? [...new Set(categorias.map(Number))].filter((n) => Number.isFinite(n) && n > 0)
         : [];
 
     if (idsCat.length > 0) {
