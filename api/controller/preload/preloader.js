@@ -21,6 +21,7 @@ export async function preloader(dbConnection) {
       vc.nombre      AS categoria_nombre,
 
       vcv.did        AS valor_did,
+      vcv.codigo     AS valor_codigo,
       vcv.nombre     AS valor_nombre
 
     FROM variantes v
@@ -58,7 +59,11 @@ export async function preloader(dbConnection) {
         variante.categorias.push(cat);
       }
       if (r.valor_did) {
-        cat.valores.push({ did: r.valor_did, nombre: r.valor_nombre });
+        cat.valores.push({
+          did: r.valor_did,
+          codigo: r.valor_codigo,
+          nombre: r.valor_nombre
+        });
       }
     }
   }
