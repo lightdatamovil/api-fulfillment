@@ -13,7 +13,7 @@ import { isNonEmpty, LightdataORM, CustomException, Status } from "lightdata-too
  * }
  */
 export async function editCurva(dbConnection, req) {
-    const { nombre, categorias } = req.body || {};
+    const { nombre, categorias, codigo, habilitado } = req.body || {};
     const { userId } = req.user || {};
     const curvaDid = Number(req.params?.curvaDid);
 
@@ -50,7 +50,10 @@ export async function editCurva(dbConnection, req) {
         table: "curvas",
         where: { did: curvaDid },
         quien: userId,
-        data: { nombre: newNombre },
+        data: {
+            nombre: newNombre
+            , codigo: isNonEmpty(codigo) ? String(codigo).trim() : null, habilitado: habilitado ? 1 : 0
+        },
     });
 
     // 3) Vincular categorías nuevas (si las hay)
