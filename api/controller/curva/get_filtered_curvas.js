@@ -57,7 +57,7 @@ export async function getFilteredCurvas(connection, req) {
     const { whereSql, params } = where.finalize();
 
     const { rows, total } = await runPagedQuery(connection, {
-        select: "vc.id, vc.did, vc.nombre, vc.vcodigo, vc.habilitado",
+        select: "vc.id, vc.did, vc.nombre, vc.codigo, vc.habilitado",
         from: "FROM curvas vc",
         whereSql,
         orderSql,
