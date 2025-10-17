@@ -70,6 +70,8 @@ export async function getCurvaById(dbConnection, req) {
         if (r.categoria_did && !catSeen.has(r.categoria_did)) {
             categorias.push({
                 did: r.categoria_did,
+                nombre: r.categoria_nombre ?? null,
+                did_variante: r.variante_did ?? null,
             });
             catSeen.add(r.categoria_did);
         }
