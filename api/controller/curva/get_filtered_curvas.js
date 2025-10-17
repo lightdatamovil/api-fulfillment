@@ -40,7 +40,7 @@ export async function getFilteredCurvas(connection, req) {
         did: "vc.did",
         id: "vc.id",
         habilitado: "vc.habilitado",
-        codigo: "vc.vcodigo",
+        codigo: "vc.codigo",
     };
     const { orderSql } = makeSort(qp, sortMap, {
         defaultKey: "nombre",
