@@ -8,7 +8,7 @@ import { CustomException, Status, isNonEmpty, LightdataORM } from "lightdata-too
  * }
  */
 export async function createCurva(dbConnection, req) {
-    const { nombre, categorias } = req.body || {};
+    const { nombre, categorias, codigo, habilitado } = req.body || {};
     const { userId } = req.user || {};
 
     const nombreTrim = isNonEmpty(nombre) ? String(nombre).trim() : "";
@@ -25,7 +25,10 @@ export async function createCurva(dbConnection, req) {
         dbConnection,
         table: "curvas",
         quien: userId,
-        data: { nombre: nombreTrim },
+        data: {
+            nombre: nombreTrim
+            , codigo: isNonEmpty(codigo) ? String(codigo).trim() : null, habilitado: habilitado ? 1 : 0
+        },
     });
 
     // Asociar categorías (opcional)
