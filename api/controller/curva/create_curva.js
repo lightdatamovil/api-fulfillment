@@ -41,7 +41,7 @@ export async function createCurva(dbConnection, req) {
         // Ajustá el nombre de la tabla si tu catálogo se llama distinto (e.g. "categorias")
         await LightdataORM.select({
             dbConnection,
-            table: "categorias",
+            table: "variantes_categorias",
             where: { did: idsCat },
             throwExceptionIfNotExists: true,
         });
