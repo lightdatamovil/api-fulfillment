@@ -39,6 +39,8 @@ export async function getFilteredCurvas(connection, req) {
         nombre: "vc.nombre",
         did: "vc.did",
         id: "vc.id",
+        habilitado: "vc.habilitado",
+        codigo: "vc.vcodigo",
     };
     const { orderSql } = makeSort(qp, sortMap, {
         defaultKey: "nombre",
@@ -55,7 +57,7 @@ export async function getFilteredCurvas(connection, req) {
     const { whereSql, params } = where.finalize();
 
     const { rows, total } = await runPagedQuery(connection, {
-        select: "vc.id, vc.did, vc.nombre",
+        select: "vc.id, vc.did, vc.nombre.vcodigo, vc.habilitado",
         from: "FROM curvas vc",
         whereSql,
         orderSql,
