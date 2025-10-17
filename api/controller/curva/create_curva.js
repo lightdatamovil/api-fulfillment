@@ -1,16 +1,17 @@
 import { CustomException, Status, isNonEmpty, LightdataORM } from "lightdata-tools";
 
 /**
- * Crea una curva y, opcionalmente, asocia variantes a la curva.
- * Body:
- *   { nombre: string, variantes?: number[] }
+ * Body esperado:
+ * {
+ *   nombre: string,
+ *   didCategoria?: number[]   // opcional; si viene, asocia categorías a la curva
+ * }
  */
 export async function createCurva(dbConnection, req) {
-    const { nombre, variantes } = req.body;
-    const { userId } = req.user;
+    const { nombre, didCategoria } = req.body || {};
+    const { userId } = req.user || {};
 
     const nombreTrim = isNonEmpty(nombre) ? String(nombre).trim() : "";
-
     if (!isNonEmpty(nombreTrim)) {
         throw new CustomException({
             title: "Datos incompletos",
@@ -19,6 +20,7 @@ export async function createCurva(dbConnection, req) {
         });
     }
 
+    // Crear curva
     const [didCurva] = await LightdataORM.insert({
         dbConnection,
         table: "curvas",
@@ -26,21 +28,30 @@ export async function createCurva(dbConnection, req) {
         data: { nombre: nombreTrim },
     });
 
-    if (variantes.length > 0) {
+    // Asociar categorías (opcional)
+    const idsCat = Array.isArray(didCategoria)
+        ? [...new Set(didCategoria.map(Number))].filter((n) => Number.isFinite(n) && n > 0)
+        : [];
+
+    if (idsCat.length > 0) {
+        // (Opcional pero recomendado) verificar que existan las categorías
+        // Ajustá el nombre de la tabla si tu catálogo se llama distinto (e.g. "categorias")
         await LightdataORM.select({
             dbConnection,
-            table: "variantes",
-            where: { did: variantes },
+            table: "categorias",
+            where: { did: idsCat },
             throwExceptionIfNotExists: true,
         });
 
+        // Insert bulk en la tabla pivote
+        // ⚠️ Ajustá el nombre si tu pivote real es otro; acá uso el que venías manejando.
         await LightdataORM.insert({
             dbConnection,
-            table: "variantes_curvas",
+            table: "variantes_curvas", // o "curvas_categorias" si así se llama en tu schema
             quien: userId,
-            data: variantes.map((didVariante) => ({
+            data: idsCat.map((didCat) => ({
                 did_curva: Number(didCurva),
-                did_variante: Number(didVariante),
+                did_categoria: didCat,
             })),
         });
     }
@@ -51,6 +62,7 @@ export async function createCurva(dbConnection, req) {
         data: {
             did: didCurva,
             nombre: nombreTrim,
+            categorias_asociadas: idsCat.length,
         },
         meta: { timestamp: new Date().toISOString() },
     };

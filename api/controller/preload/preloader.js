@@ -5,7 +5,6 @@ export async function preloader(dbConnection) {
     dbConnection,
     table: 'productos',
     where: { elim: 0, superado: 0 },
-
   });
 
   // --- Variantes (root) con categorías y valores
@@ -65,74 +64,53 @@ export async function preloader(dbConnection) {
   }
   const variantes = Array.from(variantesMap.values());
 
-  // --- Curvas (relación curva ↔ variante; y variante ↔ categorías ↔ valores)
+  // --- Curvas (relación curva ↔ categoría ↔ valores)  ✅ USANDO did_categoria
   const queryCurvas = `
     SELECT
-      cu.did           AS curva_did,
-      cu.nombre        AS curva_nombre,
+      cu.did     AS curva_did,
+      cu.nombre  AS curva_nombre,
 
-      v.did            AS variante_did,
-      v.codigo         AS variante_codigo,
-      v.nombre         AS variante_nombre,
+      vc.did     AS categoria_did,
+      vc.nombre  AS categoria_nombre,
 
-      vc.did           AS categoria_did,
-      vc.nombre        AS categoria_nombre,
-
-      vcv.did          AS valor_did,
-      vcv.nombre       AS valor_nombre
+      vcv.did    AS valor_did,
+      vcv.nombre AS valor_nombre
 
     FROM curvas cu
     LEFT JOIN variantes_curvas vcu
       ON vcu.did_curva = cu.did
      AND vcu.elim = 0 AND vcu.superado = 0
-    LEFT JOIN variantes v
-      ON v.did = vcu.did_variante
-     AND v.elim = 0 AND v.superado = 0
     LEFT JOIN variantes_categorias vc
-      ON vc.did_variante = v.did
+      ON vc.did = vcu.did_categoria          -- 👈 vínculo directo por did_categoria
      AND vc.elim = 0 AND vc.superado = 0
     LEFT JOIN variantes_categoria_valores vcv
       ON vcv.did_categoria = vc.did
      AND vcv.elim = 0 AND vcv.superado = 0
     WHERE cu.elim = 0 AND cu.superado = 0
-    ORDER BY cu.did DESC, v.did DESC, vc.did DESC, vcv.did DESC
+    ORDER BY cu.did DESC, vc.did DESC, vcv.did DESC
   `;
   const rowsCurvas = await executeQuery(dbConnection, queryCurvas, []);
 
-  // Mapear curvas → variantes (opcional) → categorías → valores
+  // Mapear curvas → categorías → valores (SIN variantes)
   const curvasMap = new Map();
   for (const r of rowsCurvas) {
     if (!curvasMap.has(r.curva_did)) {
       curvasMap.set(r.curva_did, {
         did: r.curva_did,
         nombre: r.curva_nombre,
-        variantes: [], // cada curva puede linkear a 1+ variantes
+        categorias: [],
       });
     }
     const curva = curvasMap.get(r.curva_did);
 
-    // Ensamblar variante dentro de la curva (si existe link)
-    if (r.variante_did) {
-      let vEntry = curva.variantes.find((x) => x.did === r.variante_did);
-      if (!vEntry) {
-        vEntry = {
-          did: r.variante_did,
-          codigo: r.variante_codigo,
-          nombre: r.variante_nombre,
-          categorias: [],
-        };
-        curva.variantes.push(vEntry);
+    if (r.categoria_did) {
+      let cat = curva.categorias.find((c) => c.did === r.categoria_did);
+      if (!cat) {
+        cat = { did: r.categoria_did, nombre: r.categoria_nombre, valores: [] };
+        curva.categorias.push(cat);
       }
-
-      if (r.categoria_did) {
-        let cat = vEntry.categorias.find((c) => c.did === r.categoria_did);
-        if (!cat) {
-          cat = { did: r.categoria_did, nombre: r.categoria_nombre, valores: [] };
-          vEntry.categorias.push(cat);
-        }
-        if (r.valor_did) {
-          cat.valores.push({ did: r.valor_did, nombre: r.valor_nombre });
-        }
+      if (r.valor_did) {
+        cat.valores.push({ did: r.valor_did, nombre: r.valor_nombre });
       }
     }
   }
@@ -142,7 +120,6 @@ export async function preloader(dbConnection) {
     dbConnection,
     table: "insumos",
     where: { elim: 0, superado: 0 },
-
   });
 
   // --- Clientes y cuentas
