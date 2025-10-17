@@ -35,6 +35,8 @@ export async function getCurvaById(dbConnection, req) {
         cat.did             AS categoria_did,
         cat.nombre          AS categoria_nombre,
         cat.did_variante    AS variante_did
+        , cu.codigo         AS codigo
+        , cu.habilitado     AS habilitado
 
       FROM curvas cu
       LEFT JOIN variantes_curvas vcu
@@ -80,6 +82,8 @@ export async function getCurvaById(dbConnection, req) {
     const curva = {
         did: base.curva_did,
         nombre: base.curva_nombre,
+        codigo: base.codigo,
+        habilitado: base.habilitado,
         variantes, // [] si no hay categorías activas
     };
 
