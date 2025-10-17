@@ -1,27 +1,40 @@
-import { isNonEmpty, LightdataORM } from "lightdata-tools";
+import { isNonEmpty, LightdataORM, CustomException, Status } from "lightdata-tools";
 
 /**
- * Versionado de curva (PUT) usando LightdataORM:
- * - Verifica existencia de curva vigente (elim=0, superado=0).
- * - Crea NUEVA versión con el MISMO did usando LightdataORM.update()
- *   (no hace falta insert manual).
- * - Si viene "variantes" (number[]):
- *     * versiona (delete lógico) los links vigentes en variantes_variantes_curvas
- *     * inserta los nuevos links.
+ * PUT /curvas/:curvaDid
  *
  * Body:
- *   did: number (requerido)
- *   nombre?: string
- *   variantes?: number[]   // opcional
+ * {
+ *   nombre?: string,
+ *   categorias?: {
+ *     add?: number[],      // DIDs de categorias a vincular
+ *     remove?: number[]    // DIDs de categorias a desvincular (delete lógico)
+ *   }
+ * }
  */
 export async function editCurva(dbConnection, req) {
-    const { nombre, variantes } = req.body;
-    const { userId } = req.user;
-    const { curvaDid } = req.params;
+    const { nombre, categorias } = req.body || {};
+    const { userId } = req.user || {};
+    const curvaDid = Number(req.params?.curvaDid);
 
-    const cAdd = variantes?.add;
-    const cDel = variantes?.remove;
+    if (!Number.isFinite(curvaDid) || curvaDid <= 0) {
+        throw new CustomException({
+            title: "Parámetros inválidos",
+            message: "curvaDid debe ser un número válido en la URL",
+            status: Status.badRequest,
+        });
+    }
 
+    // Normalización de arrays (dedupe + solo números > 0)
+    const normIds = (arr) =>
+        Array.isArray(arr)
+            ? [...new Set(arr.map(Number))].filter((n) => Number.isFinite(n) && n > 0)
+            : [];
+
+    const addIds = normIds(categorias?.add);
+    const delIds = normIds(categorias?.remove);
+
+    // 1) Verificar que la curva exista (vigente)
     const [curr] = await LightdataORM.select({
         dbConnection,
         table: "curvas",
@@ -29,6 +42,7 @@ export async function editCurva(dbConnection, req) {
         throwExceptionIfNotExists: true,
     });
 
+    // 2) Versionar la curva (solo nombre si vino)
     const newNombre = isNonEmpty(nombre) ? String(nombre).trim() : curr.nombre;
 
     await LightdataORM.update({
@@ -39,20 +53,35 @@ export async function editCurva(dbConnection, req) {
         data: { nombre: newNombre },
     });
 
-    if (cAdd.length > 0) {
+    // 3) Vincular categorías nuevas (si las hay)
+    if (addIds.length > 0) {
+        // (Opcional pero sano) validar existencia de categorías
+        await LightdataORM.select({
+            dbConnection,
+            table: "variantes_categorias",
+            where: { did: addIds },
+            throwExceptionIfNotExists: true,
+        });
+
+        // Insert bulk en pivote (usamos la misma pivote que ya tenías, con did_categoria)
         await LightdataORM.insert({
             dbConnection,
-            table: "variantes_curvas",
+            table: "variantes_curvas", // pivote curva <-> categoría
             quien: userId,
-            data: cAdd.map(c => ({ did_variante: c, did_curva: curvaDid }))
+            data: addIds.map((didCat) => ({
+                did_curva: curvaDid,
+                did_categoria: didCat,
+            })),
         });
     }
 
-    if (cDel.length > 0) {
+    // 4) Desvincular categorías (delete lógico versionado) si las hay
+    if (delIds.length > 0) {
+        // delete versionado por condiciones (curva + listado de categorías)
         await LightdataORM.delete({
             dbConnection,
             table: "variantes_curvas",
-            where: { did: cDel },
+            where: { did_curva: curvaDid, did_categoria: delIds },
             quien: userId,
         });
     }
@@ -60,7 +89,14 @@ export async function editCurva(dbConnection, req) {
     return {
         success: true,
         message: "Curva versionada correctamente",
-        data: {},
+        data: {
+            did: curvaDid,
+            nombre: newNombre,
+            categorias: {
+                agregadas: addIds.length,
+                removidas: delIds.length,
+            },
+        },
         meta: { timestamp: new Date().toISOString() },
     };
 }

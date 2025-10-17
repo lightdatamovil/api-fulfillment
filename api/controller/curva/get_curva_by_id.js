@@ -1,11 +1,16 @@
 import { CustomException, executeQuery } from "lightdata-tools";
 
 /**
- * Trae una curva por DID con sus categorías asociadas (activas).
- * Param: req.params.id (o varianteId) — usamos :did
+ * GET /curvas/:curvaDid
  * Respuesta:
  * {
- *   did, nombre, categorias: [{ did }]
+ *   did: number,
+ *   nombre: string,
+ *   categorias: Array<{
+ *     did: number,
+ *     nombre: string | null,
+ *     did_variante: number | null
+ *   }>
  * }
  */
 export async function getCurvaById(dbConnection, req) {
@@ -15,25 +20,34 @@ export async function getCurvaById(dbConnection, req) {
     if (!Number.isFinite(didCurva) || didCurva <= 0) {
         throw new CustomException({
             title: "Parámetro inválido",
-            message: "El parámetro did debe ser numérico y mayor que 0",
+            message: "El parámetro curvaDid debe ser numérico y mayor que 0",
         });
     }
 
+    // Curva → (pivot) variantes_curvas.did_categoria → variantes_categorias (para traer did_variante)
     const rows = await executeQuery(
         dbConnection,
         `
       SELECT
-        vc.did             AS curva_did,
-        vc.nombre          AS curva_nombre,
-        vcc.did_variante  AS cat_did
-      FROM curvas vc
-      LEFT JOIN variantes_curvas vcc
-        ON vcc.did_curva = vc.did
-       AND vcc.elim = 0
-       AND vcc.superado = 0
-      WHERE vc.did = ?
-        AND vc.elim = 0
-        AND vc.superado = 0
+        cu.did              AS curva_did,
+        cu.nombre           AS curva_nombre,
+
+        cat.did             AS categoria_did,
+        cat.nombre          AS categoria_nombre,
+        cat.did_variante    AS variante_did
+
+      FROM curvas cu
+      LEFT JOIN variantes_curvas vcu
+        ON vcu.did_curva = cu.did
+       AND vcu.elim = 0
+       AND vcu.superado = 0
+      LEFT JOIN variantes_categorias cat
+        ON cat.did = vcu.did_categoria           -- usamos did_categoria
+       AND cat.elim = 0
+       AND cat.superado = 0
+      WHERE cu.did = ?
+        AND cu.elim = 0
+        AND cu.superado = 0
     `,
         [didCurva]
     );
@@ -45,10 +59,28 @@ export async function getCurvaById(dbConnection, req) {
         });
     }
 
+    // Base de la curva (la LEFT JOIN garantiza al menos una fila si la curva existe)
+    const base = rows[0];
+    const categorias = [];
+
+    // Evitar duplicados por si hay múltiples filas por categoría
+    const catSeen = new Set();
+
+    for (const r of rows) {
+        if (r.categoria_did && !catSeen.has(r.categoria_did)) {
+            categorias.push({
+                did: r.categoria_did,
+                nombre: r.categoria_nombre ?? null,
+                did_variante: r.variante_did ?? null,
+            });
+            catSeen.add(r.categoria_did);
+        }
+    }
+
     const curva = {
-        did: rows[0].curva_did,
-        nombre: rows[0].curva_nombre,
-        categorias: rows.map((r) => r.cat_did)
+        did: base.curva_did,
+        nombre: base.curva_nombre,
+        categorias, // [] si no hay categorías activas
     };
 
     return {
