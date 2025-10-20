@@ -77,7 +77,7 @@ export async function login(dbConnection, req) {
                 nombre: sistemaData[0].nombre || null,
                 tipo: company.tipo,
                 imagen: sistemaData[0].imagen || null,
-                modo_trabajo: sistemaData[0].modo_trabajo || null
+                modo_trabajo: sistemaData[0].modo_trabajo
             }
         },
         meta: {
