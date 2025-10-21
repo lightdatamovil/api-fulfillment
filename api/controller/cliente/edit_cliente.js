@@ -161,7 +161,7 @@ export async function editCliente(dbConnection, req) {
             titulo: a.titulo,
             ml_id_vendedor: a.ml_id_vendedor,
             ml_user: a.ml_user,
-            data: a.data,
+            data: JSON.stringify(a.data),
         }));
 
         await LightdataORM.update({
