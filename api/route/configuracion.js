@@ -11,7 +11,7 @@ const configuracion = Router();
 configuracion.put(
     "/toggle-modo-trabajo",
     buildHandlerWrapper({
-        required: ["modoTrabajo"],
+        required: ["modo_trabajo"],
         controller: async ({ db, req }) => {
             const result = await toggleModoTrabajo(db, req);
             return result;

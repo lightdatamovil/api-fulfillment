@@ -1,7 +1,7 @@
 import { CustomException, LightdataORM } from "lightdata-tools";
 
 export async function toggleModoTrabajo(dbConnection, req) {
-    const { modoTrabajo } = req.body;
+    const { modo_trabajo } = req.body;
     const { companyId, userId } = req.user;
 
 
@@ -13,10 +13,10 @@ export async function toggleModoTrabajo(dbConnection, req) {
         select: ["modo_trabajo"],
     });
 
-    if (modoActual.modo_trabajo == modoTrabajo) {
+    if (modoActual.modo_trabajo == modo_trabajo) {
         throw new CustomException({
             title: "Modo de trabajo inválido",
-            message: `El modo de trabajo ya está en ${modoTrabajo}`,
+            message: `El modo de trabajo ya está en ${modo_trabajo}`,
         });
     }
 
@@ -25,7 +25,7 @@ export async function toggleModoTrabajo(dbConnection, req) {
         table: "sistema_empresa",
         where: { did: companyId },
         quien: userId,
-        data: { modo_trabajo: modoTrabajo },
+        data: { modo_trabajo: modo_trabajo },
     });
 
 
