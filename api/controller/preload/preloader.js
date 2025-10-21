@@ -74,6 +74,7 @@ export async function preloader(dbConnection) {
     SELECT
       cu.did     AS curva_did,
       cu.nombre  AS curva_nombre,
+      cu.codigo  AS curva_codigo,
 
       vc.did     AS categoria_did,
       vc.nombre  AS categoria_nombre,
@@ -103,6 +104,7 @@ export async function preloader(dbConnection) {
       curvasMap.set(r.curva_did, {
         did: r.curva_did,
         nombre: r.curva_nombre,
+        codigo: r.curva_codigo,
         categorias: [],
       });
     }
