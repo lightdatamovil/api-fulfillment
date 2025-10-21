@@ -6,6 +6,7 @@ export async function getModoTrabajo(connection) {
     const [row] = await LightdataORM.select({
         dbConnection: connection,
         table: "sistema_empresa",
+        //! SACAR ESTO CON LA VERSION 1.4.70 DE LIGHTDATA TOOLS
         where: { elim: 0 },
         select: ["modo_trabajo"],
 
