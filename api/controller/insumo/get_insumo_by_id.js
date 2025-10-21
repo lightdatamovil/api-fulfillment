@@ -7,7 +7,7 @@ export async function getInsumosById(dbConnection, req) {
     const insumoRows = await executeQuery(
         dbConnection,
         `
-    SELECT id, did, codigo, nombre, unidad, habilitado, quien, autofecha, superado, elim
+    SELECT  did, codigo, nombre, unidad, habilitado, 
     FROM insumos
     WHERE did = ? AND elim = 0 AND superado = 0
     LIMIT 1
