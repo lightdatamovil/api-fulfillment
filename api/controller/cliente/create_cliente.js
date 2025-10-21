@@ -76,7 +76,7 @@ export async function createCliente(dbConnection, req) {
 
     if (cuentas.length > 0) {
         const cuentasData = cuentas.map((c) => {
-            const flex = Number(c?.flex ?? c?.tipo) || 0;
+            const flex = Number(c?.flex ?? c?.flex) || 0;
             const rawData = c?.data ?? {};
             const dataStr = JSON.stringify(rawData);
             const titulo = (c?.titulo ?? "").toString();
