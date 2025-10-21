@@ -21,7 +21,7 @@ export async function editInsumo(dbConnection, req) {
             where: { elim: 0 },
             column: "codigo",
             value: codigo,
-            throwIfExists: true,
+
         });
     }
 
