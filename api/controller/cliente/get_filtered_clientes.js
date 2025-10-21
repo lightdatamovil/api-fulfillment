@@ -32,7 +32,7 @@ export async function getFilteredClientes(connection, req) {
     codigo: "c.codigo",
     nombre_fantasia: "c.nombre_fantasia",
     razon_social: "c.razon_social",
-    estado: "c.habilitado",
+    habilitado: "c.habilitado",
   };
   const { orderSql } = makeSort(q, sortMap, {
     defaultKey: "nombre_fantasia",
