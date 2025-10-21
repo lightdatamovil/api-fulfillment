@@ -3,7 +3,7 @@ import { isNonEmpty, isDefined, LightdataORM } from "lightdata-tools";
 export async function editInsumo(dbConnection, req) {
     const { userId } = req.user;
     const { insumoId } = req.params;
-    const { codigo, nombre, unidad, habilitado, clientes } = req.body;
+    const { codigo, nombre, unidad, habilitado, clientes_dids } = req.body;
 
     const norm = (v) => new Set(v.map(n => Number(n)));
 
@@ -42,8 +42,8 @@ export async function editInsumo(dbConnection, req) {
         }
     });
 
-    const toAdd = Array.from(norm(clientes?.add || []));
-    const toRemove = Array.from(norm(clientes?.remove || []));
+    const toAdd = Array.from(norm(clientes_dids?.add || []));
+    const toRemove = Array.from(norm(clientes_dids?.remove || []));
 
     if (toRemove.length > 0) {
         await LightdataORM.delete({

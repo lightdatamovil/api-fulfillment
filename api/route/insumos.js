@@ -22,7 +22,7 @@ insumos.post(
 insumos.put(
     '/:insumoId',
     buildHandlerWrapper({
-        optional: ['codigo', 'habilitado', 'clientes', 'nombre', 'unidad'],
+        optional: ['codigo', 'habilitado', 'clientes_dids', 'nombre', 'unidad'],
         controller: async ({ db, req }) => {
             const result = await editInsumo(db, req);
             return result;
