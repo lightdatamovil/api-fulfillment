@@ -18,6 +18,7 @@ export async function editInsumo(dbConnection, req) {
         await LightdataORM.select({
             dbConnection,
             table: "insumos",
+            where: { elim: 0 },
             column: "codigo",
             value: codigo,
             throwIfExists: true,
@@ -69,6 +70,7 @@ export async function editInsumo(dbConnection, req) {
         await LightdataORM.insert({
             dbConnection,
             table: "insumos_clientes",
+
             quien: userId,
             data
         });
