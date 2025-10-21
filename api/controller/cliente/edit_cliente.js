@@ -46,6 +46,7 @@ export async function editCliente(dbConnection, req) {
     await LightdataORM.update({
         dbConnection,
         table: "clientes",
+
         where: { did: Number(clienteId) },
         quien: userId,
         data: updateData,
@@ -143,7 +144,7 @@ export async function editCliente(dbConnection, req) {
             titulo: a?.titulo ?? null,
             ml_id_vendedor: String(a?.ml_id_vendedor ?? ""),
             ml_user: a?.ml_user ?? null,
-            data: JSON.stringify(a?.data ?? null),
+            data: JSON.stringify(a.data ?? null),
         }));
 
         await LightdataORM.insert({
