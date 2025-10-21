@@ -107,7 +107,7 @@ export async function getClienteById(connection, req) {
             ctaSet.add(r.cuenta_did);
             cliente.cuentas.push({
                 did: r.cuenta_did,
-                tipo: r.cuenta_flex,
+                flex: r.cuenta_flex,
                 titulo: r.cuenta_titulo,
                 ml_id_vendedor: r.cuenta_ml_id_vendedor,
                 ml_user: r.cuenta_ml_user,
