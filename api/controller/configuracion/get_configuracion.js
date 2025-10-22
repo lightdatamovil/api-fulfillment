@@ -9,9 +9,7 @@ export async function getModoTrabajo(connection) {
         //! SACAR ESTO CON LA VERSION 1.4.70 DE LIGHTDATA TOOLS
         where: { elim: 0 },
         select: ["modo_trabajo"],
-
     });
-
 
     if (!row) {
         return {
