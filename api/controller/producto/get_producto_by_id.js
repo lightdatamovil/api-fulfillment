@@ -1,14 +1,15 @@
 import { CustomException, Status, executeQuery } from "lightdata-tools";
 
 /**
- * Detalle de producto por DID (vigente) + asociaciones vigentes.
- * Devuelve:
- *  - producto
- *  - depositos: number[]
- *  - insumos: [{ did_insumo, cantidad, habilitado }]
- *  - variantesValores: number[]
- *  - ecommerce: [{ did_cuenta, sku, ean, url, sync }]
- *  - combo (si es_combo=1): [{ did_producto, cantidad, titulo }]
+ * GET producto por DID con esta forma exacta:
+ * {
+ *   did_cliente:number, titulo:string, descripcion:string, habilitado:boolean, es_combo:boolean,
+ *   posicion:number, cm3:number, alto:string, ancho:string, profundo:string, imagen:string|null,
+ *   sku:string, ean:string, didCurva:number|null,
+ *   ecommerce:[{ did:number, didCuenta:number, sku:string, ean:string, url:string, sync:boolean, variantes_valores:number[] }],
+ *   insumos:[{ did:number, didInsumo:number, cantidad:number }],
+ *   combos:[{ did:number, didProducto:number, cantidad:number }]
+ * }
  */
 export async function getProductoById(dbConnection, req) {
   // 🔎 Param DID
@@ -48,27 +49,8 @@ export async function getProductoById(dbConnection, req) {
   const p = prodRows[0];
 
   // 🧩 Asociaciones vigentes en paralelo
-  const [
-    depRows,
-    insRows,
-    vvRows,
-    ecRows,
-    comboRows,
-  ] = await Promise.all([
-    executeQuery(
-      dbConnection,
-      `SELECT did_deposito
-         FROM productos_depositos
-        WHERE did_producto = ? AND elim = 0 AND superado = 0`,
-      [didProducto]
-    ),
-    executeQuery(
-      dbConnection,
-      `SELECT did_insumo, cantidad, habilitado
-         FROM productos_insumos
-        WHERE did_producto = ? AND elim = 0 AND superado = 0`,
-      [didProducto]
-    ),
+  const [vvRows, ecRows, insRows, comboRows] = await Promise.all([
+    // variantes del producto (nivel producto, se repiten en cada ecommerce según tu formato)
     executeQuery(
       dbConnection,
       `SELECT did_variante_valor
@@ -76,84 +58,81 @@ export async function getProductoById(dbConnection, req) {
         WHERE did_producto = ? AND elim = 0 AND superado = 0`,
       [didProducto]
     ),
+    // ecommerce (necesitamos DID para edición)
     executeQuery(
       dbConnection,
-      `SELECT did_cuenta, sku, ean, url, sync
+      `SELECT did, did_cuenta, sku, ean, url, sync
          FROM productos_ecommerce
         WHERE did_producto = ? AND elim = 0 AND superado = 0`,
       [didProducto]
     ),
+    // insumos
     executeQuery(
       dbConnection,
-      `SELECT pc.did_producto_combo AS did_producto, pc.cantidad
-         FROM productos_combos pc
-        WHERE pc.did_producto = ? AND pc.elim = 0 AND pc.superado = 0`,
+      `SELECT did, did_insumo, cantidad
+         FROM productos_insumos
+        WHERE did_producto = ? AND elim = 0 AND superado = 0`,
+      [didProducto]
+    ),
+    // combos
+    executeQuery(
+      dbConnection,
+      `SELECT did, did_producto_combo AS did_producto, cantidad
+         FROM productos_combos
+        WHERE did_producto = ? AND elim = 0 AND superado = 0`,
       [didProducto]
     ),
   ]);
 
-  // 🧩 Enriquecer combos con títulos de productos hijos (vigentes)
-  let combo = [];
-  if (Number(p.es_combo) === 1 && comboRows?.length) {
-    const hijosDid = comboRows.map(r => Number(r.did_producto)).filter(Boolean);
-    let hijosMap = new Map();
+  // Variantes a nivel producto (números)
+  const variantesValores = (vvRows ?? [])
+    .map(r => Number(r.did_variante_valor))
+    .filter(n => Number.isFinite(n) && n > 0);
 
-    if (hijosDid.length) {
-      const hijosRows = await executeQuery(
-        dbConnection,
-        `
-          SELECT did, titulo
-            FROM productos
-           WHERE did IN (${hijosDid.map(() => "?").join(",")})
-             AND elim = 0 AND superado = 0
-           ORDER BY id DESC
-        `,
-        hijosDid
-      );
-      hijosMap = new Map(hijosRows.map(h => [Number(h.did), h.titulo]));
-    }
+  // 🧩 Mapear ecommerce al formato requerido
+  const ecommerce = (ecRows ?? []).map(r => ({
+    did: Number(r.did),
+    didCuenta: Number(r.did_cuenta),
+    sku: r.sku ?? "",
+    ean: r.ean ?? "",
+    url: r.url ?? "",
+    sync: Number(r.sync) === 1,              // ← boolean
+    variantes_valores: variantesValores,     // ← array numérico
+  }));
 
-    combo = comboRows.map(r => ({
-      did_producto: Number(r.did_producto),
-      cantidad: Number(r.cantidad),
-      titulo: hijosMap.get(Number(r.did_producto)) ?? null,
-    }));
-  }
+  // 🧩 Mapear insumos
+  const insumos = (insRows ?? []).map(r => ({
+    did: Number(r.did),
+    didInsumo: Number(r.did_insumo),
+    cantidad: Number(r.cantidad),
+  }));
 
-  // 🧩 Armar respuesta tipada
+  // 🧩 Mapear combos
+  const combos = (comboRows ?? []).map(r => ({
+    did: Number(r.did),
+    didProducto: Number(r.did_producto),
+    cantidad: Number(r.cantidad),
+  }));
+
+  // 🧩 Respuesta final EXACTA al contrato dado
   const data = {
-
-    did: Number(p.did),
     did_cliente: Number(p.did_cliente),
-    titulo: p.titulo ?? null,
-    descripcion: p.descripcion ?? null,
-    imagen: p.imagen ?? null,
-    habilitado: Number(p.habilitado ?? 0),
-    es_combo: Number(p.es_combo ?? 0),
-    posicion: p.posicion != null ? Number(p.posicion) : null,
-    cm3: p.cm3 != null ? Number(p.cm3) : null,
-    alto: p.alto != null ? Number(p.alto) : null,
-    ancho: p.ancho != null ? Number(p.ancho) : null,
-    profundo: p.profundo != null ? Number(p.profundo) : null,
-
-    sku: p.sku ?? null,
-    ean: p.ean ?? null,
-
-
-    insumos: (insRows ?? []).map(r => ({
-      did_insumo: Number(r.did_insumo),
-      cantidad: Number(r.cantidad),
-      habilitado: Number(r.habilitado ?? 0),
-    })),
-
-    ecommerce: (ecRows ?? []).map(r => ({
-      did_cuenta: Number(r.did_cuenta),
-      sku: r.sku ?? null,
-      ean: r.ean ?? null,
-      url: r.url ?? null,
-      sync: Number(r.sync ?? 0),
-    })),
-    combo,
+    titulo: p.titulo ?? "",
+    descripcion: p.descripcion ?? "",
+    habilitado: Number(p.habilitado) === 1,  // ← boolean
+    es_combo: Number(p.es_combo) === 1,      // ← boolean
+    posicion: p.posicion != null ? Number(p.posicion) : 0,
+    cm3: p.cm3 != null ? Number(p.cm3) : 0,
+    alto: p.alto != null ? String(p.alto) : "",       // ← string
+    ancho: p.ancho != null ? String(p.ancho) : "",    // ← string
+    profundo: p.profundo != null ? String(p.profundo) : "", // ← string
+    imagen: p.imagen ?? "",
+    sku: p.sku ?? "",
+    ean: p.ean ?? "",
+    didCurva: p.did_curva != null ? Number(p.did_curva) : null,
+    ecommerce,
+    insumos,
+    combos,
   };
 
   return {
