@@ -11,7 +11,7 @@ import { urlSubidaImagenes } from "../../db.js";
 
 export async function createProducto(dbConnection, req) {
     const {
-        didCliente,
+        did_cliente,
         titulo,
         descripcion,
         habilitado,
@@ -44,7 +44,7 @@ export async function createProducto(dbConnection, req) {
     const [client] = await LightdataORM.select({
         dbConnection,
         table: "clientes",
-        where: { did: didCliente },
+        where: { did: did_cliente },
         throwIfNotExists: true,
     });
 
@@ -54,7 +54,7 @@ export async function createProducto(dbConnection, req) {
         table: "productos",
         quien: userId,
         data: {
-            did_cliente: didCliente,
+            did_cliente: did_cliente,
             titulo,
             descripcion,
             imagen: null,
