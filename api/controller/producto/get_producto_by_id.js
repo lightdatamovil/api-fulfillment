@@ -122,23 +122,23 @@ export async function getProductoById(dbConnection, req) {
 
   // 🧩 Armar respuesta tipada
   const data = {
-    producto: {
-      did: Number(p.did),
-      did_cliente: Number(p.did_cliente),
-      titulo: p.titulo ?? null,
-      descripcion: p.descripcion ?? null,
-      imagen: p.imagen ?? null,
-      habilitado: Number(p.habilitado ?? 0),
-      es_combo: Number(p.es_combo ?? 0),
-      posicion: p.posicion != null ? Number(p.posicion) : null,
-      cm3: p.cm3 != null ? Number(p.cm3) : null,
-      alto: p.alto != null ? Number(p.alto) : null,
-      ancho: p.ancho != null ? Number(p.ancho) : null,
-      profundo: p.profundo != null ? Number(p.profundo) : null,
 
-      sku: p.sku ?? null,
-      ean: p.ean ?? null,
-    },
+    did: Number(p.did),
+    did_cliente: Number(p.did_cliente),
+    titulo: p.titulo ?? null,
+    descripcion: p.descripcion ?? null,
+    imagen: p.imagen ?? null,
+    habilitado: Number(p.habilitado ?? 0),
+    es_combo: Number(p.es_combo ?? 0),
+    posicion: p.posicion != null ? Number(p.posicion) : null,
+    cm3: p.cm3 != null ? Number(p.cm3) : null,
+    alto: p.alto != null ? Number(p.alto) : null,
+    ancho: p.ancho != null ? Number(p.ancho) : null,
+    profundo: p.profundo != null ? Number(p.profundo) : null,
+
+    sku: p.sku ?? null,
+    ean: p.ean ?? null,
+
 
     insumos: (insRows ?? []).map(r => ({
       did_insumo: Number(r.did_insumo),
