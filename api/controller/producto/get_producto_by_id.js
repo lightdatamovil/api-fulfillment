@@ -29,7 +29,7 @@ export async function getProductoById(dbConnection, req) {
     dbConnection,
     `
       SELECT did, did_cliente, titulo, descripcion, imagen, habilitado, es_combo,
-             posicion, cm3, alto, ancho, profundo, sku, ean
+             posicion, cm3, alto, ancho, profundo, did_curva, sku, ean
       FROM productos
       WHERE did = ? AND elim = 0 AND superado = 0
       ORDER BY id DESC
