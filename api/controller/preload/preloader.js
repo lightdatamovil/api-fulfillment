@@ -77,6 +77,7 @@ export async function preloader(dbConnection) {
       cu.codigo  AS curva_codigo,
 
       vc.did     AS categoria_did,
+      vc.did_variante AS variante_did,
       vc.nombre  AS categoria_nombre,
 
       vcv.did    AS valor_did,
@@ -87,7 +88,7 @@ export async function preloader(dbConnection) {
       ON vcu.did_curva = cu.did
      AND vcu.elim = 0 AND vcu.superado = 0
     LEFT JOIN variantes_categorias vc
-      ON vc.did = vcu.did_categoria          -- 👈 vínculo directo por did_categoria
+      ON vc.did = vcu.did_categoria
      AND vc.elim = 0 AND vc.superado = 0
     LEFT JOIN variantes_categoria_valores vcv
       ON vcv.did_categoria = vc.did
@@ -113,7 +114,7 @@ export async function preloader(dbConnection) {
     if (r.categoria_did) {
       let cat = curva.categorias.find((c) => c.did === r.categoria_did);
       if (!cat) {
-        cat = { did: r.categoria_did, nombre: r.categoria_nombre, valores: [] };
+        cat = { did: r.categoria_did, nombre: r.categoria_nombre, did_variante: r.variante_did, valores: [] };
         curva.categorias.push(cat);
       }
       if (r.valor_did) {

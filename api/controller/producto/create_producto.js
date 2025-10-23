@@ -5,13 +5,13 @@ import {
     isNonEmpty,
     isDefined,
     number01,
-    LightdataORM
+    LightdataORM,
 } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
 
 export async function createProducto(dbConnection, req) {
     const {
-        did_cliente,
+        didCliente,
         titulo,
         descripcion,
         habilitado,
@@ -21,219 +21,222 @@ export async function createProducto(dbConnection, req) {
         alto,
         ancho,
         profundo,
-        depositos,
-        insumos,
-        variantesValores,
-        ecommerce,
+        didCurva,
         sku,
+        ean,
         imagen,
-        combo
+        ecommerce,
+        insumos,
+        combos,
     } = req.body;
 
     const { userId, companyId } = req.user;
 
+    // 🧩 Validación de SKU duplicado
     await LightdataORM.select({
         dbConnection,
         table: "productos",
         where: { sku },
-        throwIfExists: true
+        throwIfExists: true,
     });
 
+    // 🧩 Verificación de cliente existente
     const [client] = await LightdataORM.select({
         dbConnection,
         table: "clientes",
-        where: { did: did_cliente },
-        throwIfNotExists: true
+        where: { did: didCliente },
+        throwIfNotExists: true,
     });
 
+    // 🧩 Inserción del producto principal
     const [idProducto] = await LightdataORM.insert({
         dbConnection,
         table: "productos",
         quien: userId,
         data: {
-            did_cliente,
+            did_cliente: didCliente,
             titulo,
             descripcion,
             imagen: null,
-            habilitado,
-            es_combo,
+            habilitado: number01(habilitado),
+            es_combo: number01(es_combo),
             posicion,
             cm3,
-            sku,
             alto,
             ancho,
-            profundo
-        }
+            profundo,
+            did_curva: didCurva,
+            sku,
+            ean,
+        },
     });
 
-    if (Array.isArray(depositos) && depositos.length) {
-        const depIds = depositos.map(Number).filter(n => Number.isFinite(n) && n > 0);
-        if (depIds.length !== depositos.length)
-            throw new CustomException({
-                title: "Depósitos inválidos",
-                message: "Todos los did_deposito deben ser numéricos válidos",
-                status: Status.badRequest
+    // 🧩 Ecommerce
+    if (Array.isArray(ecommerce) && ecommerce.length) {
+        const ecommerceData = [];
+
+        for (let i = 0; i < ecommerce.length; i++) {
+            const e = ecommerce[i];
+
+            const did_cuenta = Number(e?.didCuenta);
+            if (!Number.isFinite(did_cuenta) || did_cuenta <= 0)
+                throw new CustomException({
+                    title: "Ecommerce inválido",
+                    message: `ecommerce[${i}].didCuenta debe ser numérico válido`,
+                    status: Status.badRequest,
+                });
+
+            const skuVal = isNonEmpty(e?.sku) ? String(e.sku).trim() : null;
+            const eanVal = isNonEmpty(e?.ean) ? String(e.ean).trim() : null;
+            const urlVal = isNonEmpty(e?.url) ? String(e.url).trim() : null;
+            const sync = isDefined(e?.sync) ? number01(e.sync) : 0;
+
+            if (![0, 1].includes(sync))
+                throw new CustomException({
+                    title: "Valor inválido",
+                    message: `ecommerce[${i}].sync debe ser 0 o 1`,
+                    status: Status.badRequest,
+                });
+
+            ecommerceData.push({
+                did_producto: idProducto,
+                did_cuenta,
+                sku: skuVal,
+                ean: eanVal,
+                url: urlVal,
+                actualizar: 0,
+                sync,
             });
+
+            // 📦 Variantes valores (si vienen anidadas)
+            if (Array.isArray(e.variantes_valores) && e.variantes_valores.length) {
+                const vv = e.variantes_valores
+                    .map(Number)
+                    .filter((n) => Number.isFinite(n) && n > 0);
+
+                if (vv.length !== e.variantes_valores.length)
+                    throw new CustomException({
+                        title: "Valores de variantes inválidos",
+                        message: `Todos los ecommerce[${i}].variantes_valores deben ser numéricos válidos`,
+                        status: Status.badRequest,
+                    });
+
+                await LightdataORM.insert({
+                    dbConnection,
+                    table: "productos_variantes_valores",
+                    quien: userId,
+                    data: vv.map((did_variante_valor) => ({
+                        did_producto: idProducto,
+                        did_variante_valor,
+                    })),
+                });
+            }
+        }
 
         await LightdataORM.insert({
             dbConnection,
-            table: "productos_depositos",
+            table: "productos_ecommerce",
             quien: userId,
-            data: depIds.map(did_deposito => ({
-                did_producto: idProducto,
-                did_deposito
-            }))
+            data: ecommerceData,
         });
     }
 
+    // 🧩 Insumos
     if (Array.isArray(insumos) && insumos.length) {
-        const data = insumos.map((it, i) => {
-            const did_insumo = Number(it?.did_insumo);
+        const insumoData = insumos.map((it, i) => {
+            const did_insumo = Number(it?.didInsumo);
+            const cantidad = Number(it?.cantidad);
+
             if (!Number.isFinite(did_insumo) || did_insumo <= 0)
                 throw new CustomException({
                     title: "Insumo inválido",
-                    message: `insumos[${i}].did_insumo debe ser numérico válido`,
-                    status: Status.badRequest
+                    message: `insumos[${i}].didInsumo debe ser numérico válido`,
+                    status: Status.badRequest,
                 });
 
-            const habilitadoVal = isDefined(it?.habilitado) ? number01(it.habilitado) : 1;
-            if (![0, 1].includes(habilitadoVal))
+            if (!Number.isFinite(cantidad) || cantidad <= 0)
                 throw new CustomException({
-                    title: "Valor inválido",
-                    message: `insumos[${i}].habilitado debe ser 0 o 1`,
-                    status: Status.badRequest
+                    title: "Cantidad inválida",
+                    message: `insumos[${i}].cantidad debe ser mayor que 0`,
+                    status: Status.badRequest,
                 });
 
-            return { did_producto: idProducto, did_insumo, habilitado: habilitadoVal };
+            return {
+                did_producto: idProducto,
+                did_insumo,
+                cantidad,
+                habilitado: 1,
+            };
         });
 
         await LightdataORM.insert({
             dbConnection,
             table: "productos_insumos",
             quien: userId,
-            data
+            data: insumoData,
         });
     }
 
-    if (Array.isArray(variantesValores) && variantesValores.length) {
-        const vv = variantesValores.map(Number).filter(n => Number.isFinite(n) && n > 0);
-        if (vv.length !== variantesValores.length)
-            throw new CustomException({
-                title: "Valores de variantes inválidos",
-                message: "Todos los did_variante_valor deben ser numéricos válidos",
-                status: Status.badRequest
-            });
-
-        await LightdataORM.insert({
-            dbConnection,
-            table: "productos_variantes_valores",
-            quien: userId,
-            data: vv.map(did_variante_valor => ({
-                did_producto: idProducto,
-                did_variante_valor
-            }))
-        });
-    }
-
-    if (Array.isArray(ecommerce) && ecommerce.length) {
-        const data = ecommerce.map((e, i) => {
-            const did_cuenta = Number(e?.did_cuenta);
-            if (!Number.isFinite(did_cuenta) || did_cuenta <= 0)
-                throw new CustomException({
-                    title: "Ecommerce inválido",
-                    message: `ecommerce[${i}].did_cuenta debe ser numérico válido`,
-                    status: Status.badRequest
-                });
-
-            const did_producto_valor =
-                isDefined(e?.did_producto_valor) && Number.isFinite(Number(e.did_producto_valor))
-                    ? Number(e.did_producto_valor)
-                    : null;
-            const skuVal = isNonEmpty(e?.sku) ? String(e.sku).trim() : null;
-            const ean = isNonEmpty(e?.ean) ? String(e.ean).trim() : null;
-            const url = isNonEmpty(e?.url) ? String(e.url).trim() : null;
-            const sync = isDefined(e?.actualizar_sync) ? number01(e.actualizar_sync) : 0;
-            if (![0, 1].includes(sync))
-                throw new CustomException({
-                    title: "Valor inválido",
-                    message: `ecommerce[${i}].actualizar_sync debe ser 0 o 1`,
-                    status: Status.badRequest
-                });
-
-            return {
-                did_producto: idProducto,
-                did_cuenta,
-                did_producto_valor,
-                sku: skuVal,
-                ean,
-                url,
-                actualizar: 0,
-                sync
-            };
-        });
-
-        await LightdataORM.insert({
-            dbConnection,
-            table: "productos_ecommerce",
-            quien: userId,
-            data
-        });
-    }
-
-    if (es_combo === 1) {
-        if (!Array.isArray(combo) || !combo.length)
+    // 🧩 Combos
+    if (number01(es_combo) === 1) {
+        if (!Array.isArray(combos) || !combos.length)
             throw new CustomException({
                 title: "Items requeridos",
-                message: "Debés enviar 'combo' con al menos un ítem.",
-                status: Status.badRequest
+                message: "Debés enviar 'combos' con al menos un ítem.",
+                status: Status.badRequest,
             });
 
-        const items = combo.map((it, i) => {
-            const did_producto_combo = Number(it?.did_producto);
+        const items = combos.map((it, i) => {
+            const did_producto_combo = Number(it?.didProducto);
             const cantidad = Number(it?.cantidad);
+
             if (!Number.isFinite(did_producto_combo) || did_producto_combo <= 0)
                 throw new CustomException({
                     title: "Ítem inválido",
-                    message: `combo[${i}].did_producto debe ser válido`,
-                    status: Status.badRequest
+                    message: `combos[${i}].didProducto debe ser válido`,
+                    status: Status.badRequest,
                 });
+
             if (!Number.isFinite(cantidad) || cantidad <= 0)
                 throw new CustomException({
                     title: "Cantidad inválida",
-                    message: `combo[${i}].cantidad debe ser > 0`,
-                    status: Status.badRequest
+                    message: `combos[${i}].cantidad debe ser > 0`,
+                    status: Status.badRequest,
                 });
+
             if (did_producto_combo === idProducto)
                 throw new CustomException({
                     title: "Referencia inválida",
                     message: "Un combo no puede referenciarse a sí mismo",
-                    status: Status.badRequest
+                    status: Status.badRequest,
                 });
+
             return { did_producto_combo, cantidad };
         });
 
-        const hijos = items.map(i => i.did_producto_combo);
+        // Validar existencia de productos hijos
+        const hijos = items.map((i) => i.did_producto_combo);
         const hijosValidos = await LightdataORM.select({
             dbConnection,
             table: "productos",
             where: { did: hijos },
-            select: "did, es_combo"
+            select: "did, es_combo",
         });
 
-        const map = new Map(hijosValidos.map(r => [r.did, r]));
+        const map = new Map(hijosValidos.map((r) => [r.did, r]));
         for (const { did_producto_combo } of items) {
             const row = map.get(did_producto_combo);
             if (!row)
                 throw new CustomException({
                     title: "Producto hijo no válido",
                     message: `El producto hijo ${did_producto_combo} no existe o no está vigente`,
-                    status: Status.badRequest
+                    status: Status.badRequest,
                 });
             if (row.es_combo)
                 throw new CustomException({
                     title: "Combo anidado",
                     message: `El producto hijo ${did_producto_combo} es un combo`,
-                    status: Status.badRequest
+                    status: Status.badRequest,
                 });
         }
 
@@ -241,29 +244,31 @@ export async function createProducto(dbConnection, req) {
             dbConnection,
             table: "productos_combos",
             quien: userId,
-            data: items.map(it => ({
+            data: items.map((it) => ({
                 did_producto: idProducto,
                 did_producto_combo: it.did_producto_combo,
-                cantidad: it.cantidad
-            }))
+                cantidad: it.cantidad,
+            })),
         });
     }
-    await axios.post(
-        urlSubidaImagenes,
-        {
-            file: imagen,         // base64 completa: "data:image/png;base64,..."
-            companyId,            // obligatorio
-            clientId: client.did, // ⚠️ obligatorio para productos
-            productId: idProducto // obligatorio
-        },
-        {
-            headers: { "Content-Type": "application/json" }
-        }
-    );
+
+    // 🖼️ Subida de imagen (base64 o URL)
+    if (isNonEmpty(imagen)) {
+        await axios.post(
+            urlSubidaImagenes,
+            {
+                file: imagen, // puede ser base64 o URL
+                companyId,
+                clientId: client.did,
+                productId: idProducto,
+            },
+            { headers: { "Content-Type": "application/json" } }
+        );
+    }
 
     return {
         success: true,
         message: "Producto creado correctamente",
-        data: {}
+        data: { idProducto },
     };
 }

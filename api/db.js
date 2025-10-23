@@ -17,6 +17,7 @@ export const portFulFillement = process.env.FULFILLMENT_DB_PORT;
 export const jwtSecret = process.env.JWT_SECRET;
 export const jwtIssuer = process.env.JWT_ISSUER;
 export const jwtAudience = process.env.JWT_AUDIENCE;
+
 export const urlSubidaImagenes = process.env.URL_SUBIDA_IMAGENES;
 
 export const redisClient = createClient({
@@ -30,5 +31,6 @@ export const redisClient = createClient({
 redisClient.on("error", (err) => {
   logRed(err);
 });
+
 export const companiesService = new CompaniesService({ redisClient, redisKey: "empresasFF" })
 export default redisClient;

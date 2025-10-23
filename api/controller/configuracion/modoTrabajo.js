@@ -4,8 +4,6 @@ export async function toggleModoTrabajo(dbConnection, req) {
     const { modo_trabajo } = req.body;
     const { companyId, userId } = req.user;
 
-
-
     const [modoActual] = await LightdataORM.select({
         dbConnection,
         table: "sistema_empresa",
@@ -27,7 +25,6 @@ export async function toggleModoTrabajo(dbConnection, req) {
         quien: userId,
         data: { modo_trabajo: modo_trabajo },
     });
-
 
     return {
         success: true,
