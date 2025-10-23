@@ -15,8 +15,8 @@ productos.post(
   "/",
   buildHandlerWrapper({
     requiredParams: ["userId"],
-    required: ["titulo", "posicion", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "imagen", "habilitado", "depositos", "insumos", "variantesValores", "ecommerce", "did_cliente", "sku"], // el resto es opcional (did_cliente, imagen, es_combo, depositos, insumos, variantesValores, ecommerce, combo, etc.)
-    optional: ["combo"],
+    optional: ["titulo", "posicion", "combo", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "imagen", "habilitado", "insumos", "ecommerce", "did_cliente", "sku"], // el resto es opcional (did_cliente, imagen, es_combo, depositos, insumos, variantesValores, ecommerce, combo, etc.)
+
     controller: async ({ db, req }) => {
       const result = await createProducto(db, req);
       return result;
@@ -29,7 +29,8 @@ productos.put(
   "/:did",
   buildHandlerWrapper({
     requiredParams: ["did"],
-    required: ["titulo", "posicion", "cm3", "alto", "ancho", "profundo", "es_combo", "combo", "descripcion", "imagen", "habilitado", "depositos", "insumos", "variantesValores", "ecommerce", "did_cliente"],
+    optional: ["titulo", "posicion", "cm3", "alto", "ancho", "profundo", "es_combo", "combo", "descripcion", "imagen", "habilitado"
+      , "insumos", "ecommerce", "did_cliente"],
     controller: async ({ db, req }) => {
       // Pasamos el DID de params → body para el controlador
       req.body.did = Number(req.params.did);
