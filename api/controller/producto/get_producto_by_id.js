@@ -82,19 +82,20 @@ export async function getProductoById(dbConnection, req) {
   ]);
 
   const variantesValores = (vvRows ?? [])
-    .map(r => Number(r.did_variante_valor))
+    .map(r => Number(r.valores))
     .filter(n => Number.isFinite(n) && n > 0);
 
-  const ecommerce = (ecRows ?? []).map(r => ({
-    did: Number(r.did),
+  const grupos = (ecRows ?? []).map(r => ({
     didCuenta: Number(r.did_cuenta),
     sku: r.sku ?? "",
     ean: r.ean ?? "",
     url: r.url ?? "",
-    sync: Number(r.sync) === 1,
-    variantes_valores: variantesValores,
+    sync: Number(r.sync) === 1 || r.sync === true,
   }));
 
+  const ecommerce = [
+    { variantesValores, grupos }
+  ];
   const insumos = (insRows ?? []).map(r => ({
     did: Number(r.did),
     didInsumo: Number(r.did_insumo),
@@ -122,7 +123,8 @@ export async function getProductoById(dbConnection, req) {
     sku: p.sku ?? "",
     ean: p.ean ?? "",
     did_curva: p.did_curva != null ? Number(p.did_curva) : null,
-    ecommerce,
+    // imagen: p.imagen ?? null, // incluila si la necesitás
+    ecommerce,            // <- lo armado en el paso 3
     insumos,
     combos,
   };
