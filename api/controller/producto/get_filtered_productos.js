@@ -61,7 +61,7 @@ export async function getFilteredProductos(connection, req) {
     if (filtros.titulo) where.likeEscaped("p.titulo", filtros.titulo, { caseInsensitive: true });
     if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
     if (filtros.habilitado !== undefined) where.eq("p.habilitado", filtros.habilitado);
-    if (filtros.sku !== undefined) where.eq("p.es_combo", filtros.sku);
+    if (filtros.sku !== undefined) where.eq("p.sku", filtros.sku);
 
 
     const { whereSql, params } = where.finalize();
