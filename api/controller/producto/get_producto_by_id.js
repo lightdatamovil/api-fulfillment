@@ -119,6 +119,11 @@ export async function getProductoById(dbConnection, req) {
     grupos: grupos.filter(g => g.did_producto_variante_valor === c.did),
   }));
 
+  //sacar de grupos el campo did_producto_variante_valor ya que no es parte del response
+  for (const g of grupos) {
+    delete g.did_producto_variante_valor;
+  }
+
 
   // 6) Insumos & Combos
   const insumos = (insRows ?? []).map((r) => ({
