@@ -35,8 +35,6 @@ export async function login(dbConnection, req) {
     if (!ok) throw invalid();
 
     const company = await companiesService.getByCode(companyCode);
-    console.log(`company: ${company}`);
-
 
     const token = generateToken({
         jwtSecret: jwtSecret,
@@ -51,12 +49,7 @@ export async function login(dbConnection, req) {
         expiresIn: 3600 * 8,
     });
 
-
-
-    //aagregado de tabla sistema_empresa
     const sistemaData = await executeQuery(dbConnection, `SELECT codigo, nombre, modo_trabajo, tipo, imagen FROM sistema_empresa WHERE did = ? AND superado = 0 and elim = 0`, [company.did], true);
-    console.log(sistemaData);
-
 
     return {
         success: true,
