@@ -15,7 +15,7 @@ productos.post(
   "/",
   buildHandlerWrapper({
     requiredParams: ["userId"],
-    optional: ["titulo", "posicion", "combos", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "imagen", "habilitado", "insumos", "ecommerce", "did_cliente", "sku", "ean", "didCurva"], // el resto es opcional (did_cliente, imagen, es_combo, depositos, insumos, variantesValores, ecommerce, combo, etc.)
+    optional: ["titulo", "posicion", "combos", "did_curva", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "imagen", "habilitado", "insumos", "ecommerce", "did_cliente", "sku", "ean"], // el resto es opcional (did_cliente, imagen, es_combo, depositos, insumos, variantesValores, ecommerce, combo, etc.)
 
     controller: async ({ db, req }) => {
       const result = await createProducto(db, req);

@@ -26,13 +26,13 @@ export async function createProducto(dbConnection, req) {
         ean,
         imagen,
         ecommerce,
-        insumos,
-        combos,
+        insumos, //LISTA DE JSON
+        combos, //LISTA DE JSON
     } = req.body;
 
     const { userId, companyId } = req.user;
 
-    // 🧩 Validación de SKU duplicado
+    // 🧩 Validación de  SKU duplicado
     await LightdataORM.select({
         dbConnection,
         table: "productos",
@@ -45,7 +45,7 @@ export async function createProducto(dbConnection, req) {
         dbConnection,
         table: "clientes",
         where: { did: did_cliente },
-        throwIfNotExists: true,
+        //  throwIfNotExists: true,
     });
 
     // 🧩 Inserción del producto principal
@@ -71,75 +71,63 @@ export async function createProducto(dbConnection, req) {
         },
     });
 
-    // 🧩 Ecommerce
-    if (Array.isArray(ecommerce) && ecommerce.length) {
-        const ecommerceData = [];
+    // =========================
+    // 🛒 ECOMMERCE (siempre CREATE de PVV y luego insert de grupos)
+    // =========================
 
+    if (Array.isArray(ecommerce) && ecommerce.length) {
+        // 1) Normalizar cada conjunto y preparar las filas de PVV (una por bloque)
+        const setKey = (arr) =>
+            Array.from(new Set((Array.isArray(arr) ? arr : []).filter(Number.isInteger)))
+                .sort((a, b) => a - b)
+                .join(","); // ej: "1,2,3,4"
+
+        const pvvRows = ecommerce.map(e => ({
+            did_producto: idProducto,
+            valores: setKey(e.variantes_valores), // CSV normalizado del bloque
+        }));
+
+        // 2) Insert masivo de PVV (uno por bloque). Orden de IDs = orden de pvvRows
+        const insertedPvvs = await LightdataORM.insert({
+            dbConnection,
+            table: "productos_variantes_valores",
+            quien: userId,
+            data: pvvRows,
+        }); // ej: [67, 68, ...] alineado con ecommerce[0], ecommerce[1], ...
+
+        // 3) Con esos DID, armar todas las filas para productos_ecommerce
+        const ecomRows = [];
         for (let i = 0; i < ecommerce.length; i++) {
             const e = ecommerce[i];
+            const did_pvv = insertedPvvs[i]; // DID del conjunto de ese bloque
+            const grupos = Array.isArray(e.grupos) ? e.grupos : [];
 
-            const did_cuenta = Number(e?.didCuenta);
-            if (!Number.isFinite(did_cuenta) || did_cuenta <= 0)
-                throw new CustomException({
-                    title: "Ecommerce inválido",
-                    message: `ecommerce[${i}].didCuenta debe ser numérico válido`,
-                    status: Status.badRequest,
-                });
-
-            const skuVal = isNonEmpty(e?.sku) ? String(e.sku).trim() : null;
-            const eanVal = isNonEmpty(e?.ean) ? String(e.ean).trim() : null;
-            const urlVal = isNonEmpty(e?.url) ? String(e.url).trim() : null;
-            const sync = isDefined(e?.sync) ? number01(e.sync) : 0;
-
-            if (![0, 1].includes(sync))
-                throw new CustomException({
-                    title: "Valor inválido",
-                    message: `ecommerce[${i}].sync debe ser 0 o 1`,
-                    status: Status.badRequest,
-                });
-
-            ecommerceData.push({
-                did_producto: idProducto,
-                did_cuenta,
-                sku: skuVal,
-                ean: eanVal,
-                url: urlVal,
-                actualizar: 0,
-                sync,
-            });
-
-            // 📦 Variantes valores (si vienen anidadas)
-            if (Array.isArray(e.variantes_valores) && e.variantes_valores.length) {
-                const vv = e.variantes_valores
-                    .map(Number)
-                    .filter((n) => Number.isFinite(n) && n > 0);
-
-                if (vv.length !== e.variantes_valores.length)
-                    throw new CustomException({
-                        title: "Valores de variantes inválidos",
-                        message: `Todos los ecommerce[${i}].variantes_valores deben ser numéricos válidos`,
-                        status: Status.badRequest,
-                    });
-
-                await LightdataORM.insert({
-                    dbConnection,
-                    table: "productos_variantes_valores",
-                    quien: userId,
-                    data: vv.map((did_variante_valor) => ({
-                        did_producto: idProducto,
-                        did_variante_valor,
-                    })),
+            for (const g of grupos) {
+                ecomRows.push({
+                    did_producto: idProducto,
+                    did_cuenta: isNonEmpty(g.didCuenta) ? g.didCuenta : null,
+                    did_producto_variante_valor: did_pvv, // referencia al PVV recién creado
+                    sku: isNonEmpty(g.sku) ? String(g.sku).trim() : null,
+                    ean: isNonEmpty(g.ean) ? String(g.ean).trim() : null,
+                    url: isNonEmpty(g.url) ? String(g.url).trim() : null,
+                    actualizar: 0,
+                    sync: isDefined(g.sync) ? number01(g.sync) : 0,
                 });
             }
         }
 
-        await LightdataORM.insert({
-            dbConnection,
-            table: "productos_ecommerce",
-            quien: userId,
-            data: ecommerceData,
-        });
+        // 4) Insert masivo de productos_ecommerce (una fila por grupo)
+        if (ecomRows.length) {
+            await LightdataORM.insert({
+                dbConnection,
+                table: "productos_ecommerce",
+                quien: userId,
+                data: ecomRows,
+            });
+        }
     }
+
+
 
     // 🧩 Insumos
     if (Array.isArray(insumos) && insumos.length) {
