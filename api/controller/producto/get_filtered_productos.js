@@ -26,8 +26,8 @@ export async function getFilteredProductos(connection, req) {
     const filtros = {
         titulo: toStr(q.titulo),
         did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
-        habilitado: toBool01(q.habilitado, undefined), // 0/1 o undefined
-        es_combo: toBool01(q.es_combo, undefined),     // 0/1 o undefined
+        habilitado: toBool01(q.habilitado, undefined),
+        es_combo: toBool01(q.es_combo, undefined),
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
