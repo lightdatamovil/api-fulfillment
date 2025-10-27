@@ -21,7 +21,7 @@ export async function createProducto(dbConnection, req) {
         alto,
         ancho,
         profundo,
-        didCurva,
+        did_curva,
         sku,
         ean,
         imagen,
@@ -65,7 +65,7 @@ export async function createProducto(dbConnection, req) {
             alto,
             ancho,
             profundo,
-            did_curva: didCurva,
+            did_curva: did_curva,
             sku,
             ean,
         },
@@ -106,7 +106,7 @@ export async function createProducto(dbConnection, req) {
                 ecomRows.push({
                     did_producto: idProducto,
                     did_cuenta: isNonEmpty(g.didCuenta) ? g.didCuenta : null,
-                    did_producto_variante_valor: did_pvv, // referencia al PVV recién creado
+                    did_producto_variante_valor: did_pvv,
                     sku: isNonEmpty(g.sku) ? String(g.sku).trim() : null,
                     ean: isNonEmpty(g.ean) ? String(g.ean).trim() : null,
                     url: isNonEmpty(g.url) ? String(g.url).trim() : null,
