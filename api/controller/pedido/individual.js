@@ -2,26 +2,25 @@ import { isNonEmpty, LightdataORM } from "lightdata-tools";
 
 export async function createPedido(dbConnection, req) {
     const { didCuenta, status, fecha_venta, observaciones, total_amount, pedidosProducto, direccion } = req.body;
+
     const userId = Number(req.user.userId);
-    // 1) Insert en "pedidos"
+
     const [didPedido] = await LightdataORM.insert({ dbConnection, table: "pedidos", quien: userId, data: { did_cuenta: didCuenta, status, fecha_venta, observaciones: isNonEmpty(observaciones) ? String(observaciones).trim() : null, total_amount, }, });
-    //1b) PRIMER historial del pedido
+
     await LightdataORM.insert({
         dbConnection, table: "pedidos_historial",
-        // ajustá si tu tabla se llama distinto
         quien: userId, data: {
-            did: 0,
-            // según tu schema (de la captura) 
-            did_pedido: didPedido, // FK
+            did_pedido: didPedido,
             estado: isNonEmpty(status) ? String(status).trim() : "nuevo",
-            quien: userId, superado: 0, elim: 0,
-            // autofecha lo maneja la DB como timestamp 
+            quien: userId
         },
     });
-    // 2) Detalle de productos
+
     const items = Array.isArray(pedidosProducto) ? pedidosProducto : [];
+
     const rowsDetalle = items.filter((p) => Number(p?.did_producto) > 0 && Number(p?.cantidad) > 0).map((p) => {
         const normalizedDimensions = p?.dimensions == null ? null : typeof p.dimensions === "string" ? p.dimensions.trim() : JSON.stringify(p.dimensions);
+
         return {
             did_pedido: didPedido,
             did_producto: Number(p.did_producto),
@@ -32,16 +31,18 @@ export async function createPedido(dbConnection, req) {
             seller_sku: isNonEmpty(p?.seller_sku) ? String(p.seller_sku).trim() : null,
         };
     });
+
     if (rowsDetalle.length > 0) {
         await LightdataORM.insert({
             dbConnection,
-            table: "pedidos_productos", // o "pedidos_productos"
+            table: "pedidos_productos",
             quien: userId,
             data: rowsDetalle,
         });
     }
-    // 3) Dirección del pedido
+
     let didPedidoDireccion = null;
+
     if (direccion && typeof direccion === "object") {
         const calle = isNonEmpty(direccion.calle) ? String(direccion.calle).trim() : null;
         const numero = isNonEmpty(direccion.numero) ? String(direccion.numero).trim() : null;
@@ -63,12 +64,12 @@ export async function createPedido(dbConnection, req) {
         const [insertedDidDireccion] = await LightdataORM.insert({
             dbConnection,
             table: "pedidos_ordenes_direcciones_destino",
-            // ajustá nombre real 
             quien: userId,
             data: rowDireccion,
         });
         didPedidoDireccion = insertedDidDireccion ?? null;
     }
+
     return {
         success: true,
         message: "Pedido creado correctamente (con historial inicial)",
