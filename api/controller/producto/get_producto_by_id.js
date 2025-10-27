@@ -47,67 +47,93 @@ export async function getProductoById(dbConnection, req) {
   const p = prodRows[0];
 
   const [vvRows, ecRows, insRows, comboRows] = await Promise.all([
-    // variantes del producto (nivel producto, se repiten en cada ecommerce según tu formato)
+    // COMBINACIONES de variantes (CSV en 'valores')
     executeQuery(
       dbConnection,
-      `SELECT valores
-         FROM productos_variantes_valores
-        WHERE did_producto = ? AND elim = 0 AND superado = 0`,
+      `
+        SELECT valores
+        FROM productos_variantes_valores
+        WHERE did_producto = ? AND elim = 0 AND superado = 0
+        ORDER BY id ASC
+      `,
       [didProducto]
     ),
-    // ecommerce (necesitamos DID para edición)
+    // Items ecommerce (grupos)
     executeQuery(
       dbConnection,
-      `SELECT did, did_cuenta, sku, ean, url, sync
-         FROM productos_ecommerce
-        WHERE did_producto = ? AND elim = 0 AND superado = 0`,
+      `
+        SELECT did, did_cuenta, sku, ean, url, sync
+        FROM productos_ecommerce
+        WHERE did_producto = ? AND elim = 0 AND superado = 0
+        ORDER BY id ASC
+      `,
       [didProducto]
     ),
-    // insumos
+    // Insumos
     executeQuery(
       dbConnection,
-      `SELECT did, did_insumo, cantidad
-         FROM productos_insumos
-        WHERE did_producto = ? AND elim = 0 AND superado = 0`,
+      `
+        SELECT did, did_insumo, cantidad
+        FROM productos_insumos
+        WHERE did_producto = ? AND elim = 0 AND superado = 0
+      `,
       [didProducto]
     ),
-    // combos
+    // Combos
     executeQuery(
       dbConnection,
-      `SELECT did, did_producto_combo AS did_producto, cantidad
-         FROM productos_combos
-        WHERE did_producto = ? AND elim = 0 AND superado = 0`,
+      `
+        SELECT did, did_producto_combo AS did_producto, cantidad
+        FROM productos_combos
+        WHERE did_producto = ? AND elim = 0 AND superado = 0
+      `,
       [didProducto]
     ),
   ]);
 
-  const variantesValores = (vvRows ?? [])
-    .map(r => Number(r.valores))
-    .filter(n => Number.isFinite(n) && n > 0);
 
-  const grupos = (ecRows ?? []).map(r => ({
+  // 3) Parseo combinaciones desde CSV -> number[] por fila
+  const combinaciones = (vvRows ?? [])
+    .map((r) =>
+      String(r.valores || "")
+        .split(",")
+        .map((x) => Number(String(x).trim()))
+        .filter((n) => Number.isFinite(n) && n > 0)
+    )
+    .filter((arr) => arr.length > 0);
+
+  const combosParaEcommerce = combinaciones;
+
+
+  // 4) Mapeo items ecommerce -> grupos
+  const grupos = (ecRows ?? []).map((r) => ({
     didCuenta: Number(r.did_cuenta),
     sku: r.sku ?? "",
     ean: r.ean ?? "",
     url: r.url ?? "",
-    sync: Number(r.sync) === 1 || r.sync === true,
+    sync: Number(r.sync) === 1 || r.sync === true || r.sync === "1",
   }));
 
-  const ecommerce = [
-    { variantesValores, grupos }
-  ];
-  const insumos = (insRows ?? []).map(r => ({
+  // 5) Construyo ecommerce: UN BLOQUE POR CADA COMBINACIÓN
+  const ecommerce = combosParaEcommerce.map((combo) => ({
+    variantes_valores: combo, // <- snake_case correcto
+    grupos, // mismos grupos para todas las combinaciones (ajustá si necesitás otra lógica)
+  }));
+
+  // 6) Insumos & Combos
+  const insumos = (insRows ?? []).map((r) => ({
     did: Number(r.did),
     didInsumo: Number(r.did_insumo),
     cantidad: Number(r.cantidad),
   }));
 
-  const combos = (comboRows ?? []).map(r => ({
+  const combos = (comboRows ?? []).map((r) => ({
     did: Number(r.did),
     didProducto: Number(r.did_producto),
     cantidad: Number(r.cantidad),
   }));
 
+  // 7) Payload final
   const data = {
     did_cliente: Number(p.did_cliente),
     titulo: p.titulo ?? "",
@@ -119,12 +145,11 @@ export async function getProductoById(dbConnection, req) {
     alto: p.alto != null ? String(p.alto) : "",
     ancho: p.ancho != null ? String(p.ancho) : "",
     profundo: p.profundo != null ? String(p.profundo) : "",
-    imagen: p.imagen ?? "",
+    imagen: p.imagen ?? null,
     sku: p.sku ?? "",
     ean: p.ean ?? "",
     did_curva: p.did_curva != null ? Number(p.did_curva) : null,
-    // imagen: p.imagen ?? null, // incluila si la necesitás
-    ecommerce,            // <- lo armado en el paso 3
+    ecommerce,
     insumos,
     combos,
   };
