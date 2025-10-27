@@ -39,12 +39,13 @@ export async function getFilteredProductos(connection, req) {
     });
 
     const sortMap = {
-        titulo: "p.titulo",
+
         did: "p.did",
+        titulo: "p.titulo",
         did_cliente: "p.did_cliente",
+        sku: "p.sku",
         habilitado: "p.habilitado",
-        es_combo: "p.es_combo",
-        posicion: "p.posicion",
+
     };
     const { orderSql } = makeSort(qp, sortMap, {
         defaultKey: "titulo",
@@ -65,8 +66,8 @@ export async function getFilteredProductos(connection, req) {
 
     const { rows, total } = await runPagedQuery(connection, {
         select: `
-      p.did, p.did_cliente, p.titulo, p.descripcion, p.imagen,
-      p.habilitado, p.es_combo, p.posicion, p.cm3, p.alto, p.ancho, p.profundo
+      p.did, p.did_cliente, p.titulo,  p.sku,
+      p.habilitado
     `,
         from: "FROM productos p",
         whereSql,
@@ -80,7 +81,8 @@ export async function getFilteredProductos(connection, req) {
         titulo: filtros.titulo,
         ...(filtros.did_cliente !== undefined ? { did_cliente: filtros.did_cliente } : {}),
         ...(filtros.habilitado !== undefined ? { habilitado: filtros.habilitado } : {}),
-        ...(filtros.es_combo !== undefined ? { es_combo: filtros.es_combo } : {}),
+        ...(filtros.sku !== undefined ? { sku: filtros.sku } : {}),
+
     });
 
     return {
