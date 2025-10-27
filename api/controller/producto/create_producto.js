@@ -24,7 +24,7 @@ export async function createProducto(dbConnection, req) {
         did_curva,
         sku,
         ean,
-        imagen,
+        files,
         ecommerce,
         insumos, //LISTA DE JSON
         combos, //LISTA DE JSON
@@ -241,17 +241,21 @@ export async function createProducto(dbConnection, req) {
     }
 
     // 🖼️ Subida de imagen (base64 o URL)
-    if (isNonEmpty(imagen)) {
-        await axios.post(
-            urlSubidaImagenes,
-            {
-                file: imagen, // puede ser base64 o URL
-                companyId,
-                clientId: client.did,
-                productId: idProducto,
-            },
-            { headers: { "Content-Type": "application/json" } }
-        );
+    if (isNonEmpty(files.length)) {
+        for (const file of files) {
+            await axios.post(
+                urlSubidaImagenes,
+                {
+                    file: file, // puede ser base64 o URL
+                    companyId: file.companyId,
+                    clientId: client.did,
+                    productId: file.idProducto,
+                },
+                { headers: { "Content-Type": "application/json" } }
+            );
+
+        }
+
     }
 
     return {
