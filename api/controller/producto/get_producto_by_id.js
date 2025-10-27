@@ -51,7 +51,7 @@ export async function getProductoById(dbConnection, req) {
     executeQuery(
       dbConnection,
       `
-        SELECT valores
+        SELECT did, valores
         FROM productos_variantes_valores
         WHERE did_producto = ? AND elim = 0 AND superado = 0
         ORDER BY id ASC
@@ -62,10 +62,9 @@ export async function getProductoById(dbConnection, req) {
     executeQuery(
       dbConnection,
       `
-        SELECT did, did_cuenta, sku, ean, url, sync
+        SELECT did, did_cuenta, did_producto_variante_valor, sku, ean, url, sync
         FROM productos_ecommerce
         WHERE did_producto = ? AND elim = 0 AND superado = 0
-        ORDER BY id ASC
       `,
       [didProducto]
     ),
@@ -92,7 +91,7 @@ export async function getProductoById(dbConnection, req) {
   ]);
 
 
-  // 3) Parseo combinaciones desde CSV -> number[] por fila
+  // 3) 
   const combinaciones = (vvRows ?? [])
     .map((r) =>
       String(r.valores || "")
@@ -102,11 +101,21 @@ export async function getProductoById(dbConnection, req) {
     )
     .filter((arr) => arr.length > 0);
 
-  const combosParaEcommerce = combinaciones;
+  // helper para parsear CSV -> number[]
+  const parseCSVToNums = (csv) =>
+    String(csv || "")
+      .split(",")
+      .map((x) => Number(String(x).trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
 
+  // 1) AGRUPACIONES (desde productos_variantes_valores)
+  const agrupaciones = (vvRows ?? []).map(r => ({
+    did: Number(r.did),                         // DID de la agrupación
+    variantes_valores: parseCSVToNums(r.valores) // array de números
+  }));
 
-  // 4) Mapeo items ecommerce -> grupos
-  const grupos = (ecRows ?? []).map((r) => ({
+  const grupos = (ecRows ?? []).map(r => ({       // PARA AGRUPAR
+    did_producto_variante_valor: Number(r.did_producto_variante_valor), // dato opcional
     didCuenta: Number(r.did_cuenta),
     sku: r.sku ?? "",
     ean: r.ean ?? "",
@@ -114,11 +123,12 @@ export async function getProductoById(dbConnection, req) {
     sync: Number(r.sync) === 1 || r.sync === true || r.sync === "1",
   }));
 
-  // 5) Construyo ecommerce: UN BLOQUE POR CADA COMBINACIÓN
-  const ecommerce = combosParaEcommerce.map((combo) => ({
-    variantes_valores: combo, // <- snake_case correcto
-    grupos, // mismos grupos para todas las combinaciones (ajustá si necesitás otra lógica)
+  // 3) ECOMMERCE: un bloque por agrupación, filtrando por DID
+  const ecommerce = agrupaciones.map(c => ({
+    variantes_valores: c.variantes_valores,
+    grupos: grupos.filter(g => g.did_producto_variante_valor === c.did),
   }));
+
 
   // 6) Insumos & Combos
   const insumos = (insRows ?? []).map((r) => ({
