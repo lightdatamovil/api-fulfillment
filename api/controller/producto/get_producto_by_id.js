@@ -91,16 +91,6 @@ export async function getProductoById(dbConnection, req) {
   ]);
 
 
-  // 3) 
-  const combinaciones = (vvRows ?? [])
-    .map((r) =>
-      String(r.valores || "")
-        .split(",")
-        .map((x) => Number(String(x).trim()))
-        .filter((n) => Number.isFinite(n) && n > 0)
-    )
-    .filter((arr) => arr.length > 0);
-
   // helper para parsear CSV -> number[]
   const parseCSVToNums = (csv) =>
     String(csv || "")
@@ -120,7 +110,7 @@ export async function getProductoById(dbConnection, req) {
     sku: r.sku ?? "",
     ean: r.ean ?? "",
     url: r.url ?? "",
-    sync: Number(r.sync) === 1 || r.sync === true || r.sync === "1",
+    sync: Number(r.sync),
   }));
 
   // 3) ECOMMERCE: un bloque por agrupación, filtrando por DID
@@ -148,8 +138,8 @@ export async function getProductoById(dbConnection, req) {
     did_cliente: Number(p.did_cliente),
     titulo: p.titulo ?? "",
     descripcion: p.descripcion ?? "",
-    habilitado: Number(p.habilitado) === 1,
-    es_combo: Number(p.es_combo) === 1,
+    habilitado: Number(p.habilitado),
+    es_combo: Number(p.es_combo),
     posicion: p.posicion != null ? Number(p.posicion) : 0,
     cm3: p.cm3 != null ? Number(p.cm3) : 0,
     alto: p.alto != null ? String(p.alto) : "",
@@ -171,3 +161,6 @@ export async function getProductoById(dbConnection, req) {
     meta: { timestamp: new Date().toISOString() },
   };
 }
+
+
+
