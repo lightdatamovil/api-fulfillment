@@ -121,7 +121,7 @@ export async function getProductoById(dbConnection, req) {
     imagen: p.imagen ?? "",
     sku: p.sku ?? "",
     ean: p.ean ?? "",
-    didCurva: p.did_curva != null ? Number(p.did_curva) : null,
+    did_curva: p.did_curva != null ? Number(p.did_curva) : null,
     ecommerce,
     insumos,
     combos,
