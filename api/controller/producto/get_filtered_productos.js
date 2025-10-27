@@ -53,6 +53,7 @@ export async function getFilteredProductos(connection, req) {
         dirKey: "sort_dir",
     });
 
+
     const where = new SqlWhere()
         .add("p.elim = 0")
         .add("p.superado = 0");
@@ -60,7 +61,8 @@ export async function getFilteredProductos(connection, req) {
     if (filtros.titulo) where.likeEscaped("p.titulo", filtros.titulo, { caseInsensitive: true });
     if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
     if (filtros.habilitado !== undefined) where.eq("p.habilitado", filtros.habilitado);
-    if (filtros.es_combo !== undefined) where.eq("p.es_combo", filtros.es_combo);
+    if (filtros.sku !== undefined) where.eq("p.es_combo", filtros.sku);
+
 
     const { whereSql, params } = where.finalize();
 
