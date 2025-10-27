@@ -143,7 +143,7 @@ export async function getProductoById(dbConnection, req) {
     did_cliente: Number(p.did_cliente),
     titulo: p.titulo ?? "",
     descripcion: p.descripcion ?? "",
-    habilitado: Number(p.habilitado),
+    habilitado: p.habilitado,
     es_combo: Number(p.es_combo),
     posicion: Number(p.posicion),
     cm3: p.cm3 != null ? Number(p.cm3) : 0,
