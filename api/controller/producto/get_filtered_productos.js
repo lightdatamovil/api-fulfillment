@@ -22,12 +22,11 @@ export async function getFilteredProductos(connection, req) {
         sort_by: q.sort_by ?? q.sortBy,
         sort_dir: q.sort_dir ?? q.sortDir,
     };
-
     const filtros = {
-        titulo: toStr(q.titulo),
+        titulo: toStr(q.titulo)?.trim(),
         did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
         habilitado: toBool01(q.habilitado, undefined),
-        sku: toStr(q.sku),
+        sku: toStr(q.sku)?.trim(),
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
@@ -61,7 +60,8 @@ export async function getFilteredProductos(connection, req) {
     if (filtros.titulo) where.likeEscaped("p.titulo", filtros.titulo, { caseInsensitive: true });
     if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
     if (filtros.habilitado !== undefined) where.eq("p.habilitado", filtros.habilitado);
-    if (filtros.sku !== undefined) where.eq("p.sku", filtros.sku);
+    if (filtros.sku) where.likeEscaped("p.sku", filtros.sku, { caseInsensitive: true });
+
 
 
     const { whereSql, params } = where.finalize();
@@ -83,7 +83,7 @@ export async function getFilteredProductos(connection, req) {
         titulo: filtros.titulo,
         ...(filtros.did_cliente !== undefined ? { did_cliente: filtros.did_cliente } : {}),
         ...(filtros.habilitado !== undefined ? { habilitado: filtros.habilitado } : {}),
-        ...(filtros.sku !== undefined ? { sku: filtros.sku } : {}),
+        ...(filtros.sku ? { sku: filtros.sku } : {}),
 
     });
 
