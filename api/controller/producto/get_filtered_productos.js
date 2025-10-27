@@ -27,7 +27,7 @@ export async function getFilteredProductos(connection, req) {
         titulo: toStr(q.titulo),
         did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
         habilitado: toBool01(q.habilitado, undefined),
-        es_combo: toBool01(q.es_combo, undefined),
+        sku: toStr(q.sku),
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
@@ -39,18 +39,20 @@ export async function getFilteredProductos(connection, req) {
     });
 
     const sortMap = {
-        titulo: "p.titulo",
+
         did: "p.did",
+        titulo: "p.titulo",
         did_cliente: "p.did_cliente",
+        sku: "p.sku",
         habilitado: "p.habilitado",
-        es_combo: "p.es_combo",
-        posicion: "p.posicion",
+
     };
     const { orderSql } = makeSort(qp, sortMap, {
         defaultKey: "titulo",
         byKey: "sort_by",
         dirKey: "sort_dir",
     });
+
 
     const where = new SqlWhere()
         .add("p.elim = 0")
@@ -59,14 +61,15 @@ export async function getFilteredProductos(connection, req) {
     if (filtros.titulo) where.likeEscaped("p.titulo", filtros.titulo, { caseInsensitive: true });
     if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
     if (filtros.habilitado !== undefined) where.eq("p.habilitado", filtros.habilitado);
-    if (filtros.es_combo !== undefined) where.eq("p.es_combo", filtros.es_combo);
+    if (filtros.sku !== undefined) where.eq("p.sku", filtros.sku);
+
 
     const { whereSql, params } = where.finalize();
 
     const { rows, total } = await runPagedQuery(connection, {
         select: `
-      p.did, p.did_cliente, p.titulo, p.descripcion, p.imagen,
-      p.habilitado, p.es_combo, p.posicion, p.cm3, p.alto, p.ancho, p.profundo
+      p.did, p.did_cliente, p.titulo,  p.sku,
+      p.habilitado
     `,
         from: "FROM productos p",
         whereSql,
@@ -80,7 +83,8 @@ export async function getFilteredProductos(connection, req) {
         titulo: filtros.titulo,
         ...(filtros.did_cliente !== undefined ? { did_cliente: filtros.did_cliente } : {}),
         ...(filtros.habilitado !== undefined ? { habilitado: filtros.habilitado } : {}),
-        ...(filtros.es_combo !== undefined ? { es_combo: filtros.es_combo } : {}),
+        ...(filtros.sku !== undefined ? { sku: filtros.sku } : {}),
+
     });
 
     return {
