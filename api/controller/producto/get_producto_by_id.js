@@ -12,7 +12,6 @@ import { CustomException, Status, executeQuery } from "lightdata-tools";
  * }
  */
 export async function getProductoById(dbConnection, req) {
-  // 🔎 Param DID
   const didParam = req.params?.did ?? req.params?.id ?? req.params?.productoId;
   const didProducto = Number(didParam);
 
@@ -24,7 +23,6 @@ export async function getProductoById(dbConnection, req) {
     });
   }
 
-  // 🧩 Producto principal (vigente)
   const prodRows = await executeQuery(
     dbConnection,
     `
@@ -48,7 +46,6 @@ export async function getProductoById(dbConnection, req) {
 
   const p = prodRows[0];
 
-  // 🧩 Asociaciones vigentes en paralelo
   const [vvRows, ecRows, insRows, comboRows] = await Promise.all([
     // variantes del producto (nivel producto, se repiten en cada ecommerce según tu formato)
     executeQuery(
@@ -84,48 +81,43 @@ export async function getProductoById(dbConnection, req) {
     ),
   ]);
 
-  // Variantes a nivel producto (números)
   const variantesValores = (vvRows ?? [])
     .map(r => Number(r.did_variante_valor))
     .filter(n => Number.isFinite(n) && n > 0);
 
-  // 🧩 Mapear ecommerce al formato requerido
   const ecommerce = (ecRows ?? []).map(r => ({
     did: Number(r.did),
     didCuenta: Number(r.did_cuenta),
     sku: r.sku ?? "",
     ean: r.ean ?? "",
     url: r.url ?? "",
-    sync: Number(r.sync) === 1,              // ← boolean
-    variantes_valores: variantesValores,     // ← array numérico
+    sync: Number(r.sync) === 1,
+    variantes_valores: variantesValores,
   }));
 
-  // 🧩 Mapear insumos
   const insumos = (insRows ?? []).map(r => ({
     did: Number(r.did),
     didInsumo: Number(r.did_insumo),
     cantidad: Number(r.cantidad),
   }));
 
-  // 🧩 Mapear combos
   const combos = (comboRows ?? []).map(r => ({
     did: Number(r.did),
     didProducto: Number(r.did_producto),
     cantidad: Number(r.cantidad),
   }));
 
-  // 🧩 Respuesta final EXACTA al contrato dado
   const data = {
     did_cliente: Number(p.did_cliente),
     titulo: p.titulo ?? "",
     descripcion: p.descripcion ?? "",
-    habilitado: Number(p.habilitado) === 1,  // ← boolean
-    es_combo: Number(p.es_combo) === 1,      // ← boolean
+    habilitado: Number(p.habilitado) === 1,
+    es_combo: Number(p.es_combo) === 1,
     posicion: p.posicion != null ? Number(p.posicion) : 0,
     cm3: p.cm3 != null ? Number(p.cm3) : 0,
-    alto: p.alto != null ? String(p.alto) : "",       // ← string
-    ancho: p.ancho != null ? String(p.ancho) : "",    // ← string
-    profundo: p.profundo != null ? String(p.profundo) : "", // ← string
+    alto: p.alto != null ? String(p.alto) : "",
+    ancho: p.ancho != null ? String(p.ancho) : "",
+    profundo: p.profundo != null ? String(p.profundo) : "",
     imagen: p.imagen ?? "",
     sku: p.sku ?? "",
     ean: p.ean ?? "",
