@@ -50,7 +50,7 @@ export async function getProductoById(dbConnection, req) {
     // variantes del producto (nivel producto, se repiten en cada ecommerce según tu formato)
     executeQuery(
       dbConnection,
-      `SELECT did_variante_valor
+      `SELECT valores
          FROM productos_variantes_valores
         WHERE did_producto = ? AND elim = 0 AND superado = 0`,
       [didProducto]
