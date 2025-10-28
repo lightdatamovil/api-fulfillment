@@ -138,6 +138,13 @@ export async function getProductoById(dbConnection, req) {
     cantidad: Number(r.cantidad),
   }));
 
+  let files = [];
+  if (p.imagen) {
+    files.push(
+      p.imagen
+    );
+  }
+
   // 7) Payload final
   const data = {
     did_cliente: Number(p.did_cliente),
@@ -150,7 +157,7 @@ export async function getProductoById(dbConnection, req) {
     alto: p.alto != null ? String(p.alto) : "",
     ancho: p.ancho != null ? String(p.ancho) : "",
     profundo: p.profundo != null ? String(p.profundo) : "",
-    files: [p.imagen],
+    files,
     sku: p.sku ?? "",
     ean: p.ean ?? "",
     did_curva: p.did_curva != null ? Number(p.did_curva) : null,
