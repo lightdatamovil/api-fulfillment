@@ -150,7 +150,7 @@ export async function getProductoById(dbConnection, req) {
     alto: p.alto != null ? String(p.alto) : "",
     ancho: p.ancho != null ? String(p.ancho) : "",
     profundo: p.profundo != null ? String(p.profundo) : "",
-    imagen: p.imagen ?? null,
+    files: [p.imagen],
     sku: p.sku ?? "",
     ean: p.ean ?? "",
     did_curva: p.did_curva != null ? Number(p.did_curva) : null,
