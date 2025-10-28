@@ -76,7 +76,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         did_cuenta,
         did_cliente,
         estado,
-        fecha,
+
         observacion,
         total,
         productos,
@@ -84,6 +84,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         id_venta,
         comprador // { calle, numero, address_line?, cp, localidad, provincia, pais, latitud, longitud, destination_coments?, hora_desde?, hora_hasta? }
     } = pedido || {};
+    const fechaActual = new Date();
 
     // 1) pedidos
     const [didPedido] = await LightdataORM.insert({
@@ -94,7 +95,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
             did_cuenta: did_cuenta,
             did_cliente: did_cliente,
             status: isNonEmpty(estado) ? String(estado).trim() : "pendiente",
-            fecha_venta: fecha ? new Date(fecha) : null,
+            fecha_venta: fechaActual,
             observaciones: observacion,
             total_amount: total,
             number: id_venta,
