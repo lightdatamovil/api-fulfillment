@@ -27,7 +27,7 @@ pedidos.put(
     buildHandlerWrapper({
         // param obligatorio
         requiredParams: ["did"],
-        optional: ["did_pedido", "status", "observaciones", "total_amount", "pedidosProducto", "direccion"],
+        optional: ["did_pedido", "did_cliente", "did_cuenta", "estado", "observacion", "total", "productos", "direccion", "id_venta", "comprador"],
         controller: async ({ db, req }) => {
             // Pasamos el param → body para el controlador (si tu controller lo espera en body)
 
