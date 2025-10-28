@@ -84,8 +84,8 @@ export async function getFilteredPedidos(connection, req) {
     p.buyer_name       AS comprador,
     p.total_amount     AS total,
     p.armado           AS armado,
-    p.descargado       AS descargado,
-    p.ot               AS ot
+    p.descargado       AS descargado
+ --   p.ot               AS ot
   `,
         from: "FROM pedidos p",
         whereSql,
