@@ -67,7 +67,7 @@ export async function createProducto(dbConnection, req) {
             alto,
             ancho,
             profundo,
-            did_curva: did_curva,
+            did_curva,
             sku,
             ean,
         },
@@ -262,8 +262,6 @@ export async function createProducto(dbConnection, req) {
         }
 
     }
-
-
 
 
 
