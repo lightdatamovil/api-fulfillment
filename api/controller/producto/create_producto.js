@@ -240,20 +240,22 @@ export async function createProducto(dbConnection, req) {
         });
     }
 
+    let urlReturn = [];
     // 🖼️ Subida de imagen (base64 o URL)
     if (isNonEmpty(files.length)) {
         for (const file of files) {
-            await axios.post(
+            const urlResponse = await axios.post(
                 urlSubidaImagenes,
                 {
-                    file: file, // puede ser base64 o URL
-                    companyId: file.companyId,
+                    file: file,
+                    companyId: companyId,
                     clientId: client.did,
-                    productId: file.idProducto,
+                    productId: idProducto,
                 },
                 { headers: { "Content-Type": "application/json" } }
             );
 
+            urlReturn.push(urlResponse.data.url);
         }
 
     }
@@ -261,6 +263,6 @@ export async function createProducto(dbConnection, req) {
     return {
         success: true,
         message: "Producto creado correctamente",
-        data: { idProducto },
+        data: { idProducto, urlsFiles: urlReturn },
     };
 }
