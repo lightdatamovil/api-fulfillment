@@ -127,8 +127,6 @@ export async function createProducto(dbConnection, req) {
         }
     }
 
-
-
     // 🧩 Insumos
     if (Array.isArray(insumos) && insumos.length) {
         const insumoData = insumos.map((it, i) => {
@@ -263,6 +261,6 @@ export async function createProducto(dbConnection, req) {
     return {
         success: true,
         message: "Producto creado correctamente",
-        data: { idProducto, urlsFiles: urlReturn },
+        data: { idProducto, files: urlReturn },
     };
 }
