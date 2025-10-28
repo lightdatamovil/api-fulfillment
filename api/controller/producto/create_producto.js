@@ -6,8 +6,10 @@ import {
     isDefined,
     number01,
     LightdataORM,
+    executeQuery,
 } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
+
 
 export async function createProducto(dbConnection, req) {
     const {
@@ -48,7 +50,7 @@ export async function createProducto(dbConnection, req) {
         //  throwIfNotExists: true,
     });
 
-    // 🧩 Inserción del producto principal
+    //  Inserción del producto principal
     const [idProducto] = await LightdataORM.insert({
         dbConnection,
         table: "productos",
@@ -254,9 +256,16 @@ export async function createProducto(dbConnection, req) {
             );
 
             urlReturn.push(urlResponse.data.file.url);
+            // insertaf file en tabla productos
+            await executeQuery(dbConnection, "UPDATE productos SET imagen = ? WHERE id = ?", [urlReturn[0], idProducto], true);
+
         }
 
     }
+
+
+
+
 
     return {
         success: true,
