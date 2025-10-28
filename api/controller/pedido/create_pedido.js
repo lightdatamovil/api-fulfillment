@@ -80,7 +80,9 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         obsevacion,
         total,
         productos,
-        direccion, // { calle, numero, address_line?, cp, localidad, provincia, pais, latitud, longitud, destination_coments?, hora_desde?, hora_hasta? }
+        direccion,
+        id_venta,
+        comprador // { calle, numero, address_line?, cp, localidad, provincia, pais, latitud, longitud, destination_coments?, hora_desde?, hora_hasta? }
     } = pedido || {};
 
     // 1) pedidos
@@ -95,6 +97,9 @@ async function insertOnePedido(dbConnection, userId, pedido) {
             fecha_venta: fecha ? new Date(fecha) : null,
             observaciones: obsevacion,
             total_amount: total,
+            number: id_venta,
+            buyer_name: comprador,
+
         },
     });
 
