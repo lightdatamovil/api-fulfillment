@@ -73,12 +73,13 @@ export async function createPedido(dbConnection, req) {
 /** Crea UN (1) pedido reutilizando LightdataORM.insert (sin transacciones) */
 async function insertOnePedido(dbConnection, userId, pedido) {
     const {
-        didCuenta,
-        status,
-        fecha_venta,
-        observaciones,
-        total_amount,
-        pedidosProducto,
+        did_cuenta,
+        did_cliente,
+        estado,
+        fecha,
+        obsevacion,
+        total,
+        productos,
         direccion, // { calle, numero, address_line?, cp, localidad, provincia, pais, latitud, longitud, destination_coments?, hora_desde?, hora_hasta? }
     } = pedido || {};
 
@@ -88,11 +89,12 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         table: "pedidos",
         quien: userId,
         data: {
-            did_cuenta: didCuenta,
-            status,
-            fecha_venta,
-            observaciones: isNonEmpty(observaciones) ? String(observaciones).trim() : null,
-            total_amount,
+            did_cuenta: did_cuenta,
+            did_cliente: did_cliente,
+            status: isNonEmpty(estado) ? String(estado).trim() : null,
+            fecha_venta: fecha,
+            observaciones: obsevacion,
+            total_amount: total,
         },
     });
 
@@ -104,36 +106,22 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         data: {
             did: 0, // tu insert luego setea did = id
             did_pedido: didPedido,
-            estado: isNonEmpty(status) ? String(status).trim() : "nuevo",
+            estado: isNonEmpty(estado) ? String(estado).trim() : null,
             quien: userId,
             superado: 0,
             elim: 0,
         },
     });
 
-    // 2) detalle (bulk)
-    const productos = Array.isArray(pedidosProducto) ? pedidosProducto : [];
-    const rowsDetalle = productos
-        .filter((p) => Number(p?.did_producto) > 0 && Number(p?.cantidad) > 0)
-        .map((p) => {
-            const normalizedDimensions =
-                p?.dimensions == null
-                    ? null
-                    : typeof p.dimensions === "string"
-                        ? p.dimensions.trim()
-                        : JSON.stringify(p.dimensions);
+    const Aproductos = Array.isArray(productos) ? productos : [];
 
-            return {
-                did_pedido: didPedido,
-                did_producto: Number(p.did_producto),
-                codigo: isNonEmpty(p?.codigo) ? String(p.codigo).trim() : null,
-                imagen: isNonEmpty(p?.imagen) ? String(p.imagen).trim() : null,
-                descripcion: isNonEmpty(p?.descripcion) ? String(p.descripcion).trim() : null,
-                dimensions: normalizedDimensions,
-                cantidad: Number(p.cantidad),
-                seller_sku: isNonEmpty(p?.seller_sku) ? String(p.seller_sku).trim() : null,
-            };
-        });
+    const rowsDetalle = Aproductos
+        .filter((p) => Number(p?.did_producto) > 0 && Number(p?.cantidad) > 0)
+        .map((p) => ({
+            did_pedido: didPedido,
+            did_producto: Number(p.did_producto),
+            cantidad: Number(p.cantidad),
+        }));
 
     if (rowsDetalle.length > 0) {
         await LightdataORM.insert({
@@ -143,6 +131,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
             data: rowsDetalle, // BULK
         });
     }
+
 
     // 3) dirección (opcional)
     let didPedidoDireccion = null;
@@ -168,11 +157,10 @@ async function insertOnePedido(dbConnection, userId, pedido) {
                 direccion.longitud === 0 || isNonEmpty(direccion.longitud)
                     ? Number(direccion.longitud)
                     : null,
-            destination_coments: isNonEmpty(direccion.destination_coments)
-                ? String(direccion.destination_coments).trim()
+            destination_coments: isNonEmpty(direccion.referencia)
+                ? String(direccion.referencia).trim()
                 : null,
-            hora_desde: isNonEmpty(direccion.hora_desde) ? String(direccion.hora_desde).trim() : null,
-            hora_hasta: isNonEmpty(direccion.hora_hasta) ? String(direccion.hora_hasta).trim() : null,
+
         };
 
         const [insertedDidDireccion] = await LightdataORM.insert({
