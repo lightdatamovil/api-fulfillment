@@ -91,8 +91,8 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         data: {
             did_cuenta: did_cuenta,
             did_cliente: did_cliente,
-            status: isNonEmpty(estado) ? String(estado).trim() : null,
-            fecha_venta: fecha,
+            status: isNonEmpty(estado) ? String(estado).trim() : "pendiente",
+            fecha_venta: fecha ? new Date(fecha) : null,
             observaciones: obsevacion,
             total_amount: total,
         },
