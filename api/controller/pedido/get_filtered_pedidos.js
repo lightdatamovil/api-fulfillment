@@ -40,14 +40,26 @@ export async function getFilteredPedidos(connection, req) {
     });
 
     const sortMap = {
+        // IDs base
         did: "p.did",
-        did_cuenta: "p.did_cuenta",
-        fecha_venta: "p.fecha_venta",
-        status: "p.status",
-        number: "p.number",
-        buyer_nickname: "p.buyer_nickname",
+
+        // === ALIAS → COLUMNA BD (según tu mapeo) ===
+        did_cliente: "p.did_cliente",     // did_cliente en la BD
+        fecha: "p.fecha_venta",           // fecha-venta en la BD
+        did_cuenta: "p.did_cuenta",       // did_cuenta en la BD
+        id_venta: "p.number",             // number en la BD
+        comprador: "p.buyer_name",        // buyer_name en la BD
+        estado: "p.status",               // status en la BD
+        total: "p.total_amount",          // total_amount en la BD
+        armado: "p.armado",               // armado en la BD
+        ot: "p.ot",                       // ot en la BD
     };
-    const { orderSql } = makeSort(qp, sortMap, { defaultKey: "fecha_venta", byKey: "sort_by", dirKey: "sort_dir" });
+
+    const { orderSql } = makeSort(qp, sortMap, {
+        defaultKey: "fecha",     // default: fecha (alias tuyo)
+        byKey: "sort_by",
+        dirKey: "sort_dir",
+    });
 
     const where = new SqlWhere().add("p.elim = 0");
 
@@ -61,12 +73,20 @@ export async function getFilteredPedidos(connection, req) {
     if (filtros.fecha_venta_to) where.add("p.fecha_venta <= ?", [filtros.fecha_venta_to]);
 
     const { whereSql, params } = where.finalize();
-
     const { rows, total } = await runPagedQuery(connection, {
         select: `
-      p.did, p.did_cuenta, p.status, p.number, p.fecha_venta,
-      p.buyer_nickname, p.total_amount, p.armado, p.descargado
-    `,
+    p.did,
+    p.did_cliente,                     -- por si lo querés mostrar también
+    p.did_cuenta,
+    p.fecha_venta      AS fecha,
+    p.status           AS estado,
+    p.number           AS id_venta,
+    p.buyer_name       AS comprador,
+    p.total_amount     AS total,
+    p.armado           AS armado,
+    p.descargado       AS descargado,
+    p.ot               AS ot
+  `,
         from: "FROM pedidos p",
         whereSql,
         orderSql,
@@ -93,3 +113,13 @@ export async function getFilteredPedidos(connection, req) {
         meta: buildMeta({ page, pageSize, totalItems: total, filters: filtersForMeta }),
     };
 }
+
+// did_cliente es did_cliente en la BD
+// fecha es fecha-venta en la BD
+//did_cuenta es did_cuenta en la BD
+// id_venta es number en la BD
+// comprador es buyer_name en la BD
+//estado es status en la BD
+//total es total_amount  en la BD
+//ot es ot en la bd
+// armado es armado en la BD

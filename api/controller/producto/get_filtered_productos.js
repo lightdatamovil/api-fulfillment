@@ -27,7 +27,6 @@ export async function getFilteredProductos(connection, req) {
         did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
         habilitado: toBool01(q.habilitado, undefined),
         sku: toStr(q.sku)?.trim(),
-        id_venta: toStr(q.id_venta)?.trim(),
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
@@ -45,7 +44,6 @@ export async function getFilteredProductos(connection, req) {
         did_cliente: "p.did_cliente",
         sku: "p.sku",
         habilitado: "p.habilitado",
-        id_venta: "p.number",
 
     };
     const { orderSql } = makeSort(qp, sortMap, {
@@ -63,7 +61,6 @@ export async function getFilteredProductos(connection, req) {
     if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
     if (filtros.habilitado !== undefined) where.eq("p.habilitado", filtros.habilitado);
     if (filtros.sku) where.likeEscaped("p.sku", filtros.sku, { caseInsensitive: true });
-    if (filtros.id_venta !== undefined) where.eq("p.id_venta", filtros.id_venta);
 
 
 
@@ -72,7 +69,7 @@ export async function getFilteredProductos(connection, req) {
     const { rows, total } = await runPagedQuery(connection, {
         select: `
       p.did, p.did_cliente, p.titulo,  p.sku,
-      p.habilitado, p.number as id_venta
+      p.habilitado
     `,
         from: "FROM productos p",
         whereSql,
@@ -87,7 +84,6 @@ export async function getFilteredProductos(connection, req) {
         ...(filtros.did_cliente !== undefined ? { did_cliente: filtros.did_cliente } : {}),
         ...(filtros.habilitado !== undefined ? { habilitado: filtros.habilitado } : {}),
         ...(filtros.sku ? { sku: filtros.sku } : {}),
-        ...(filtros.id_venta !== undefined ? { id_venta: filtros.id_venta } : {}),
 
     });
 
