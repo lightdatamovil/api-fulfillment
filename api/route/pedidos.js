@@ -13,8 +13,9 @@ const pedidos = Router();
 // POST /pedidos  (crear)
 pedidos.post(
     "/",
+
     buildHandlerWrapper({
-        required: ['pedidos'],
+        optional: ["did_cliente", "did_cuenta", "estado", "observacion", "total", "productos", "direccion", "id_venta", "comprador"],
         controller: async ({ db, req }) => {
             return createPedido(db, req);
         },
