@@ -33,12 +33,12 @@ export async function createProducto(dbConnection, req) {
     const { userId, companyId } = req.user;
 
     // 🧩 Validación de  SKU duplicado
-    await LightdataORM.select({
-        dbConnection,
-        table: "productos",
-        where: { sku },
-        throwIfExists: true,
-    });
+    //   await LightdataORM.select({
+    //       dbConnection,
+    //       table: "productos",
+    //       where: { sku },
+    //       throwIfExists: true,
+    //   });
 
     // 🧩 Verificación de cliente existente
     const [client] = await LightdataORM.select({
@@ -249,13 +249,13 @@ export async function createProducto(dbConnection, req) {
                 {
                     file: file,
                     companyId: companyId,
-                    clientId: client.did,
+                    clientId: did_cliente,
                     productId: idProducto,
                 },
                 { headers: { "Content-Type": "application/json" } }
             );
 
-            urlReturn.push(urlResponse.data.url);
+            urlReturn.push(urlResponse.data.file.url);
         }
 
     }
