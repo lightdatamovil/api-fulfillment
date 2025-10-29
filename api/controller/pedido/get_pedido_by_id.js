@@ -35,13 +35,42 @@ export async function getPedidoById(db, req) {
      ORDER BY autofecha DESC`,
         [did]
     );
+    const p = pedidoRows[0]
+    const pedido = {
+
+        did_pedido: p.did,
+        did_cliente: p.did_cliente,
+        fecha_venta: p.fecha_venta,
+        estado: p.status,
+        id_venta: p.number,
+        comprador: p.buyer_name,
+        total: p.total_amount,
+        observacion: p.observaciones,
+        armado: p.armado,
+
+
+        ot: p.ot
+
+
+    }
+
+    const pp = items[0]
+    const pedido_productos = {
+
+        did_pedido: pp.did_pedido,
+        did_producto: pp.did_producto,
+        variacion: pp.variacion,
+        cantidad: pp.cantidad,
+
+
+    }
 
     return {
         success: true,
         message: "Pedido obtenido correctamente",
         data: {
-            pedido: pedidoRows[0],
-            items,
+            pedido: pedido,
+            pedido_productos: pedido_productos,
             historial,
         },
         meta: { timestamp: new Date().toISOString() },
