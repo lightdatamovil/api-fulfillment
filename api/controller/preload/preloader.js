@@ -18,7 +18,7 @@ export async function preloader(dbConnection) {
   );
 
   // Agrupación en JS
-  const data = Object.values(rows.reduce((acc, row) => {
+  const productos = Object.values(rows.reduce((acc, row) => {
     if (!acc[row.did]) {
       acc[row.did] = { ...row, valores: [] };
     }
@@ -198,7 +198,7 @@ export async function preloader(dbConnection) {
   return {
     success: true,
     message: "Datos pre-cargados correctamente",
-    data: { data, variantes, curvas, insumos, clientes },
+    data: { productos, variantes, curvas, insumos, clientes },
     meta: { timestamp: new Date().toISOString() },
   };
 }
