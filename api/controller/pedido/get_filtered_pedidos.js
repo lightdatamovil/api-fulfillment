@@ -39,6 +39,8 @@ export async function getFilteredPedidos(connection, req) {
         comprador: toStr(q.comprador),
         estado: toStr(q.estado),
         ot: toStr(q.ot),
+        flex: q.flex,
+
 
         total_from: q.total_from != null && q.total_from !== "" ? Number(q.total_from) : undefined,
         total_to: q.total_to != null && q.total_to !== "" ? Number(q.total_to) : undefined,
@@ -67,6 +69,7 @@ export async function getFilteredPedidos(connection, req) {
         total: "p.total_amount",
         armado: "p.armado",
         ot: "p.ot",
+        flex: "p.flex",
     };
     const { orderSql } = makeSort(qp, sortMap, {
         defaultKey: "fecha",
@@ -94,6 +97,8 @@ export async function getFilteredPedidos(connection, req) {
     if (filtros.armado !== undefined) where.eq("p.armado", filtros.armado);
     if (filtros.descargado !== undefined) where.eq("p.descargado", filtros.descargado);
 
+    if (filtros.flex !== undefined) where.eq("p.flex", filtros.flex);
+
     const { whereSql, params } = where.finalize();
 
     const { rows, total } = await runPagedQuery(connection, {
@@ -108,7 +113,8 @@ export async function getFilteredPedidos(connection, req) {
     
       p.total_amount     AS total,
       p.armado           AS armado,
-      p.descargado       AS descargado
+      p.descargado       AS descargado,
+      p.flex
    
     `,
         from: "FROM pedidos p",
@@ -131,6 +137,7 @@ export async function getFilteredPedidos(connection, req) {
         total_to: Number.isFinite(filtros.total_to) ? filtros.total_to : undefined,
         armado: filtros.armado,
         ot: filtros.ot,
+        flex: filtros.flex
     });
 
     return {
