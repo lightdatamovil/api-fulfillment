@@ -30,7 +30,7 @@ export async function getFilteredPedidos(connection, req) {
     // Filtros (aceptamos sólo los alias que definiste)
     const filtros = {
         did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
-        did_cuenta: Number.isFinite(Number(q.did_cuenta)) ? Number(q.did_cuenta) : undefined,
+
 
         fecha_from: toStr(q.fecha_from),
         fecha_to: toStr(q.fecha_to),
@@ -62,7 +62,7 @@ export async function getFilteredPedidos(connection, req) {
         did: "p.did",
         did_cliente: "p.did_cliente",
         fecha: "p.fecha_venta",
-        did_cuenta: "p.did_cuenta",
+
         id_venta: "p.number",
         comprador: "p.buyer_name",
         estado: "p.status",
@@ -81,7 +81,7 @@ export async function getFilteredPedidos(connection, req) {
     const where = new SqlWhere().add("p.elim = 0");
 
     if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
-    if (filtros.did_cuenta !== undefined) where.eq("p.did_cuenta", filtros.did_cuenta);
+
 
     if (filtros.fecha_from) where.add("p.fecha_venta >= ?", [filtros.fecha_from]);
     if (filtros.fecha_to) where.add("p.fecha_venta <= ?", [filtros.fecha_to]);
@@ -105,7 +105,7 @@ export async function getFilteredPedidos(connection, req) {
         select: `
       p.did,
       p.did_cliente,
-      p.did_cuenta,
+ 
       p.fecha_venta      AS fecha,
       p.status           AS estado,
       p.number           AS id_venta,
@@ -129,7 +129,7 @@ export async function getFilteredPedidos(connection, req) {
         did_cliente: filtros.did_cliente,
         fecha_from: filtros.fecha_from,
         fecha_to: filtros.fecha_to,
-        did_cuenta: filtros.did_cuenta,
+
         id_venta: filtros.id_venta,
         comprador: filtros.comprador,
         estado: filtros.estado,
