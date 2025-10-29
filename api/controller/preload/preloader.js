@@ -1,12 +1,37 @@
 import { executeQuery, LightdataORM } from "lightdata-tools";
 
 export async function preloader(dbConnection) {
-  const productos = await LightdataORM.select({
+  const rows = await executeQuery(
     dbConnection,
-    table: 'productos',
-    where: { elim: 0, superado: 0 },
-  });
+    `
+    SELECT 
+      p.*, 
+      pvv.did AS did_productos_variantes_valores,
+      pvv.valores AS valores_raw
+    FROM productos AS p
+    LEFT JOIN productos_variantes_valores AS pvv
+      ON p.did = pvv.did_producto
+    WHERE p.elim = 0
+      AND p.superado = 0
+    ORDER BY p.did DESC;
+  `
+  );
 
+  // Agrupación en JS
+  const data = Object.values(rows.reduce((acc, row) => {
+    if (!acc[row.did]) {
+      acc[row.did] = { ...row, valores: [] };
+    }
+    if (row.did_productos_variantes_valores) {
+      acc[row.did].valores.push({
+        did_productos_variantes_valores: row.did_productos_variantes_valores,
+        valores: row.valores_raw.split(",").map(v => Number(v.trim()))
+      });
+    }
+    delete acc[row.did].did_productos_variantes_valores;
+    delete acc[row.did].valores_raw;
+    return acc;
+  }, {}));
   // --- Variantes (root) con categorías y valores
   const queryVariantes = `
     SELECT
@@ -173,7 +198,7 @@ export async function preloader(dbConnection) {
   return {
     success: true,
     message: "Datos pre-cargados correctamente",
-    data: { productos, variantes, curvas, insumos, clientes },
+    data: { data, variantes, curvas, insumos, clientes },
     meta: { timestamp: new Date().toISOString() },
   };
 }
