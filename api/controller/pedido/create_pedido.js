@@ -73,9 +73,11 @@ export async function createPedido(dbConnection, req) {
 /** Crea UN (1) pedido reutilizando LightdataORM.insert (sin transacciones) */
 async function insertOnePedido(dbConnection, userId, pedido) {
     const {
-        did_cuenta,
+
         did_cliente,
-        estado,
+
+        deadline,
+        fecha_venta,
 
         observacion,
         total,
@@ -84,7 +86,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         id_venta,
         comprador // { calle, numero, address_line?, cp, localidad, provincia, pais, latitud, longitud, destination_coments?, hora_desde?, hora_hasta? }
     } = pedido || {};
-    const fechaActual = new Date();
+    // const fechaActual = new Date();
 
     // 1) pedidos
     const [didPedido] = await LightdataORM.insert({
@@ -92,14 +94,18 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         table: "pedidos",
         quien: userId,
         data: {
-            did_cuenta: did_cuenta,
+            flex: 0,
+
             did_cliente: did_cliente,
-            status: isNonEmpty(estado) ? String(estado).trim() : "pendiente",
-            fecha_venta: fechaActual,
+            status: "paid",
+            fecha_venta: fecha_venta,
+            deadline: deadline,
             observaciones: observacion,
             total_amount: total,
             number: id_venta,
-            buyer_name: comprador,
+            buyer_name: comprador.nombre,
+            buyer_email: comprador.email,
+            buyer_phone: comprador.telefono,
 
         },
     });
@@ -112,7 +118,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         data: {
             did: 0, // tu insert luego setea did = id
             did_pedido: didPedido,
-            estado: isNonEmpty(estado) ? String(estado).trim() : null,
+            estado: "paid",
             quien: userId,
             superado: 0,
             elim: 0,
