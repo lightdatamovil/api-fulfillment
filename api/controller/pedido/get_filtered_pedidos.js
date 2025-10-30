@@ -100,26 +100,25 @@ export async function getFilteredPedidos(connection, req) {
     // 🔹 Evitamos el error de MariaDB con LIMIT ? OFFSET ?
     const limitClause = `LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}`;
     const safeOrderSql = `${orderSql} ${limitClause}`;
-
     const { rows, total } = await runPagedQuery(connection, {
         select: `
-            p.did,
-            p.did_cliente,
-            p.fecha_venta      AS fecha,
-            p.status           AS estado,
-            p.number           AS id_venta,
-            p.buyer_name       AS comprador,
-            p.total_amount     AS total,
-            p.armado           AS armado,
-            p.descargado       AS descargado,
-            p.flex
-        `,
+        p.did,
+        p.did_cliente,
+        p.fecha_venta      AS fecha,
+        p.status           AS estado,
+        p.number           AS id_venta,
+        p.buyer_name       AS comprador,
+        p.total_amount     AS total,
+        p.armado           AS armado,
+        p.descargado       AS descargado,
+        p.flex
+    `,
         from: "FROM pedidos p",
         whereSql,
-        orderSql: safeOrderSql,
+        orderSql,
         params,
-        pageSize: 0, // evita placeholders LIMIT ? OFFSET ?
-        offset: 0,
+        pageSize,
+        offset, // 👈 volvemos a pasar los reales
     });
 
     const filtersForMeta = pickNonEmpty({
