@@ -22,9 +22,12 @@ export async function getFilteredProductos(connection, req) {
         sort_by: q.sort_by ?? q.sortBy,
         sort_dir: q.sort_dir ?? q.sortDir,
     };
+
     const filtros = {
         titulo: toStr(q.titulo)?.trim(),
-        did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
+        did_cliente: q.did_cliente?.trim()
+            ? Number(q.did_cliente)
+            : undefined,
         habilitado: toBool01(q.habilitado, undefined),
         sku: toStr(q.sku)?.trim(),
     };
@@ -38,7 +41,6 @@ export async function getFilteredProductos(connection, req) {
     });
 
     const sortMap = {
-
         did: "p.did",
         titulo: "p.titulo",
         did_cliente: "p.did_cliente",
