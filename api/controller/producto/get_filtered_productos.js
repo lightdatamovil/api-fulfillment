@@ -67,7 +67,6 @@ export async function getFilteredProductos(connection, req) {
 
 
     const { whereSql, params } = where.finalize();
-    console.log("WHERE SQL:", whereSql, "PARAMS:", params);
 
     const { rows, total } = await runPagedQuery(connection, {
         select: `
