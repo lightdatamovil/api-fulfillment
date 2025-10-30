@@ -66,7 +66,7 @@ export async function getPedidoById(db, req) {
     };
 
     const data = {
-        did_pedido: p.did,
+        did: p.did,
         did_cliente: p.did_cliente,
         did_deposito: p.did_deposito,
         fecha_venta: p.fecha_venta,
