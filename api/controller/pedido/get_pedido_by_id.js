@@ -21,6 +21,7 @@ export async function getPedidoById(db, req) {
         throw new CustomException({ title: "No encontrado", message: `No existe pedido con did ${did}` });
     }
 
+    // Trae todos los productos asociados al pedido
     const items = await executeQuery(
         db,
         `SELECT * FROM pedidos_productos WHERE did_pedido = ? AND elim = 0 AND superado = 0`,
@@ -33,26 +34,25 @@ export async function getPedidoById(db, req) {
         [did]
     );
 
+    const p = pedidoRows[0];
+    const pd = direccion[0] || {};
 
-    const p = pedidoRows[0]
-    const pd = direccion[0] || {}
-
-    const pp = items[0]
-    const pedido_productos = {
+    // 🔹 Convertimos los ítems en un array de objetos
+    const productos = items.map(pp => ({
         did: pp.did,
-        did_pedido: pp.did_pedido,
         did_producto: pp.did_producto,
         did_producto_variante_valor: pp.variacion,
         cantidad: pp.cantidad,
+        precio_unitario: pp.precio_unitario,
+        subtotal: pp.subtotal,
+    }));
 
-
-
-    }
     const comprador = {
         nombre: p.buyer_name,
         email: p.buyer_email,
         telefono: p.buyer_phone,
-    }
+    };
+
     const direccion_pedido = {
         calle: pd.calle,
         numero: pd.numero,
@@ -62,32 +62,25 @@ export async function getPedidoById(db, req) {
         cp: pd.cp,
         latitud: pd.latitud,
         longitud: pd.longitud,
-    }
+        referencia: pd.destination_coments,
+    };
 
     const data = {
-
         did_pedido: p.did,
         did_cliente: p.did_cliente,
         did_deposito: p.did_deposito,
         fecha_venta: p.fecha_venta,
         estado: p.status,
         id_venta: p.number,
-
         total: p.total_amount,
         observacion: p.observaciones,
         armado: p.armado,
         deadline: p.deadline,
         ot: p.ot,
-        comprador: comprador,
+        comprador,
         direccion: direccion_pedido,
-        producto: pedido_productos,
-
-
-
-
-
-    }
-
+        productos, // ✅ ahora es un array
+    };
 
     return {
         success: true,
