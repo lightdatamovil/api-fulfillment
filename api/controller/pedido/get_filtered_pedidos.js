@@ -5,7 +5,6 @@ import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "..
 export async function getFilteredPedidos(connection, req) {
     const q = req.query || {};
 
-    console.log("QUERY PARAMS:", q);
     const qp = {
         ...q,
         page: q.page ?? q.pagina,
@@ -13,24 +12,21 @@ export async function getFilteredPedidos(connection, req) {
         sort_by: q.sort_by ?? q.sortBy,
         sort_dir: q.sort_dir ?? q.sortDir,
     };
-    console.log("QP", qp);
 
     const filtros = {
-        did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
+        did_cliente: toIntList(q.did_cliente),
         fecha_from: toStr(q.fecha_from),
         fecha_to: toStr(q.fecha_to),
         id_venta: toStr(q.id_venta),
         comprador: toStr(q.comprador),
-        estado: toStr(q.estado),
+        estado: q.estado?.split(",").map(s => s.trim()).filter(Boolean),
         ot: toStr(q.ot),
-        flex: q.flex != '' ? toIntList(q.flex) : undefined,
+        flex: toIntList(q.flex),
         total_from: q.total_from != null && q.total_from !== "" ? Number(q.total_from) : undefined,
         total_to: q.total_to != null && q.total_to !== "" ? Number(q.total_to) : undefined,
         armado: toBool01(q.armado, undefined),
-        descargado: toBool01(q.descargado, undefined), // por si lo seguís usando
+        descargado: toBool01(q.descargado, undefined),
     };
-
-    console.log("Filtros", filtros);
 
     const { page, pageSize, offset } = makePagination(qp, {
         pageKey: "page",
@@ -40,12 +36,10 @@ export async function getFilteredPedidos(connection, req) {
         maxPageSize: 100,
     });
 
-    // Ordenamientos por ALIAS tal cual pediste
     const sortMap = {
         did: "p.did",
         did_cliente: "p.did_cliente",
         fecha: "p.fecha_venta",
-
         id_venta: "p.number",
         comprador: "p.buyer_name",
         estado: "p.status",
@@ -60,18 +54,16 @@ export async function getFilteredPedidos(connection, req) {
         dirKey: "sort_dir",
     });
 
-    // WHERE usando SIEMPRE las columnas reales
     const where = new SqlWhere().add("p.elim = 0");
 
-    if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
-
+    if (filtros.did_cliente !== undefined) where.in("p.did_cliente", filtros.did_cliente);
 
     if (filtros.fecha_from) where.add("p.fecha_venta >= ?", [filtros.fecha_from]);
     if (filtros.fecha_to) where.add("p.fecha_venta <= ?", [filtros.fecha_to]);
 
     if (filtros.id_venta) where.likeEscaped("p.number", filtros.id_venta, { caseInsensitive: true });
     if (filtros.comprador) where.likeEscaped("p.buyer_name", filtros.comprador, { caseInsensitive: true });
-    if (filtros.estado) where.likeEscaped("p.status", filtros.estado, { caseInsensitive: true });
+    if (filtros.estado) where.in("p.status", filtros.estado);
     if (filtros.ot) where.likeEscaped("p.ot", filtros.ot, { caseInsensitive: true });
 
     if (Number.isFinite(filtros.total_from)) where.add("p.total_amount >= ?", [filtros.total_from]);
@@ -126,7 +118,7 @@ export async function getFilteredPedidos(connection, req) {
     return {
         success: true,
         message: "Pedidos obtenidos correctamente",
-        data: rows, // ya vienen con alias
+        data: rows,
         meta: buildMeta({ page, pageSize, totalItems: total, filters: filtersForMeta }),
     };
 }

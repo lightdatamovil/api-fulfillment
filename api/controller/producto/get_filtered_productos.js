@@ -1,4 +1,4 @@
-import { toStr, toBool01, pickNonEmpty } from "lightdata-tools";
+import { toStr, toBool01, pickNonEmpty, toIntList } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
 /**
@@ -25,9 +25,7 @@ export async function getFilteredProductos(connection, req) {
 
     const filtros = {
         titulo: toStr(q.titulo)?.trim(),
-        did_cliente: q.did_cliente?.trim()
-            ? Number(q.did_cliente)
-            : undefined,
+        did_cliente: toIntList(q.did_cliente),
         habilitado: toBool01(q.habilitado, undefined),
         sku: toStr(q.sku)?.trim(),
     };
@@ -60,11 +58,9 @@ export async function getFilteredProductos(connection, req) {
         .add("p.superado = 0");
 
     if (filtros.titulo) where.likeEscaped("p.titulo", filtros.titulo, { caseInsensitive: true });
-    if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
+    if (filtros.did_cliente !== undefined) where.in("p.did_cliente", filtros.did_cliente);
     if (filtros.habilitado !== undefined) where.eq("p.habilitado", filtros.habilitado);
     if (filtros.sku) where.likeEscaped("p.sku", filtros.sku, { caseInsensitive: true });
-
-
 
     const { whereSql, params } = where.finalize();
 
