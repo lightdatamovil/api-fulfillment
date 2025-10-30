@@ -64,7 +64,7 @@ export async function getPedidoById(db, req) {
         longitud: pd.longitud,
     }
 
-    const pedido = {
+    const data = {
 
         did_pedido: p.did,
         did_cliente: p.did_cliente,
@@ -92,7 +92,7 @@ export async function getPedidoById(db, req) {
     return {
         success: true,
         message: "Pedido obtenido correctamente",
-        pedido,
+        data,
         meta: { timestamp: new Date().toISOString() },
     };
 }
