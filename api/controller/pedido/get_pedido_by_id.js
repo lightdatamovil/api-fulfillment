@@ -27,52 +27,72 @@ export async function getPedidoById(db, req) {
         [did]
     );
 
-    const historial = await executeQuery(
+    const direccion = await executeQuery(
         db,
-        `SELECT did_pedido, estado, quien, autofecha 
-     FROM pedidos_historial 
-     WHERE did_pedido = ? AND elim = 0 
-     ORDER BY autofecha DESC`,
+        `SELECT * FROM pedidos_ordenes_direcciones_destino WHERE did_pedido = ? AND elim = 0 LIMIT 1`,
         [did]
     );
+
+
     const p = pedidoRows[0]
+    const pd = direccion[0] || {}
+
+    const pp = items[0]
+    const pedido_productos = {
+        did: pp.did,
+        did_pedido: pp.did_pedido,
+        did_producto: pp.did_producto,
+        did_producto_variante_valor: pp.variacion,
+        cantidad: pp.cantidad,
+
+
+
+    }
+    const comprador = {
+        nombre: p.buyer_name,
+        email: p.buyer_email,
+        telefono: p.buyer_phone,
+    }
+    const direccion_pedido = {
+        calle: pd.calle,
+        numero: pd.numero,
+        localidad: pd.localidad,
+        provincia: pd.provincia,
+        pais: pd.pais,
+        cp: pd.cp,
+        latitud: pd.latitud,
+        longitud: pd.longitud,
+    }
+
     const pedido = {
 
         did_pedido: p.did,
         did_cliente: p.did_cliente,
+        did_deposito: p.did_deposito,
         fecha_venta: p.fecha_venta,
         estado: p.status,
         id_venta: p.number,
-        comprador: p.buyer_name,
+
         total: p.total_amount,
         observacion: p.observaciones,
         armado: p.armado,
+        deadline: p.deadline,
+        ot: p.ot,
+        comprador: comprador,
+        direccion: direccion_pedido,
+        producto: pedido_productos,
 
 
-        ot: p.ot
 
-
-    }
-
-    const pp = items[0]
-    const pedido_productos = {
-
-        did_pedido: pp.did_pedido,
-        did_producto: pp.did_producto,
-        variacion: pp.variacion,
-        cantidad: pp.cantidad,
 
 
     }
+
 
     return {
         success: true,
         message: "Pedido obtenido correctamente",
-        data: {
-            pedido: pedido,
-            pedido_productos: pedido_productos,
-            historial,
-        },
+        pedido,
         meta: { timestamp: new Date().toISOString() },
     };
 }
