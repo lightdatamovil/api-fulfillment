@@ -20,7 +20,7 @@ export async function getFilteredPedidos(connection, req) {
         id_venta: toStr(q.id_venta),
         comprador: toStr(q.comprador),
         estado: q.estado?.split(",").map(s => s.trim()).filter(Boolean),
-        ot: toStr(q.ot),
+        trabajado: toStr(q.trabajado),
         flex: toIntList(q.flex),
         total_from: q.total_from != null && q.total_from !== "" ? Number(q.total_from) : undefined,
         total_to: q.total_to != null && q.total_to !== "" ? Number(q.total_to) : undefined,
@@ -45,7 +45,7 @@ export async function getFilteredPedidos(connection, req) {
         estado: "p.status",
         total: "p.total_amount",
         armado: "p.armado",
-        ot: "p.ot",
+        trabajado: "p.trabajado",
         flex: "p.flex",
     };
     const { orderSql } = makeSort(qp, sortMap, {
@@ -64,7 +64,7 @@ export async function getFilteredPedidos(connection, req) {
     if (filtros.id_venta) where.likeEscaped("p.number", filtros.id_venta, { caseInsensitive: true });
     if (filtros.comprador) where.likeEscaped("p.buyer_name", filtros.comprador, { caseInsensitive: true });
     if (filtros.estado) where.in("p.status", filtros.estado);
-    if (filtros.ot) where.likeEscaped("p.ot", filtros.ot, { caseInsensitive: true });
+    if (filtros.trabajado) where.likeEscaped("p.trabajado", filtros.trabajado, { caseInsensitive: true });
 
     if (Number.isFinite(filtros.total_from)) where.add("p.total_amount >= ?", [filtros.total_from]);
     if (Number.isFinite(filtros.total_to)) where.add("p.total_amount <= ?", [filtros.total_to]);
@@ -89,7 +89,7 @@ export async function getFilteredPedidos(connection, req) {
       p.total_amount     AS total,
       p.armado           AS armado,
       p.descargado       AS descargado,
-      p.flex
+      p.flex, p.trabajado
    
     `,
         from: "FROM pedidos p",
@@ -111,7 +111,7 @@ export async function getFilteredPedidos(connection, req) {
         total_from: Number.isFinite(filtros.total_from) ? filtros.total_from : undefined,
         total_to: Number.isFinite(filtros.total_to) ? filtros.total_to : undefined,
         armado: filtros.armado,
-        ot: filtros.ot,
+        trabajado: filtros.trabajado,
         flex: filtros.flex
     });
 

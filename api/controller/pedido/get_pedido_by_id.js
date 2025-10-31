@@ -76,7 +76,7 @@ export async function getPedidoById(db, req) {
         observacion: p.observaciones,
         armado: p.armado,
         deadline: p.deadline,
-        ot: p.ot,
+        trabajado: p.trabajado,
         comprador,
         direccion: direccion_pedido,
         productos, // ✅ ahora es un array

@@ -5,6 +5,7 @@ export async function createOrdenTrabajo(db, req) {
     const {
         estado,
         asignada,
+        did_cliente,
         fecha_inicio,
         fecha_fin,
         pedidos = [],
@@ -17,6 +18,7 @@ export async function createOrdenTrabajo(db, req) {
         data: {
             estado,
             asignada,
+            did_cliente,
             fecha_inicio,
             fecha_fin
         },
