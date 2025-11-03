@@ -34,7 +34,6 @@ export async function createProducto(dbConnection, req) {
 
     const { userId, companyId } = req.user;
 
-    // 🧩 Validación de  SKU duplicado
     await LightdataORM.select({
         dbConnection,
         table: "productos",
@@ -42,7 +41,6 @@ export async function createProducto(dbConnection, req) {
         throwIfExists: true,
     });
 
-    // 🧩 Verificación de cliente existente
     const [client] = await LightdataORM.select({
         dbConnection,
         table: "clientes",
