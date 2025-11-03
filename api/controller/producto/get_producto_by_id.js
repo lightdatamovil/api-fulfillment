@@ -25,8 +25,7 @@ export async function getProductoById(dbConnection, req) {
 
   const prodRows = await executeQuery(
     dbConnection,
-    `
-      SELECT did, did_cliente, titulo, descripcion, imagen, habilitado, es_combo,
+    `SELECT did, did_cliente, titulo, descripcion, imagen, habilitado, es_combo,
              posicion, cm3, alto, ancho, profundo, did_curva, sku, ean
       FROM productos
       WHERE did = ? AND elim = 0 AND superado = 0
@@ -81,10 +80,9 @@ export async function getProductoById(dbConnection, req) {
     // Combos
     executeQuery(
       dbConnection,
-      `
-        SELECT did, did_producto_combo AS did_producto, cantidad
-        FROM productos_combos
-        WHERE did_producto = ? AND elim = 0 AND superado = 0
+      `SELECT did, did_producto_combo AS did_producto, cantidad
+       FROM productos_combos
+       WHERE did_producto = ? AND elim = 0 AND superado = 0
       `,
       [didProducto]
     ),
@@ -105,6 +103,7 @@ export async function getProductoById(dbConnection, req) {
   }));
 
   const grupos = (ecRows ?? []).map(r => ({       // PARA AGRUPAR
+    did: Number(r.did),
     did_producto_variante_valor: Number(r.did_producto_variante_valor), // dato opcional
     didCuenta: Number(r.did_cuenta),
     sku: r.sku ?? "",
@@ -115,6 +114,8 @@ export async function getProductoById(dbConnection, req) {
 
   // 3) ECOMMERCE: un bloque por agrupación, filtrando por DID
   const ecommerce = agrupaciones.map(c => ({
+    //agregar did
+    did: c.did,
     variantes_valores: c.variantes_valores,
     grupos: grupos.filter(g => g.did_producto_variante_valor === c.did),
   }));
