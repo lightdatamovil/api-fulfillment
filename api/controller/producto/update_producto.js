@@ -1,4 +1,6 @@
 import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM } from "lightdata-tools";
+import { urlSubidaImagenes } from "../../db.js";
+import axios from "axios";
 
 export async function updateProducto(dbConnection, req) {
   const {
@@ -7,7 +9,7 @@ export async function updateProducto(dbConnection, req) {
     titulo,
     sku,
     descripcion,
-    imagen,
+    files,
     habilitado,
     es_combo,
     posicion,
@@ -23,6 +25,7 @@ export async function updateProducto(dbConnection, req) {
   } = req.body;
 
   const quien = Number(req.user.userId);
+  const { companyId } = req.user;
   const didProducto = Number(did);
 
   if (!Number.isFinite(didProducto) || didProducto <= 0) {
@@ -41,19 +44,43 @@ export async function updateProducto(dbConnection, req) {
   });
   const curr = currRows[0];
 
+  //files
+  let filesInsert;
+  if (files == null) {
+    filesInsert = curr.files; //no hay cambios
+  } else if (files.length === 0) {
+    filesInsert = null; //borrar todo
+  } else {
+    // files es un base 64
+    const urlResponse = await axios.post(
+      urlSubidaImagenes,
+      {
+        file: files[0],
+        companyId: companyId,
+        clientId: did_cliente,
+        productId: didProducto,
+      },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    filesInsert.push(urlResponse.data.file.url);
+
+  }
+
+  //insertar producto de nuevo todo de nuevo
   const newData = {
-    did_cliente: isDefined(did_cliente) ? Number(did_cliente) : curr.did_cliente,
-    titulo: isNonEmpty(titulo) ? String(titulo).trim() : curr.titulo,
-    descripcion: isNonEmpty(descripcion) ? String(descripcion).trim() : curr.descripcion,
-    imagen: isNonEmpty(imagen) ? String(imagen).trim() : curr.imagen,
-    habilitado: isDefined(habilitado) ? number01(habilitado) : curr.habilitado,
-    es_combo: isDefined(es_combo) ? number01(es_combo) : curr.es_combo,
-    posicion: isDefined(posicion) ? Number(posicion) : curr.posicion ?? 0,
-    cm3: isDefined(cm3) ? Number(cm3) : curr.cm3 ?? 0,
-    alto: isDefined(alto) ? Number(alto) : curr.alto ?? 0,
-    ancho: isDefined(ancho) ? Number(ancho) : curr.ancho ?? 0,
-    profundo: isDefined(profundo) ? Number(profundo) : curr.profundo ?? 0,
-    sku: isNonEmpty(sku) ? String(sku).trim() : curr.sku,
+    did_cliente,
+    titulo,
+    descripcion,
+    filesInsert,
+    habilitado,
+    es_combo,
+    posicion,
+    cm3,
+    alto,
+    ancho,
+    profundo,
+    sku,
   };
 
   const newIds = await LightdataORM.update({
@@ -64,6 +91,7 @@ export async function updateProducto(dbConnection, req) {
     quien,
   });
 
+  // revisar si es combo
   const newId = newIds[0];
   const newEsCombo = newData.es_combo;
 
