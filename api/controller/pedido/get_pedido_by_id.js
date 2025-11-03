@@ -21,58 +21,71 @@ export async function getPedidoById(db, req) {
         throw new CustomException({ title: "No encontrado", message: `No existe pedido con did ${did}` });
     }
 
+    // Trae todos los productos asociados al pedido
     const items = await executeQuery(
         db,
         `SELECT * FROM pedidos_productos WHERE did_pedido = ? AND elim = 0 AND superado = 0`,
         [did]
     );
 
-    const historial = await executeQuery(
+    const direccion = await executeQuery(
         db,
-        `SELECT did_pedido, estado, quien, autofecha 
-     FROM pedidos_historial 
-     WHERE did_pedido = ? AND elim = 0 
-     ORDER BY autofecha DESC`,
+        `SELECT * FROM pedidos_ordenes_direcciones_destino WHERE did_pedido = ? AND elim = 0 LIMIT 1`,
         [did]
     );
-    const p = pedidoRows[0]
-    const pedido = {
 
-        did_pedido: p.did,
+    const p = pedidoRows[0];
+    const pd = direccion[0] || {};
+
+    // 🔹 Convertimos los ítems en un array de objetos
+    const productos = items.map(pp => ({
+        did: pp.did,
+        did_producto: pp.did_producto,
+        did_producto_variante_valor: pp.variacion,
+        cantidad: pp.cantidad,
+        precio_unitario: pp.precio_unitario,
+        subtotal: pp.subtotal,
+    }));
+
+    const comprador = {
+        nombre: p.buyer_name,
+        email: p.buyer_email,
+        telefono: p.buyer_phone,
+    };
+
+    const direccion_pedido = {
+        calle: pd.calle,
+        numero: pd.numero,
+        localidad: pd.localidad,
+        provincia: pd.provincia,
+        pais: pd.pais,
+        cp: pd.cp,
+        latitud: pd.latitud,
+        longitud: pd.longitud,
+        referencia: pd.destination_coments,
+    };
+
+    const data = {
+        did: p.did,
         did_cliente: p.did_cliente,
+        did_deposito: p.did_deposito,
         fecha_venta: p.fecha_venta,
         estado: p.status,
         id_venta: p.number,
-        comprador: p.buyer_name,
         total: p.total_amount,
         observacion: p.observaciones,
         armado: p.armado,
-
-
-        ot: p.ot
-
-
-    }
-
-    const pp = items[0]
-    const pedido_productos = {
-
-        did_pedido: pp.did_pedido,
-        did_producto: pp.did_producto,
-        variacion: pp.variacion,
-        cantidad: pp.cantidad,
-
-
-    }
+        deadline: p.deadline,
+        trabajado: p.trabajado,
+        comprador,
+        direccion: direccion_pedido,
+        productos, // ✅ ahora es un array
+    };
 
     return {
         success: true,
         message: "Pedido obtenido correctamente",
-        data: {
-            pedido: pedido,
-            pedido_productos: pedido_productos,
-            historial,
-        },
+        data,
         meta: { timestamp: new Date().toISOString() },
     };
 }

@@ -1,11 +1,10 @@
 // controller/pedidos/get_filtered_pedidos.js
-import { toStr, toBool01, pickNonEmpty } from "lightdata-tools";
+import { toStr, toBool01, pickNonEmpty, toIntList } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
 export async function getFilteredPedidos(connection, req) {
     const q = req.query || {};
 
-    // Normalizo paginado/orden
     const qp = {
         ...q,
         page: q.page ?? q.pagina,
@@ -14,39 +13,19 @@ export async function getFilteredPedidos(connection, req) {
         sort_dir: q.sort_dir ?? q.sortDir,
     };
 
-    // =========================
-    // ALIAS (lo que manda el cliente) --> Columnas reales BD (p.*)
-    // did_cliente -> p.did_cliente
-    // fecha_*     -> p.fecha_venta   (rango)
-    // did_cuenta  -> p.did_cuenta
-    // id_venta    -> p.number        (LIKE)
-    // comprador   -> p.buyer_name    (LIKE)
-    // estado      -> p.status        (LIKE)
-    // total_*     -> p.total_amount  (rango)
-    // armado      -> p.armado        (0/1)
-    // ot          -> p.ot            (LIKE)
-    // =========================
-
-    // Filtros (aceptamos sólo los alias que definiste)
     const filtros = {
-        did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
-
-
+        did_cliente: toIntList(q.did_cliente),
         fecha_from: toStr(q.fecha_from),
         fecha_to: toStr(q.fecha_to),
-
         id_venta: toStr(q.id_venta),
         comprador: toStr(q.comprador),
-        estado: toStr(q.estado),
-        ot: toStr(q.ot),
-        flex: q.flex,
-
-
+        estado: q.estado?.split(",").map(s => s.trim()).filter(Boolean),
+        trabajado: toStr(q.trabajado),
+        flex: toIntList(q.flex),
         total_from: q.total_from != null && q.total_from !== "" ? Number(q.total_from) : undefined,
         total_to: q.total_to != null && q.total_to !== "" ? Number(q.total_to) : undefined,
-
         armado: toBool01(q.armado, undefined),
-        descargado: toBool01(q.descargado, undefined), // por si lo seguís usando
+        descargado: toBool01(q.descargado, undefined),
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
@@ -57,18 +36,16 @@ export async function getFilteredPedidos(connection, req) {
         maxPageSize: 100,
     });
 
-    // Ordenamientos por ALIAS tal cual pediste
     const sortMap = {
         did: "p.did",
         did_cliente: "p.did_cliente",
         fecha: "p.fecha_venta",
-
         id_venta: "p.number",
         comprador: "p.buyer_name",
         estado: "p.status",
         total: "p.total_amount",
         armado: "p.armado",
-        ot: "p.ot",
+        trabajado: "p.trabajado",
         flex: "p.flex",
     };
     const { orderSql } = makeSort(qp, sortMap, {
@@ -77,19 +54,17 @@ export async function getFilteredPedidos(connection, req) {
         dirKey: "sort_dir",
     });
 
-    // WHERE usando SIEMPRE las columnas reales
     const where = new SqlWhere().add("p.elim = 0");
 
-    if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
-
+    if (filtros.did_cliente !== undefined) where.in("p.did_cliente", filtros.did_cliente);
 
     if (filtros.fecha_from) where.add("p.fecha_venta >= ?", [filtros.fecha_from]);
     if (filtros.fecha_to) where.add("p.fecha_venta <= ?", [filtros.fecha_to]);
 
     if (filtros.id_venta) where.likeEscaped("p.number", filtros.id_venta, { caseInsensitive: true });
     if (filtros.comprador) where.likeEscaped("p.buyer_name", filtros.comprador, { caseInsensitive: true });
-    if (filtros.estado) where.likeEscaped("p.status", filtros.estado, { caseInsensitive: true });
-    if (filtros.ot) where.likeEscaped("p.ot", filtros.ot, { caseInsensitive: true });
+    if (filtros.estado) where.in("p.status", filtros.estado);
+    if (filtros.trabajado) where.likeEscaped("p.trabajado", filtros.trabajado, { caseInsensitive: true });
 
     if (Number.isFinite(filtros.total_from)) where.add("p.total_amount >= ?", [filtros.total_from]);
     if (Number.isFinite(filtros.total_to)) where.add("p.total_amount <= ?", [filtros.total_to]);
@@ -97,7 +72,7 @@ export async function getFilteredPedidos(connection, req) {
     if (filtros.armado !== undefined) where.eq("p.armado", filtros.armado);
     if (filtros.descargado !== undefined) where.eq("p.descargado", filtros.descargado);
 
-    if (filtros.flex !== undefined) where.eq("p.flex", filtros.flex);
+    if (filtros.flex !== undefined) where.in("p.flex", filtros.flex);
 
     const { whereSql, params } = where.finalize();
 
@@ -114,7 +89,7 @@ export async function getFilteredPedidos(connection, req) {
       p.total_amount     AS total,
       p.armado           AS armado,
       p.descargado       AS descargado,
-      p.flex
+      p.flex, p.trabajado
    
     `,
         from: "FROM pedidos p",
@@ -136,24 +111,14 @@ export async function getFilteredPedidos(connection, req) {
         total_from: Number.isFinite(filtros.total_from) ? filtros.total_from : undefined,
         total_to: Number.isFinite(filtros.total_to) ? filtros.total_to : undefined,
         armado: filtros.armado,
-        ot: filtros.ot,
+        trabajado: filtros.trabajado,
         flex: filtros.flex
     });
 
     return {
         success: true,
         message: "Pedidos obtenidos correctamente",
-        data: rows, // ya vienen con alias
+        data: rows,
         meta: buildMeta({ page, pageSize, totalItems: total, filters: filtersForMeta }),
     };
 }
-
-// did_cliente es did_cliente en la BD
-// fecha es fecha-venta en la BD
-//did_cuenta es did_cuenta en la BD
-// id_venta es number en la BD
-// comprador es buyer_name en la BD
-//estado es status en la BD
-//total es total_amount  en la BD
-//ot es ot en la bd
-// armado es armado en la BD
