@@ -74,6 +74,7 @@ export async function getPedidoById(db, req) {
         did_cliente: p.did_cliente,
         did_deposito: p.did_deposito,
         fecha_venta: p.fecha_venta,
+        flex: p.flex,
         estado: p.status,
         id_venta: p.number,
         total: p.total_amount,
