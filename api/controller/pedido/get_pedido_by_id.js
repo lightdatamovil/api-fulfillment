@@ -46,7 +46,7 @@ export async function getPedidoById(db, req) {
         precio_unitario: pp.precio_unitario,
         subtotal: pp.subtotal,
         descripcion: pp.descripcion,
-        variante_descripcion: pp.variation_atributes,
+        variante_descripcion: pp.variation_attributes,
 
 
     }));
