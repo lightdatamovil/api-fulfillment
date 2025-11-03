@@ -132,8 +132,10 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         .map((p) => ({
             did_pedido: didPedido,
             did_producto: Number(p.did_producto),
-            variacion: p.did_producto_variante_valor,
+            did_producto_variante_valor: p.did_producto_variante_valor,
             cantidad: Number(p.cantidad),
+            variation_atributes: p.variante_descripcion,
+            descripcion: p.descripcion,
 
         }));
 
