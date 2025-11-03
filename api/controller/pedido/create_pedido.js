@@ -134,6 +134,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
             did_producto: Number(p.did_producto),
             variacion: p.did_producto_variante_valor,
             cantidad: Number(p.cantidad),
+
         }));
 
     if (rowsDetalle.length > 0) {
