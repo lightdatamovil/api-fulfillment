@@ -27,7 +27,9 @@ export async function preloader(dbConnection) {
     if (row.did_productos_variantes_valores) {
       acc[row.did].valores.push({
         did_productos_variantes_valores: row.did_productos_variantes_valores,
-        valores: row.valores_raw.split(",").map(v => Number(v.trim()))
+        valores: row.valores_raw
+          ? row.valores_raw.split(",").map(v => Number(v.trim()))
+          : []
       });
     }
     delete acc[row.did].did_productos_variantes_valores;
@@ -164,7 +166,6 @@ export async function preloader(dbConnection) {
     perfil: u.perfil,
     telefono: u.telefono,
     usuario: u.usuario,
-    imagen: u.imagen,
     codigo_cliente: u.codigo_cliente,
     app_habilitada: u.app_habilitada,
     accesos: u.accesos,
