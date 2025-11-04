@@ -13,7 +13,7 @@ const ordenes = Router();
 ordenes.post(
     "/",
     buildHandlerWrapper({
-        optional: ["estado", "did_usuario",],
+        optional: ["estado", "did_usuario", "did_pedidos"],
         controller: async ({ db, req }) => createOrdenTrabajo(db, req),
     })
 );
