@@ -12,10 +12,7 @@ clientes.post(
   '/',
   buildHandlerWrapper({
     optional: ['nombre_fantasia', 'razon_social', 'codigo', 'habilitado', 'observaciones', 'direcciones', 'contactos', 'cuentas'],
-    controller: async ({ db, req }) => {
-      const result = await createCliente(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => createCliente({ db, req }),
   })
 );
 
@@ -24,10 +21,7 @@ clientes.put(
   buildHandlerWrapper({
     requiredParams: ['clienteId'],
     optional: ['nombre_fantasia', 'razon_social', 'codigo', 'habilitado', 'observaciones', 'direcciones', 'contactos', 'cuentas'],
-    controller: async ({ db, req }) => {
-      const result = await editCliente(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => editCliente({ db, req }),
   })
 );
 
@@ -35,20 +29,14 @@ clientes.get(
   '/:clienteId',
   buildHandlerWrapper({
     requiredParams: ['clienteId'],
-    controller: async ({ db, req }) => {
-      const result = await getClienteById(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => getClienteById({ db, req }),
   })
 );
 
 clientes.get(
   '/',
   buildHandlerWrapper({
-    controller: async ({ db, req }) => {
-      const result = await getFilteredClientes(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => getFilteredClientes({ db, req }),
   })
 );
 
@@ -57,10 +45,7 @@ clientes.delete(
   buildHandlerWrapper({
     requiredParams: ['clienteId'],
     optional: ["nombre_fantasia", "razon_social", "codigo", "habilitado", "observaciones", "direcciones", "contactos", "cuentas"],
-    controller: async ({ db, req }) => {
-      const result = await deleteCliente(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => deleteCliente({ db, req }),
   })
 );
 

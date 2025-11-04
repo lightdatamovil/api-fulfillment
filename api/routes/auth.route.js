@@ -14,35 +14,8 @@ auth.post(
             const company = await companiesService.getByCode(companyCode);
             return company;
         },
-        controller: async ({ req, db }) => await login({ db, req }),
+        controller: ({ req, db }) => login({ db, req }),
     })
 );
-
-// auth.get(
-//     '/company-identification/:companyCode',
-//     buildHandlerWrapper({
-//         requiredParams: ['companyCode'],
-//         companyResolver2: async ({ req }) => {
-//             const { companyCode } = req.params;
-//             const company = await companiesService.getByCode(companyCode);
-//             return company;
-//         },
-//         controller: async ({ company }) => {
-//             const result = await identification(company);
-//             return result;
-//         },
-//     })
-// );
-
-// auth.get(
-//     '/login-app',
-//     buildHandlerWrapper({
-//         required: ['username', 'password', 'companyId'],
-//         controller: async ({ db, req }) => {
-//             const result = await loginApp(db, req);
-//             return result;
-//         },
-//     })
-// );
 
 export default auth;

@@ -1,7 +1,7 @@
 // clientes.controller.js
 import { CustomException, executeQuery, Status } from "lightdata-tools";
 
-export async function getClienteById(connection, req) {
+export async function getClienteById({ db, req }) {
     const { clienteId } = req.params;
 
     const sql = `
@@ -50,7 +50,7 @@ export async function getClienteById(connection, req) {
       AND c.did = ?
   `;
 
-    const rows = await executeQuery(connection, sql, [clienteId]);
+    const rows = await executeQuery(db, sql, [clienteId]);
 
     if (!rows?.length) {
         throw new CustomException({

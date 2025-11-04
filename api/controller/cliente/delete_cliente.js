@@ -1,6 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function deleteCliente(db, req) {
+export async function deleteCliente({ db, req }) {
     const { clienteId } = req.params;
     const { userId } = req.user;
 

@@ -7,10 +7,7 @@ const preload = Router();
 preload.get(
     '/',
     buildHandlerWrapper({
-        controller: async ({ db }) => {
-            const result = await preloader(db);
-            return result;
-        },
+        controller: async ({ db }) => await preloader({ db }),
     })
 );
 

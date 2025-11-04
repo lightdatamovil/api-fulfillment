@@ -8,7 +8,7 @@ import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functio
  *   nombre_fantasia, codigo, razon_social, habilitado,
  *   pagina|page, cantidad|page_size, sort_by, sort_dir
  */
-export async function getFilteredClientes(connection, req) {
+export async function getFilteredClientes({ db, req }) {
   const q = req.query;
 
   const qp = { ...q, page: q.page ?? q.pagina, page_size: q.page_size ?? q.cantidad };
@@ -49,7 +49,7 @@ export async function getFilteredClientes(connection, req) {
   const { whereSql, params } = where.finalize();
 
   const countSql = `SELECT COUNT(*) AS total FROM clientes c ${whereSql}`;
-  const [{ total = 0 } = {}] = await executeQuery(connection, countSql, params);
+  const [{ total = 0 } = {}] = await executeQuery(db, countSql, params);
 
   const dataSql = `
     SELECT
@@ -66,7 +66,7 @@ export async function getFilteredClientes(connection, req) {
     LIMIT ? OFFSET ?;
   `;
 
-  const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset]);
+  const rows = await executeQuery(db, dataSql, [...params, pageSize, offset]);
 
   const clientesFinal = rows.map(r => ({
     did: r.did,

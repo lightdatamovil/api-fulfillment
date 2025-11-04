@@ -6,7 +6,6 @@ import { deleteLogistica } from "../controller/logistica/delete_logistica.js";
 import { editLogistica } from "../controller/logistica/edit_logistica.js";
 import { getFilteredLogisticas } from "../controller/logistica/get_filtered_logistica.js";
 
-
 const logisticas = Router();
 
 logisticas.post(
@@ -14,10 +13,7 @@ logisticas.post(
   buildHandlerWrapper({
     required: ['nombre', 'logisticaLD', 'codigo', 'direcciones', 'habilitado'],
     optional: ['codigoLD'],
-    controller: async ({ db, req }) => {
-      const result = await createlogistica(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => createlogistica({ db, req }),
   })
 );
 
@@ -25,10 +21,7 @@ logisticas.get(
   '/:logisticaDid',
   buildHandlerWrapper({
     requiredParams: ['logisticaDid'],
-    controller: async ({ db, req }) => {
-      const result = await getlogisticaById(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => getlogisticaById({ db, req }),
   })
 );
 
@@ -36,10 +29,7 @@ logisticas.delete(
   '/:logisticaDid',
   buildHandlerWrapper({
     requiredParams: ['logisticaDid'],
-    controller: async ({ db, req }) => {
-      const result = await deleteLogistica(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => deleteLogistica({ db, req }),
   })
 );
 
@@ -48,24 +38,16 @@ logisticas.put(
   buildHandlerWrapper({
     requiredParams: ['logisticaDid'],
     optional: ['nombre', 'logisticaLD', 'codigo', 'codigoLD', 'direcciones', 'habilitado'],
-    controller: async ({ db, req }) => {
-      const result = await editLogistica(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => editLogistica({ db, req }),
   })
 );
-
 
 
 logisticas.get(
   '/',
   buildHandlerWrapper({
-    controller: async ({ db, req }) => {
-      const result = await getFilteredLogisticas(db, req);
-      return result;
-    },
+    controller: ({ db, req }) => getFilteredLogisticas({ db, req }),
   })
 );
-
 
 export default logisticas;

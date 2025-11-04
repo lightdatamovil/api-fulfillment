@@ -11,7 +11,7 @@ import { LightdataORM } from "lightdata-tools";
  * Estrategia: versionado automático con LightdataORM.update() / delete().
  * Sin transacciones.
  */
-export async function editCliente(db, req) {
+export async function editCliente({ db, req }) {
     const { userId } = req.user;
     const { clienteId } = req.params;
     const { direcciones, contactos, cuentas, nombre_fantasia, razon_social, codigo, observaciones, habilitado } = req.body;

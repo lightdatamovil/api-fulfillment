@@ -9,64 +9,44 @@ import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 
 const curvas = Router();
 
-// POST /curvas  (crear)
 curvas.post(
     "/",
     buildHandlerWrapper({
         requiredParams: ["userId"],
         optional: ["categorias", "nombre", "codigo", "habilitado"],
-        controller: async ({ db, req }) => {
-            const result = await createCurva(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => createCurva({ db, req }),
     })
 );
 
-// PUT /curvas/:curvaDid  (editar)
 curvas.put(
     "/:curvaDid",
     buildHandlerWrapper({
         requiredParams: ["userId", "curvaDid"],
         optional: ["nombre", "categorias", "codigo", "habilitado"],
-        controller: async ({ db, req }) => {
-            const result = await editCurva(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => editCurva({ db, req }),
     })
 );
 
-// DELETE /curvas/:curvaDid  (eliminar - soft delete)
 curvas.delete(
     "/:curvaDid",
     buildHandlerWrapper({
         requiredParams: ["userId", "curvaDid"],
-        controller: async ({ db, req }) => {
-            const result = await deleteCurva(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => deleteCurva({ db, req }),
     })
 );
 
-// GET /curvas/:curvaDid  (by id)
 curvas.get(
     "/:curvaDid",
     buildHandlerWrapper({
         requiredParams: ["curvaDid"],
-        controller: async ({ db, req }) => {
-            const result = await getCurvaById(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => getCurvaById({ db, req }),
     })
 );
 
-// GET /curvas  (listado filtrado/paginado)
 curvas.get(
     "/",
     buildHandlerWrapper({
-        controller: async ({ db, req }) => {
-            const result = await getFilteredCurvas(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => getFilteredCurvas({ db, req }),
     })
 );
 

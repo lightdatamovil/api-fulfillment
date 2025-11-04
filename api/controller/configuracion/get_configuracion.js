@@ -1,13 +1,10 @@
 import { LightdataORM } from "lightdata-tools";
 
-// src/endpoints/empresas/get_modo_trabajo.js
-export async function getModoTrabajo(connection) {
+export async function getModoTrabajo({ db }) {
 
     const [row] = await LightdataORM.select({
-        connection,
+        connection: db,
         table: "sistema_empresa",
-        //! SACAR ESTO CON LA VERSION 1.4.70 DE LIGHTDATA TOOLS
-        where: { elim: 0 },
         select: ["modo_trabajo"],
     });
 
@@ -22,6 +19,6 @@ export async function getModoTrabajo(connection) {
     return {
         success: true,
         message: "Modo de trabajo obtenido correctamente",
-        data: { modo_trabajo: row.modo_trabajo }, // si preferís camelCase, dejá solo modoTrabajo
+        data: { modo_trabajo: row.modo_trabajo },
     };
 }

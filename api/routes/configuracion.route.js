@@ -1,7 +1,4 @@
-// rutas/curvas.routes.js
 import { Router } from "express";
-
-
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { toggleModoTrabajo } from "../controller/configuracion/modoTrabajo.js";
 import { getModoTrabajo } from "../controller/configuracion/get_configuracion.js";
@@ -12,23 +9,15 @@ configuracion.put(
     "/toggle-modo-trabajo",
     buildHandlerWrapper({
         required: ["modo_trabajo"],
-        controller: async ({ db, req }) => {
-            const result = await toggleModoTrabajo(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => toggleModoTrabajo(db, req),
     })
 );
 
 configuracion.get(
     "/",
     buildHandlerWrapper({
-        controller: async ({ db }) => {
-            const result = await getModoTrabajo(db);
-            return result;
-        },
+        controller: ({ db }) => getModoTrabajo(db),
     })
 );
-
-
 
 export default configuracion;

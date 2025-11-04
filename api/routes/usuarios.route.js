@@ -13,20 +13,14 @@ usuarios.post(
     buildHandlerWrapper({
         required: ['nombre', 'apellido', 'usuario', 'password', 'perfil'],
         optional: ['email', 'habilitado', 'telefono', 'modulo_inicial', 'codigo_cliente', 'app_habilitada', "imagen"],
-        controller: async ({ db, req }) => {
-            const result = await createUsuario(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => createUsuario({ db, req }),
     })
 );
 
 usuarios.get(
     '/',
     buildHandlerWrapper({
-        controller: async ({ db, req }) => {
-            const result = await getFilteredUsuarios(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => getFilteredUsuarios(db, req),
     })
 );
 
@@ -34,10 +28,7 @@ usuarios.get(
     '/:userId',
     buildHandlerWrapper({
         requiredParams: ['userId'],
-        controller: async ({ db, req }) => {
-            const result = await getUsuarioById(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => getUsuarioById(db, req),
     })
 );
 
@@ -45,26 +36,8 @@ usuarios.put(
     '/:userId',
     buildHandlerWrapper({
         requiredParams: ['userId'],
-        optional: [
-            "nombre",
-            "apellido",
-            "email",
-            "usuario",
-            "pass",
-            "imagen",
-            "habilitado",
-            "perfil",
-            "accesos",
-            "tipo",
-            "modulo_inicial",
-            "app_habilitada",
-            "telefono",
-            "codigo_cliente"
-        ],
-        controller: async ({ db, req }) => {
-            const result = await editUsuario(db, req);
-            return result;
-        },
+        optional: ["nombre", "apellido", "email", "usuario", "pass", "imagen", "habilitado", "perfil", "accesos", "tipo", "modulo_inicial", "app_habilitada", "telefono", "codigo_cliente"],
+        controller: ({ db, req }) => editUsuario({ db, req }),
     })
 );
 
@@ -72,10 +45,7 @@ usuarios.delete(
     '/:userDid',
     buildHandlerWrapper({
         requiredParams: ['userDid'],
-        controller: async ({ db, req }) => {
-            const result = await deleteUsuario(db, req);
-            return result;
-        },
+        controller: ({ db, req }) => deleteUsuario({ db, req }),
     })
 );
 

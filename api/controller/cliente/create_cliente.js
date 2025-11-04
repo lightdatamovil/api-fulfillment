@@ -1,6 +1,6 @@
 import { isNonEmpty, isDefined, LightdataORM, } from "lightdata-tools";
 
-export async function createCliente(db, req) {
+export async function createCliente({ db, req }) {
     const {
         nombre_fantasia,
         razon_social,
