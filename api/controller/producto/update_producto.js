@@ -217,9 +217,10 @@ export async function updateProducto(db, req) {
   let combosInsert;
 
   // combos
-  if (es_combo === 1 && Array.isArray(combos)) {
+  if (es_combo == 1) {
 
     const hayCombos = getUpdateOpsState(combos);
+    console.log('Combos a procesar:', hayCombos);
     if (hayCombos.hasRemove) {
       await LightdataORM.delete({
         db,
@@ -243,9 +244,11 @@ export async function updateProducto(db, req) {
       });
     }
     if (hayCombos.hasAdd) {
+      console.log('Entre a add combos');
+      console.log(hayCombos.add);
       const data = hayCombos.add.map(c => ({
         did_producto: didProducto,
-        didproducto_combo: c.didProducto,
+        did_producto_combo: c.didProducto,
         cantidad: Number(c.cantidad),
       }));
       const combosInsert = await LightdataORM.insert({
