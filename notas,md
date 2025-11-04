@@ -1,0 +1,30 @@
+ff
+
+base de datos:
+
+- productos variantes (combinaciones):
+- asociacion por eccomerce
+-
+
+
+
+
+
+stock
+did_producto, did_combinacion, cantidad, did_deposito, si tiene IE,
+
+
+
+detalle
+
+
+NO SE PUEDE MODIFICAR/eliminar UNA CURVA ---modificar (nombre)
+
+productos
+update: nombre, descripcion,
+
+no se modifica: curva, variantes (se pueden agregar valores)
+
+eccomerce:
+
+combos: arreglar
