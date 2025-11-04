@@ -55,6 +55,17 @@ export async function createOrdenTrabajo(db, req) {
         });
     }
 
+    await LightdataORM.update({
+        dbConnection: db,
+        table: "pedidos",
+        data: {
+            trabajada: 1
+        },
+        where: `did IN (${pedidos.map(p => p.did_pedido).join(",")})`,
+        quien: userId
+    });
+
+
     return {
         success: true,
         message: "Orden de Trabajo creada correctamente",
