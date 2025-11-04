@@ -17,6 +17,8 @@ export async function preloader(dbConnection) {
   `
   );
 
+
+
   // Agrupación en JS
   const productos = Object.values(rows.reduce((acc, row) => {
     if (!acc[row.did]) {
@@ -148,6 +150,12 @@ export async function preloader(dbConnection) {
     }
   }
   const curvas = Array.from(curvasMap.values());
+  const usuarios = await LightdataORM.select({
+    dbConnection,
+    table: "usuarios",
+    where: { elim: 0, superado: 0 },
+  });
+
 
   const insumos = await LightdataORM.select({
     dbConnection,
@@ -198,7 +206,7 @@ export async function preloader(dbConnection) {
   return {
     success: true,
     message: "Datos pre-cargados correctamente",
-    data: { productos, variantes, curvas, insumos, clientes },
+    data: { productos, variantes, curvas, insumos, clientes, usuarios },
     meta: { timestamp: new Date().toISOString() },
   };
 }
