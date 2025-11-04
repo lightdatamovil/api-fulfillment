@@ -45,7 +45,7 @@ export async function createOrdenTrabajo(db, req) {
         dbConnection: db,
         table: "pedidos",
         data: { trabajado: 1, did_ot: did_ot },
-        where: `did IN (${did_pedidos.join(",")})`,
+        where: { did: did_pedidos },
         quien: userId,
     });
 
