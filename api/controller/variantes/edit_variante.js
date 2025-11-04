@@ -1,13 +1,6 @@
 import { isNonEmpty, isDefined, number01, LightdataORM, CustomException, Status } from "lightdata-tools";
 
-/**
- * PUT /api/variantes/:varianteId
- * Versión optimizada con operaciones batch, ahora soporta:
- * - categorias.add: permite incluir "valores" para insertar junto con la categoría
- * - categorias.update: permite "valores" con { add[], update[], remove[] }
- * - categorias.remove: borra primero valores asociados y luego la categoría
- */
-export async function editVariante(db, req) {
+export async function editVariante({ db, req }) {
     const { varianteId } = req.params;
     const userId = Number(req.user.userId);
     const body = req.body;
@@ -96,7 +89,6 @@ export async function editVariante(db, req) {
             quien: userId,
         });
 
-        // recuperar dids por nombre (asumimos nombres únicos dentro de la variante)
         const nombres = batchInsertsCategorias.map((r) => r.nombre);
         const creadas = await LightdataORM.select({
             db,

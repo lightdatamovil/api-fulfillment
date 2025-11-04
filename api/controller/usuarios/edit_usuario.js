@@ -3,15 +3,7 @@ import { CustomException, hashPassword, isNonEmpty, LightdataORM, Status } from 
 import { debugHttpError } from "../../src/functions/debugEndpoint.js";
 import { urlSubidaImagenes } from "../../db.js";
 
-/**
- * Edita un usuario existente (versionado por did):
- * - Verifica existencia (did = :userId).
- * - Valida unicidad de usuario y email si se modifican.
- * - Valida campos y normaliza booleanos a 0/1.
- * - Marca superado=1 en versión activa.
- * - Inserta nueva fila con mismo did y cambios.
- */
-export async function editUsuario(db, req) {
+export async function editUsuario({ db, req }) {
     const {
         nombre, apellido, email,
         usuario, pass, imagen,
@@ -37,7 +29,6 @@ export async function editUsuario(db, req) {
 
     const passHasheada = await hashPassword(pass);
 
-    //imagen siempre viene la url, debo subir imagen si es distinta al url de bd
     let imageUrl = userVerify[0].imagen;
     if (imagen !== imageUrl) {
         if (isNonEmpty(imagen)) {

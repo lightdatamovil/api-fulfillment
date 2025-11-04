@@ -1,6 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function editPedido(db, req) {
+export async function editPedido({ db, req }) {
     const userId = Number(req.user.userId);
 
     const didPedido = Number(
@@ -9,8 +9,6 @@ export async function editPedido(db, req) {
     if (!Number.isFinite(didPedido) || didPedido <= 0) {
         throw new Error("did_pedido inválido (no viene en params ni en body).");
     }
-
-
 
     const {
         didCuenta,
@@ -22,7 +20,6 @@ export async function editPedido(db, req) {
         direccion,
     } = req.body ?? {};
 
-    // 1) update de pedido (solo lo que venga)
     const updateData = {};
     if (didCuenta !== undefined) updateData.did_cuenta = didCuenta;
     if (status !== undefined) updateData.status = status;
@@ -40,7 +37,6 @@ export async function editPedido(db, req) {
         });
     }
 
-    // 1b) historial si viene status
     if (status !== undefined) {
         await LightdataORM.insert({
             db,
@@ -57,7 +53,6 @@ export async function editPedido(db, req) {
         });
     }
 
-    // 2) productos (add/remove)
     let agregados = 0;
     let eliminados = 0;
 
@@ -106,7 +101,6 @@ export async function editPedido(db, req) {
         }
     }
 
-    // 3) direccion (upsert)
     let direccion_upserted = false;
     if (direccion && typeof direccion === "object") {
         const rowDireccion = {

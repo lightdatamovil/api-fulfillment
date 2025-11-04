@@ -2,7 +2,7 @@ import axios from "axios";
 import { CustomException, Status, toStr, toBool01, toInt, hashPassword, emptyToNull, LightdataORM, executeQuery } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
 
-export async function createUsuario(db, req) {
+export async function createUsuario({ db, req }) {
     const { companyId } = req.user;
     const data = req.body;
     const quien = req.user.userId;

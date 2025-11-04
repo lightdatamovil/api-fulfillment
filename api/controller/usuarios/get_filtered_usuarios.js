@@ -1,11 +1,9 @@
 import { toStr, toBool, toIntList, pickNonEmpty, } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta, } from "../../src/functions/query_utils.js";
 
-export async function getFilteredUsuarios(connection, req) {
+export async function getFilteredUsuarios({ db, req }) {
     const q = req.query;
 
-
-    // --- paginación & orden ---
     const { page, pageSize, offset } = makePagination(q, { maxPageSize: 100, pageKey: "page", pageSizeKey: "page_size" });
     const sortMap = {
         nombre: "nombre",
@@ -17,21 +15,19 @@ export async function getFilteredUsuarios(connection, req) {
     };
     const { orderSql } = makeSort(q, sortMap, { defaultKey: "nombre", byKey: "sort_by", dirKey: "sort_dir" });
 
-    // --- WHERE ---
     const userId = Number(req.user.userId);
     const where = new SqlWhere()
         .add("superado = 0")
         .add("elim = 0")
         .neq("did", userId);
 
-    // --- filtros normalizados ---
     const filtros = {
         nombre: toStr(q.nombre),
         usuario: toStr(q.usuario),
         apellido: toStr(q.apellido),
         email: toStr(q.email),
         perfiles: toIntList(q.perfil),
-        habilitado: toBool(q.habilitado, undefined), // 0/1 o undefined
+        habilitado: toBool(q.habilitado, undefined),
     };
 
     if (Array.isArray(filtros.perfiles) && filtros.perfiles.length === 1) {
@@ -49,8 +45,7 @@ export async function getFilteredUsuarios(connection, req) {
 
     const { whereSql, params } = where.finalize();
 
-    // --- SELECT + COUNT ---
-    const { rows, total } = await runPagedQuery(connection, {
+    const { rows, total } = await runPagedQuery(db, {
         select:
             "did, perfil, nombre, apellido, email AS email, usuario, habilitado, modulo_inicial, app_habilitada, telefono, codigo_cliente",
         from: "FROM usuarios",
@@ -61,7 +56,6 @@ export async function getFilteredUsuarios(connection, req) {
         offset,
     });
 
-    // --- meta ---
     const filtersForMeta = pickNonEmpty({
         nombre: filtros.nombre,
         usuario: filtros.usuario,

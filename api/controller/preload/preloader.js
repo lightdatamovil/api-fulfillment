@@ -1,6 +1,6 @@
 import { executeQuery, LightdataORM } from "lightdata-tools";
 
-export async function preloader(db) {
+export async function preloader({ db }) {
   const rows = await executeQuery(
     db,
     `
@@ -17,9 +17,6 @@ export async function preloader(db) {
   `
   );
 
-
-
-  // Agrupación en JS
   const productos = Object.values(rows.reduce((acc, row) => {
     if (!acc[row.did]) {
       acc[row.did] = { ...row, valores: [] };
@@ -34,7 +31,7 @@ export async function preloader(db) {
     delete acc[row.did].valores_raw;
     return acc;
   }, {}));
-  // --- Variantes (root) con categorías y valores
+
   const queryVariantes = `
     SELECT
       v.did          AS variante_did,
@@ -63,8 +60,8 @@ export async function preloader(db) {
   `;
   const rowsVariantes = await executeQuery(db, queryVariantes, []);
 
-  // Mapear variantes → categorías → valores
   const variantesMap = new Map();
+
   for (const r of rowsVariantes) {
     if (!variantesMap.has(r.variante_did)) {
       variantesMap.set(r.variante_did, {
@@ -96,7 +93,6 @@ export async function preloader(db) {
   }
   const variantes = Array.from(variantesMap.values());
 
-  // --- Curvas (relación curva ↔ categoría ↔ valores)  ✅ USANDO did_categoria
   const queryCurvas = `
     SELECT
       cu.did     AS curva_did,
@@ -125,8 +121,8 @@ export async function preloader(db) {
   `;
   const rowsCurvas = await executeQuery(db, queryCurvas, []);
 
-  // Mapear curvas → categorías → valores (SIN variantes)
   const curvasMap = new Map();
+
   for (const r of rowsCurvas) {
     if (!curvasMap.has(r.curva_did)) {
       curvasMap.set(r.curva_did, {
@@ -149,13 +145,14 @@ export async function preloader(db) {
       }
     }
   }
+
   const curvas = Array.from(curvasMap.values());
+
   const usuarios = await LightdataORM.select({
-    dbConnection,
+    db,
     table: "usuarios",
     where: { elim: 0, superado: 0 },
   });
-
 
   const insumos = await LightdataORM.select({
     db,
@@ -163,7 +160,6 @@ export async function preloader(db) {
     where: { elim: 0, superado: 0 },
   });
 
-  // --- Clientes y cuentas
   const queryClientes = `
     SELECT 
       c.did AS cliente_did,
@@ -180,9 +176,11 @@ export async function preloader(db) {
     WHERE c.elim = 0 AND c.superado = 0
     ORDER BY c.did DESC
   `;
+
   const rowsClientes = await executeQuery(db, queryClientes, []);
 
   const clientesMap = new Map();
+
   for (const row of rowsClientes) {
     if (!clientesMap.has(row.cliente_did)) {
       clientesMap.set(row.cliente_did, {
@@ -201,6 +199,7 @@ export async function preloader(db) {
       });
     }
   }
+
   const clientes = Array.from(clientesMap.values());
 
   return {

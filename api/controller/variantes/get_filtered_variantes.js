@@ -1,22 +1,8 @@
-// variantes.controller.js
 import { toStr, toBool01, pickNonEmpty } from "lightdata-tools";
-import {
-    SqlWhere,
-    makePagination,
-    makeSort,
-    runPagedQuery,
-    buildMeta,
-} from "../../src/functions/query_utils.js";
+import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
-/**
- * GET /variantes
- * Query: nombre, codigo, habilitado, (page|pagina), (page_size|cantidad), (sort_by|sortBy), (sort_dir|sortDir)
- * Tabla: variantes  (root)
- */
-export async function getFilteredVariantes(connection, req) {
+export async function getFilteredVariantes({ db, req }) {
     const q = req.query || {};
-
-    // Aliases para paginación y orden
     const qp = {
         ...q,
         page: q.page ?? q.pagina,
@@ -25,14 +11,12 @@ export async function getFilteredVariantes(connection, req) {
         sort_dir: q.sort_dir ?? q.sortDir,
     };
 
-    // Filtros normalizados
     const filtros = {
         nombre: toStr(q.nombre),
         codigo: toStr(q.codigo),
-        habilitado: toBool01(q.habilitado, undefined), // 0/1 o undefined
+        habilitado: toBool01(q.habilitado, undefined),
     };
 
-    // Paginación
     const { page, pageSize, offset } = makePagination(qp, {
         pageKey: "page",
         pageSizeKey: "page_size",
@@ -41,7 +25,6 @@ export async function getFilteredVariantes(connection, req) {
         maxPageSize: 100,
     });
 
-    // Orden (whitelist sobre columnas de 'variantes')
     const sortMap = {
         codigo: "v.codigo",
         nombre: "v.nombre",
@@ -57,7 +40,6 @@ export async function getFilteredVariantes(connection, req) {
         dirKey: "sort_dir",
     });
 
-    // WHERE (incluye ESCAPE para LIKE)
     const where = new SqlWhere()
         .add("v.elim = 0")
         .add("v.superado = 0");
@@ -68,8 +50,7 @@ export async function getFilteredVariantes(connection, req) {
 
     const { whereSql, params } = where.finalize();
 
-    // SELECT + COUNT con los mismos WHERE/PARAMS
-    const { rows, total } = await runPagedQuery(connection, {
+    const { rows, total } = await runPagedQuery(db, {
         select:
             "v.id, v.did, v.codigo, v.nombre, v.descripcion, v.habilitado, v.orden",
         from: "FROM variantes v",
@@ -80,7 +61,6 @@ export async function getFilteredVariantes(connection, req) {
         offset,
     });
 
-    // Meta + filtros (solo los provistos)
     const filtersForMeta = pickNonEmpty({
         nombre: filtros.nombre,
         codigo: filtros.codigo,

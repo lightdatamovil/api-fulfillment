@@ -1,6 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function deleteVariante(db, req) {
+export async function deleteVariante({ db, req }) {
     const { did } = req.params;
     const userId = Number(req.user?.userId ?? req.user?.id ?? 0) || null;
 

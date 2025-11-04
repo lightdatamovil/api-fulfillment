@@ -1,11 +1,6 @@
-// controller/pedidos/delete_pedido.js
 import { CustomException, executeQuery, Status } from "lightdata-tools";
 
-/**
- * Soft-delete: marca elim=1 en pedido e ítems.
- * (El historial lo dejamos para auditoría; si querés también marcarlo elim=1, descomentalo).
- */
-export async function deletePedido(db, req) {
+export async function deletePedido({ db, req }) {
     const didParam = req.body?.did ?? req.params?.did;
     const did = Number(didParam);
 
@@ -48,7 +43,6 @@ export async function deletePedido(db, req) {
             affected: {
                 pedido: updPed?.affectedRows ?? 0,
                 items: updItems?.affectedRows ?? 0,
-                // historial: updHist?.affectedRows ?? 0,
             },
         },
         meta: { timestamp: new Date().toISOString() },

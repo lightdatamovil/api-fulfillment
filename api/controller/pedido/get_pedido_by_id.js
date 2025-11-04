@@ -1,10 +1,6 @@
-// controller/pedidos/get_pedido_by_id.js
 import { CustomException, executeQuery } from "lightdata-tools";
 
-/**
- * Devuelve snapshot del pedido (did) + items vigentes + historial (todo no eliminado).
- */
-export async function getPedidoById(db, req) {
+export async function getPedidoById({ db, req }) {
     const didParam = req.params?.did ?? req.params?.id;
     const did = Number(didParam);
 
@@ -21,7 +17,6 @@ export async function getPedidoById(db, req) {
         throw new CustomException({ title: "No encontrado", message: `No existe pedido con did ${did}` });
     }
 
-    // Trae todos los productos asociados al pedido
     const items = await executeQuery(
         db,
         `SELECT * FROM pedidos_productos WHERE did_pedido = ? AND elim = 0 AND superado = 0`,
@@ -37,7 +32,6 @@ export async function getPedidoById(db, req) {
     const p = pedidoRows[0];
     const pd = direccion[0] || {};
 
-    // 🔹 Convertimos los ítems en un array de objetos
     const productos = items.map(pp => ({
         did: pp.did,
         did_producto: pp.did_producto,
@@ -47,8 +41,6 @@ export async function getPedidoById(db, req) {
         subtotal: pp.subtotal,
         descripcion: pp.descripcion,
         variante_descripcion: pp.variation_attributes,
-
-
     }));
 
     const comprador = {
@@ -84,7 +76,7 @@ export async function getPedidoById(db, req) {
         trabajado: p.trabajado,
         comprador,
         direccion: direccion_pedido,
-        productos, // ✅ ahora es un array
+        productos,
     };
 
     return {

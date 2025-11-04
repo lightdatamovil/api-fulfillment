@@ -1,6 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function deleteUsuario(db, req) {
+export async function deleteUsuario({ db, req }) {
     const { userDid } = req.params;
     const quien = req.user;
 

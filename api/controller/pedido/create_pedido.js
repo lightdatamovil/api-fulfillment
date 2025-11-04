@@ -1,24 +1,15 @@
 import { isNonEmpty, LightdataORM } from "lightdata-tools";
 
-/**
- * Entrada:
- *  - Objeto simple: { didCuenta, status, ... }
- *  - Objeto con { pedidos: [ { ... }, ... ] }  (MASIVO)
- */
-export async function createPedido(db, req) {
+export async function createPedido({ db, req }) {
     const userId = Number(req.user.userId);
 
-    // Detectar forma del payload
     const body = req.body || {};
     const pedidosArray = Array.isArray(body?.pedidos) ? body.pedidos : [body];
 
-    // Filtrado mínimo
     const items = pedidosArray.filter((x) => x && typeof x === "object");
 
-    // ¿Es caso individual?
     const isSingle = items.length === 1 && !Array.isArray(body?.pedidos);
 
-    // Concurrencia moderada para no saturar DB
     const CONCURRENCY = 5;
     const chunks = [];
     for (let i = 0; i < items.length; i += CONCURRENCY) {
@@ -70,7 +61,6 @@ export async function createPedido(db, req) {
     };
 }
 
-/** Crea UN (1) pedido reutilizando LightdataORM.insert (sin transacciones) */
 async function insertOnePedido(db, userId, pedido) {
     const {
 
@@ -84,18 +74,15 @@ async function insertOnePedido(db, userId, pedido) {
         productos,
         direccion,
         id_venta,
-        comprador // { calle, numero, address_line?, cp, localidad, provincia, pais, latitud, longitud, destination_coments?, hora_desde?, hora_hasta? }
+        comprador
     } = pedido || {};
-    // const fechaActual = new Date();
 
-    // 1) pedidos
     const [didPedido] = await LightdataORM.insert({
         db,
         table: "pedidos",
         quien: userId,
         data: {
             flex: 0,
-
             did_cliente: did_cliente,
             status: "paid",
             fecha_venta: fecha_venta,
@@ -110,18 +97,14 @@ async function insertOnePedido(db, userId, pedido) {
         },
     });
 
-    // 1b) historial inicial
     await LightdataORM.insert({
         db,
         table: "pedidos_historial",
         quien: userId,
         data: {
-            did: 0, // tu insert luego setea did = id
             did_pedido: didPedido,
             estado: "paid",
             quien: userId,
-            superado: 0,
-            elim: 0,
         },
     });
 
@@ -144,12 +127,11 @@ async function insertOnePedido(db, userId, pedido) {
             db,
             table: "pedidos_productos",
             quien: userId,
-            data: rowsDetalle, // BULK
+            data: rowsDetalle,
         });
     }
 
 
-    // 3) dirección (opcional)
     let didPedidoDireccion = null;
     if (direccion && typeof direccion === "object") {
         const calle = isNonEmpty(direccion.calle) ? String(direccion.calle).trim() : null;

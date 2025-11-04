@@ -1,7 +1,7 @@
 import { CustomException, executeQuery } from "lightdata-tools";
 
-export async function getVarianteById(db, req) {
-    const { varianteId } = req.params; // DID de la variante (root)
+export async function getVarianteById({ db, req }) {
+    const { varianteId } = req.params;
     const didVariante = Number(varianteId);
 
     if (!Number.isFinite(didVariante) || didVariante <= 0) {
@@ -65,8 +65,7 @@ export async function getVarianteById(db, req) {
         categorias: [],
     };
 
-    // Agrupar categorías y sus valores
-    const catMap = new Map(); // didCategoria -> { did, nombre, valores: [] }
+    const catMap = new Map();
 
     for (const r of rows) {
         if (r.categoria_did) {

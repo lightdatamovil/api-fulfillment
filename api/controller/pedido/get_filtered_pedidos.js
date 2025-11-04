@@ -1,4 +1,3 @@
-// controller/pedidos/get_filtered_pedidos.js
 import { toStr, toBool01, pickNonEmpty, toIntList } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 

@@ -1,6 +1,6 @@
 import { isNonEmpty, LightdataORM } from "lightdata-tools";
 
-export async function createPedido(db, req) {
+export async function createPedido({ db, req }) {
     const { didCuenta, status, fecha_venta, observaciones, total_amount, pedidosProducto, direccion } = req.body;
 
     const userId = Number(req.user.userId);

@@ -1,6 +1,6 @@
 import { isNonEmpty, number01, LightdataORM, executeQuery } from "lightdata-tools";
 
-export async function createVariante(db, req) {
+export async function createVariante({ db, req }) {
     const { codigo, nombre, descripcion, habilitado, orden, categorias } = req.body;
     const userId = Number(req.user.userId);
 
