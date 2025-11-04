@@ -59,7 +59,7 @@ export async function getFilteredOrdenesTrabajoByCliente(connection, req) {
 
     const dataSql = `
         SELECT 
-            ot.did AS did_orden_trabajo,
+            ot.did,
             ot.estado,
             ot.asignado,
             ot.fecha_inicio,
