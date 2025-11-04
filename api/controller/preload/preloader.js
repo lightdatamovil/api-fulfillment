@@ -172,7 +172,6 @@ export async function preloader({ db }) {
   const insumos = await LightdataORM.select({
     db,
     table: "insumos",
-    where: { elim: 0, superado: 0 },
   });
 
   const queryClientes = `
