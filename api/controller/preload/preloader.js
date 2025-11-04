@@ -1,9 +1,7 @@
 import { executeQuery, LightdataORM } from "lightdata-tools";
 
 export async function preloader({ db }) {
-  const rows = await executeQuery(
-    db,
-    `
+  const q = `
     SELECT 
       p.*, 
       pvv.did AS did_productos_variantes_valores,
@@ -14,8 +12,8 @@ export async function preloader({ db }) {
     WHERE p.elim = 0
       AND p.superado = 0
     ORDER BY p.did DESC;
-  `
-  );
+  `;
+  const rows = await executeQuery({ db, query: q });
 
   const productos = Object.values(rows.reduce((acc, row) => {
     if (!acc[row.did]) {

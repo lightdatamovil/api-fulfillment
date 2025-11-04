@@ -1,7 +1,7 @@
 import { toStr, toBool01, pickNonEmpty, toIntList } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
-export async function getFilteredPedidos(connection, req) {
+export async function getFilteredPedidos({ db, req }) {
     const q = req.query || {};
 
     const qp = {
@@ -75,7 +75,7 @@ export async function getFilteredPedidos(connection, req) {
 
     const { whereSql, params } = where.finalize();
 
-    const { rows, total } = await runPagedQuery(connection, {
+    const { rows, total } = await runPagedQuery(db, {
         select: `
       p.did,
       p.did_cliente,

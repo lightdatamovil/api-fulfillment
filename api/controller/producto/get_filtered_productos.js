@@ -12,7 +12,7 @@ import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "..
  *
  * Tabla: producto (vigentes y no eliminados)
  */
-export async function getFilteredProductos(connection, req) {
+export async function getFilteredProductos({ db, req }) {
     const q = req.query;
 
     const qp = {
@@ -64,7 +64,7 @@ export async function getFilteredProductos(connection, req) {
 
     const { whereSql, params } = where.finalize();
 
-    const { rows, total } = await runPagedQuery(connection, {
+    const { rows, total } = await runPagedQuery(db, {
         select: `
       p.did, p.did_cliente, p.titulo,  p.sku,
       p.habilitado

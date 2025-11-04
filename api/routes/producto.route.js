@@ -39,14 +39,14 @@ productos.get(
   "/:did",
   buildHandlerWrapper({
     requiredParams: ["did"],
-    controller: ({ db, req }) => getProductoById(db, req),
+    controller: ({ db, req }) => getProductoById({ db, req }),
   })
 );
 
 productos.get(
   "/",
   buildHandlerWrapper({
-    controller: ({ db, req }) => getFilteredProductos(db, req),
+    controller: ({ db, req }) => getFilteredProductos({ db, req }),
   })
 );
 

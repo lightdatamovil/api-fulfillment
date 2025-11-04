@@ -20,7 +20,7 @@ usuarios.post(
 usuarios.get(
     '/',
     buildHandlerWrapper({
-        controller: ({ db, req }) => getFilteredUsuarios(db, req),
+        controller: ({ db, req }) => getFilteredUsuarios({ db, req }),
     })
 );
 
@@ -28,7 +28,7 @@ usuarios.get(
     '/:userId',
     buildHandlerWrapper({
         requiredParams: ['userId'],
-        controller: ({ db, req }) => getUsuarioById(db, req),
+        controller: ({ db, req }) => getUsuarioById({ db, req }),
     })
 );
 

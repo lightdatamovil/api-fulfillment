@@ -7,7 +7,7 @@ export async function getUsuarioById({ db, req }) {
         db,
         table: "usuarios",
         where: { did: userId },
-        throwExceptionIfNotExists: true,
+        throwIfNotExists: true,
         select: ["did", "perfil", "nombre", "apellido", "email", "usuario", "habilitado", "modulo_inicial", "app_habilitada", "telefono", "codigo_cliente", "imagen"]
     });
 

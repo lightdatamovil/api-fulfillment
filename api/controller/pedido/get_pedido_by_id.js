@@ -21,7 +21,6 @@ export async function getPedidoById({ db, req }) {
         db,
         table: "pedidos_ordenes_direcciones_destino",
         where: { did_pedido: did },
-        limit: 1,
     });
 
     const productos = items.map(pp => ({
@@ -40,19 +39,22 @@ export async function getPedidoById({ db, req }) {
         email: pedido.buyer_email,
         telefono: pedido.buyer_phone,
     };
+    let direccion_pedido = null;
+    if (direccion) {
+        direccion_pedido = {
+            calle: direccion.calle,
+            numero: direccion.numero,
+            localidad: direccion.localidad,
+            provincia: direccion.provincia,
+            pais: direccion.pais,
+            cp: direccion.cp,
+            latitud: direccion.latitud,
+            longitud: direccion.longitud,
+            referencia: direccion.destination_coments,
+        };
 
-    const direccion_pedido = {
-        calle: direccion.calle,
-        numero: direccion.numero,
-        localidad: direccion.localidad,
-        provincia: direccion.provincia,
-        pais: direccion.pais,
-        cp: direccion.cp,
-        latitud: direccion.latitud,
-        longitud: direccion.longitud,
-        referencia: direccion.destination_coments,
-    };
 
+    }
     const data = {
         did: pedido.did,
         did_cliente: pedido.did_cliente,

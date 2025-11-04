@@ -14,7 +14,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
 
     const filtros = {
         estado: Number.isFinite(Number(q.estado)) ? Number(q.estado) : undefined,
-        asignada: toBool01(q.asignada, undefined),
+        asignado: toBool01(q.asignado, undefined),
         fecha_inicio_from: toStr(q.fecha_inicio_from),
         fecha_inicio_to: toStr(q.fecha_inicio_to),
         fecha_fin_from: toStr(q.fecha_fin_from),
@@ -32,7 +32,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
     const sortMap = {
         did: "ot.did",
         estado: "ot.estado",
-        asignada: "ot.asignada",
+        asignado: "ot.asignado",
         fecha_inicio: "ot.fecha_inicio",
         fecha_fin: "ot.fecha_fin",
     };
@@ -40,7 +40,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
 
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado=0");
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
-    if (filtros.asignada !== undefined) where.eq("ot.asignada", filtros.asignada);
+    if (filtros.asignado !== undefined) where.eq("ot.asignado", filtros.asignado);
     if (filtros.fecha_inicio_from) where.add("ot.fecha_inicio >= ?", [filtros.fecha_inicio_from]);
     if (filtros.fecha_inicio_to) where.add("ot.fecha_inicio <= ?", [filtros.fecha_inicio_to]);
     if (filtros.fecha_fin_from) where.add("ot.fecha_fin >= ?", [filtros.fecha_fin_from]);
@@ -49,7 +49,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
     const { whereSql, params } = where.finalize();
 
     const { rows, total } = await runPagedQuery(db, {
-        select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
+        select: `ot.did, ot.estado, ot.asignado, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
         from: "FROM ordenes_trabajo ot",
         whereSql,
         orderSql,
@@ -60,7 +60,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
 
     const filtersForMeta = pickNonEmpty({
         ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
-        ...(filtros.asignada !== undefined ? { asignada: filtros.asignada } : {}),
+        ...(filtros.asignado !== undefined ? { asignado: filtros.asignado } : {}),
         ...(filtros.fecha_inicio_from ? { fecha_inicio_from: filtros.fecha_inicio_from } : {}),
         ...(filtros.fecha_inicio_to ? { fecha_inicio_to: filtros.fecha_inicio_to } : {}),
         ...(filtros.fecha_fin_from ? { fecha_fin_from: filtros.fecha_fin_from } : {}),

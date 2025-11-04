@@ -9,14 +9,14 @@ configuracion.put(
     "/toggle-modo-trabajo",
     buildHandlerWrapper({
         required: ["modo_trabajo"],
-        controller: ({ db, req }) => toggleModoTrabajo(db, req),
+        controller: ({ db, req }) => toggleModoTrabajo({ db, req }),
     })
 );
 
 configuracion.get(
     "/",
     buildHandlerWrapper({
-        controller: ({ db }) => getModoTrabajo(db),
+        controller: ({ db }) => getModoTrabajo({ db }),
     })
 );
 

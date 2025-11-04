@@ -23,17 +23,17 @@ export async function getProductoById({ db, req }) {
     });
   }
 
-  const prodRows = await executeQuery(
+  const prodRows = await executeQuery({
     db,
-    `SELECT did, did_cliente, titulo, descripcion, imagen, habilitado, es_combo,
+    query: `SELECT did, did_cliente, titulo, descripcion, imagen, habilitado, es_combo,
              posicion, cm3, alto, ancho, profundo, did_curva, sku, ean
       FROM productos
       WHERE did = ? AND elim = 0 AND superado = 0
       ORDER BY id DESC
       LIMIT 1
     `,
-    [didProducto]
-  );
+    values: [didProducto]
+  });
 
   if (!prodRows?.length) {
     throw new CustomException({
@@ -47,45 +47,46 @@ export async function getProductoById({ db, req }) {
 
   const [vvRows, ecRows, insRows, comboRows] = await Promise.all([
     // COMBINACIONES de variantes (CSV en 'valores')
-    executeQuery(
+    executeQuery({
       db,
-      `
+      query: `
         SELECT did, valores
         FROM productos_variantes_valores
         WHERE did_producto = ? AND elim = 0 AND superado = 0
         ORDER BY id ASC
       `,
-      [didProducto]
-    ),
+      values: [didProducto]
+    }),
     // Items ecommerce (grupos)
-    executeQuery(
+    executeQuery({
       db,
-      `
+      query: `
         SELECT did, did_cuenta, did_producto_variante_valor, sku, ean, url, sync
         FROM productos_ecommerce
         WHERE did_producto = ? AND elim = 0 AND superado = 0
       `,
-      [didProducto]
-    ),
+      values: [didProducto]
+    }),
     // Insumos
-    executeQuery(
+    executeQuery({
       db,
-      `
+      query: `
         SELECT did, did_insumo, cantidad
         FROM productos_insumos
         WHERE did_producto = ? AND elim = 0 AND superado = 0
       `,
-      [didProducto]
-    ),
+      values: [didProducto]
+    }),
     // Combos
-    executeQuery(
+    executeQuery({
       db,
-      `SELECT did, did_producto_combo AS did_producto, cantidad
-       FROM productos_combos
-       WHERE did_producto = ? AND elim = 0 AND superado = 0
+      query: `
+        SELECT did, did_producto_combo AS did_producto, cantidad
+        FROM productos_combos
+        WHERE did_producto = ? AND elim = 0 AND superado = 0
       `,
-      [didProducto]
-    ),
+      values: [didProducto]
+    }),
   ]);
 
 
