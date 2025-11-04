@@ -53,7 +53,7 @@ export async function getFilteredPedidos(connection, req) {
         dirKey: "sort_dir",
     });
 
-    const where = new SqlWhere().add("p.elim = 0");
+    const where = new SqlWhere().add("p.elim = 0 AND p.superado = 0");
 
     if (filtros.did_cliente !== undefined) where.in("p.did_cliente", filtros.did_cliente);
 

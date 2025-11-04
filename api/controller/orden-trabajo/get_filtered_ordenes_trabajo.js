@@ -14,7 +14,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
 
     const filtros = {
         estado: Number.isFinite(Number(q.estado)) ? Number(q.estado) : undefined,
-        did_usuario: toBool01(q.did_usuario, undefined),
+        asignada: toBool01(q.asignada, undefined),
         fecha_inicio_from: toStr(q.fecha_inicio_from),
         fecha_inicio_to: toStr(q.fecha_inicio_to),
         fecha_fin_from: toStr(q.fecha_fin_from),
@@ -32,7 +32,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
     const sortMap = {
         did: "ot.did",
         estado: "ot.estado",
-        did_usuario: "ot.did_usuario",
+        asignada: "ot.asignada",
         fecha_inicio: "ot.fecha_inicio",
         fecha_fin: "ot.fecha_fin",
     };
@@ -40,7 +40,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
 
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado=0");
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
-    if (filtros.did_usuario !== undefined) where.eq("ot.did_usuario", filtros.did_usuario);
+    if (filtros.asignada !== undefined) where.eq("ot.asignada", filtros.asignada);
     if (filtros.fecha_inicio_from) where.add("ot.fecha_inicio >= ?", [filtros.fecha_inicio_from]);
     if (filtros.fecha_inicio_to) where.add("ot.fecha_inicio <= ?", [filtros.fecha_inicio_to]);
     if (filtros.fecha_fin_from) where.add("ot.fecha_fin >= ?", [filtros.fecha_fin_from]);
@@ -60,7 +60,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
 
     const filtersForMeta = pickNonEmpty({
         ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
-        ...(filtros.did_usuario !== undefined ? { did_usuario: filtros.did_usuario } : {}),
+        ...(filtros.asignada !== undefined ? { asignada: filtros.asignada } : {}),
         ...(filtros.fecha_inicio_from ? { fecha_inicio_from: filtros.fecha_inicio_from } : {}),
         ...(filtros.fecha_inicio_to ? { fecha_inicio_to: filtros.fecha_inicio_to } : {}),
         ...(filtros.fecha_fin_from ? { fecha_fin_from: filtros.fecha_fin_from } : {}),
