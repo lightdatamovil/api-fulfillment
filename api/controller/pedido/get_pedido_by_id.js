@@ -14,7 +14,7 @@ export async function getPedidoById(db, req) {
 
     const pedidoRows = await executeQuery(
         db,
-        `SELECT * FROM pedidos WHERE did = ? AND elim = 0 LIMIT 1`,
+        `SELECT * FROM pedidos WHERE did = ? AND elim = 0 and superado = 0 LIMIT 1`,
         [did]
     );
     if (!pedidoRows || pedidoRows.length === 0) {
