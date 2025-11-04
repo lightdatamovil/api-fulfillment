@@ -1,16 +1,5 @@
 import { LightdataORM } from "lightdata-tools";
 
-/**
- * PUT /api/clientes/:clienteId
- * Body: 
- *   root { nombre_fantasia, razon_social, codigo, observaciones, habilitado }
- *   direcciones { add[], update[], remove[] }
- *   contactos   { add[], update[], remove[] }
- *   cuentas     { add[], update[], remove[] }
- *
- * Estrategia: versionado automático con LightdataORM.update() / delete().
- * Sin transacciones.
- */
 export async function editCliente({ db, req }) {
     const { userId } = req.user;
     const { clienteId } = req.params;

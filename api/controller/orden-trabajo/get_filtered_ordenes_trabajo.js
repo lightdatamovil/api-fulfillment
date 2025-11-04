@@ -1,15 +1,7 @@
 import { toStr, toBool01, pickNonEmpty } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
-/**
- * Listado filtrado/paginado de OT.
- * Query soportados:
- *  - estado (EQ), asignada (0/1)
- *  - fecha_inicio_from / fecha_inicio_to
- *  - fecha_fin_from / fecha_fin_to
- *  - sort_by: did|estado|asignada|fecha_inicio|fecha_fin
- */
-export async function getFilteredOrdenesTrabajo(connection, req) {
+export async function getFilteredOrdenesTrabajo({ db, req }) {
     const q = req.query || {};
 
     const qp = {
@@ -56,7 +48,7 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
 
     const { whereSql, params } = where.finalize();
 
-    const { rows, total } = await runPagedQuery(connection, {
+    const { rows, total } = await runPagedQuery(db, {
         select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
         from: "FROM ordenes_trabajo ot",
         whereSql,

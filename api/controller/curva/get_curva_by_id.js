@@ -1,19 +1,6 @@
 import { CustomException, executeQuery } from "lightdata-tools";
 
-/**
- * GET /curvas/:curvaDid
- * Respuesta:
- * {
- *   did: number,
- *   nombre: string,
- *   categorias: Array<{
- *     did: number,
- *     nombre: string | null,
- *     did_variante: number | null
- *   }>
- * }
- */
-export async function getCurvaById(db, req) {
+export async function getCurvaById({ db, req }) {
     const didParam = req.params.curvaDid;
     const didCurva = Number(didParam);
 

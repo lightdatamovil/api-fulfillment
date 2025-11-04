@@ -1,13 +1,6 @@
-// clientes.controller.js
 import { executeQuery, toStr, toBool, pickNonEmpty } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functions/query_utils.js";
 
-/**
- * GET /clientes
- * Query params:
- *   nombre_fantasia, codigo, razon_social, habilitado,
- *   pagina|page, cantidad|page_size, sort_by, sort_dir
- */
 export async function getFilteredClientes({ db, req }) {
   const q = req.query;
 

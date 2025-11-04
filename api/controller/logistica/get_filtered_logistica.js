@@ -1,4 +1,3 @@
-// logisticas.controller.js
 import { executeQuery, toStr, toBool, pickNonEmpty } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functions/query_utils.js";
 
@@ -7,17 +6,14 @@ export async function getFilteredLogisticas(connection, req) {
 
   const qp = { ...q, page: q.page ?? q.pagina, page_size: q.page_size ?? q.cantidad };
 
-  // Filtros
   const filtros = {
     nombre: toStr(q.nombre),
     codigo: toStr(q.codigo),
     codigoLD: toStr(q.codigoLD),
     logisticaLD: toStr(q.logisticaLD ?? q.logisticaLD, undefined),
     habilitado: toBool(q.habilitado ?? q.habilitado, undefined),
-    //agregar u filtro todos que sea bool 1 o 0
   };
 
-  // Paginación y orden
   const { page, pageSize, offset } = makePagination(qp, {
     pageKey: "page",
     pageSizeKey: "page_size",
@@ -38,7 +34,6 @@ export async function getFilteredLogisticas(connection, req) {
     dirKey: "sort_dir",
   });
 
-  // WHERE (con LIKE escapado dentro de helper)
   const where = new SqlWhere().add("l.superado = 0").add("l.elim = 0");
   if (filtros.codigo) where.likeEscaped("l.codigo", filtros.codigo, { caseInsensitive: true });
   if (filtros.nombre) where.likeEscaped("l.nombre", filtros.nombre, { caseInsensitive: true });
@@ -48,11 +43,9 @@ export async function getFilteredLogisticas(connection, req) {
 
   const { whereSql, params } = where.finalize();
 
-  // COUNT sin los LEFT JOIN (más preciso y rápido)
   const countSql = `SELECT COUNT(*) AS total FROM logisticas l ${whereSql}`;
   const [{ total = 0 } = {}] = await executeQuery(connection, countSql, params);
 
-  // DATA: una sola query con subqueries agregadas (evita cross-product)
   const dataSql = `
 SELECT
   l.did,
@@ -87,13 +80,12 @@ ${whereSql}
 /* Si whereSql pudiera venir vacío, garantizá base: WHERE l.elim = 0 AND l.superado = 0 */
 GROUP BY
   l.did, l.nombre, l.logisticaLD, l.codigo, l.codigoLD, l.quien, l.habilitado
-${orderSql /* calificado: ORDER BY l.nombre ASC, por ej. */}
+${orderSql}
 LIMIT ? OFFSET ?;
   `;
 
   const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset]);
 
-  // Parse seguro (depende de tu driver, a veces ya viene como objeto)
   const logisticasFinal = rows.map(l => ({
     did: l.did,
     nombre: l.nombre,

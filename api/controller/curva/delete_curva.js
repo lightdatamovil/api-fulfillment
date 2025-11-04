@@ -1,6 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function deleteCurva(db, req) {
+export async function deleteCurva({ db, req }) {
     const { curvaDid } = req.params;
     const { userId } = req.user;
 

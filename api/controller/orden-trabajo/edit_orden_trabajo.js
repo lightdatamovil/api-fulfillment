@@ -1,6 +1,6 @@
 import { isDefined, LightdataORM } from "lightdata-tools";
 
-export async function editOrdenTrabajo(db, req) {
+export async function editOrdenTrabajo({ db, req }) {
     const { userId } = req.user;
     const { estado, asignada, fecha_fin, pedidos } = req.body;
     const did_ot = req.params.did;

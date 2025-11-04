@@ -1,6 +1,6 @@
 import { CustomException, executeQuery, LightdataORM, Status } from "lightdata-tools";
 
-export async function createlogistica(db, req) {
+export async function createlogistica({ db, req }) {
     const {
         nombre,
         logisticaLD,

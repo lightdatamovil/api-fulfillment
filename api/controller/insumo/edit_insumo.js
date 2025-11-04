@@ -16,7 +16,6 @@ export async function editInsumo(db, req) {
         return Array.from(new Set(nums));
     };
 
-    // 1) Obtener el registro actual (y validar existencia)
     const [current] = await LightdataORM.select({
         db,
         table: "insumos",
@@ -24,7 +23,6 @@ export async function editInsumo(db, req) {
         throwIfNotExists: true,
     });
 
-    // 2) Validar unicidad de "codigo" (si vino algo)
     if (isDefined(codigo) && String(codigo).trim() !== "") {
         const posibles = await LightdataORM.select({
             db,
@@ -44,7 +42,6 @@ export async function editInsumo(db, req) {
     const newUnidad = isDefined(unidad) ? unidad : current.unidad;
     const newHabilitado = isDefined(habilitado) ? habilitado : current.habilitado;
 
-    // 3) Actualizar insumo
     await LightdataORM.update({
         db,
         table: "insumos",
@@ -58,11 +55,9 @@ export async function editInsumo(db, req) {
         },
     });
 
-    // 4) Sincronizar relación insumo <-> clientes
     const toAdd = toNumberSet(clientes_dids?.add);
     const toRemove = toNumberSet(clientes_dids?.remove);
 
-    // 4a) Remover vínculos por (did_insumo, did_cliente)
     if (toRemove.length > 0) {
         await LightdataORM.delete({
             db,
@@ -72,7 +67,6 @@ export async function editInsumo(db, req) {
         });
     }
 
-    // 4b) Agregar vínculos nuevos, evitando duplicados
     if (toAdd.length > 0) {
         await LightdataORM.select({
             db,
@@ -98,13 +92,3 @@ export async function editInsumo(db, req) {
         meta: { timestamp: new Date().toISOString() },
     };
 }
-
-/*
-Notas clave (JS):
-- Sin tipos TS.
-- Se normaliza y valida insumoId como número.
-- Valida unicidad de 'codigo' excluyendo el propio insumo.
-- Delete en tabla puente por (did_insumo, did_cliente) en lugar de 'did'.
-- Dedup y filtrado de NaN en add/remove.
-- Si tu ORM no soporta arrays en 'where', reemplazar por IN o loop.
-*/

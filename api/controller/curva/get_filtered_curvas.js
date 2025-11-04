@@ -1,18 +1,7 @@
 import { toStr, pickNonEmpty } from "lightdata-tools";
-import {
-    SqlWhere,
-    makePagination,
-    makeSort,
-    runPagedQuery,
-    buildMeta,
-} from "../../src/functions/query_utils.js";
+import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
-/**
- * GET /curvas
- * Query: nombre, (page|pagina), (page_size|cantidad), (sort_by|sortBy), (sort_dir|sortDir)
- * Tabla: variantes_curvas
- */
-export async function getFilteredCurvas(connection, req) {
+export async function getFilteredCurvas({ db, req }) {
     const q = req.query;
 
     const qp = {
@@ -23,14 +12,12 @@ export async function getFilteredCurvas(connection, req) {
         sort_dir: q.sort_dir ?? q.sortDir,
     };
 
-    // parseo robusto de habilitado: acepta "1"/"0", "true"/"false", true/false
     const parseBoolish = (v) => {
         if (v === undefined || v === null || v === "") return undefined;
         if (typeof v === "boolean") return v;
         const s = String(v).trim().toLowerCase();
         if (s === "1" || s === "true") return true;
         if (s === "0" || s === "false") return false;
-        // Si llega otra cosa (p.ej. "2"), lo ignoramos
         return undefined;
     };
 
@@ -76,9 +63,9 @@ export async function getFilteredCurvas(connection, req) {
 
     const { whereSql, params } = where.finalize();
 
-    const { rows, total } = await runPagedQuery(connection, {
+    const { rows, total } = await runPagedQuery(db, {
         select: "vc.id, vc.did, vc.nombre, vc.codigo, vc.habilitado",
-        from: "FROM curvas vc", // ojo: si la tabla real es 'variantes_curvas', cambiá esto
+        from: "FROM curvas vc",
         whereSql,
         orderSql,
         params,

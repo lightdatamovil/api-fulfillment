@@ -1,13 +1,6 @@
 import { CustomException, Status, isNonEmpty, LightdataORM } from "lightdata-tools";
 
-/**
- * Body esperado:
- * {
- *   nombre: string,
- *   didCategoria?: number[]   // opcional; si viene, asocia categorías a la curva
- * }
- */
-export async function createCurva(db, req) {
+export async function createCurva({ db, req }) {
     const { nombre, categorias, codigo, habilitado } = req.body || {};
     const { userId } = req.user || {};
 
@@ -20,7 +13,6 @@ export async function createCurva(db, req) {
         });
     }
 
-    // Crear curva
     const [didCurva] = await LightdataORM.insert({
         db,
         table: "curvas",
@@ -31,14 +23,11 @@ export async function createCurva(db, req) {
         },
     });
 
-    // Asociar categorías (opcional)
     const idsCat = Array.isArray(categorias)
         ? [...new Set(categorias.map(Number))].filter((n) => Number.isFinite(n) && n > 0)
         : [];
 
     if (idsCat.length > 0) {
-        // (Opcional pero recomendado) verificar que existan las categorías
-        // Ajustá el nombre de la tabla si tu catálogo se llama distinto (e.g. "categorias")
         await LightdataORM.select({
             db,
             table: "variantes_categorias",
@@ -46,11 +35,9 @@ export async function createCurva(db, req) {
             throwExceptionIfNotExists: true,
         });
 
-        // Insert bulk en la tabla pivote
-        // ⚠️ Ajustá el nombre si tu pivote real es otro; acá uso el que venías manejando.
         await LightdataORM.insert({
             db,
-            table: "variantes_curvas", // o "curvas_categorias" si así se llama en tu schema
+            table: "variantes_curvas",
             quien: userId,
             data: idsCat.map((didCat) => ({
                 did_curva: Number(didCurva),

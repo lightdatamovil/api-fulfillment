@@ -1,9 +1,9 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function deleteOrdenTrabajo(db, req) {
+export async function deleteOrdenTrabajo({ db, req }) {
     const { did } = req.params;
     const { userId } = req.user;
-    console.log(did);
+
     await LightdataORM.delete({
         db,
         table: "ordenes_trabajo",

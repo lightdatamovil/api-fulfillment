@@ -1,9 +1,8 @@
 import { CustomException, executeQuery } from "lightdata-tools";
 
-export async function getInsumosById(db, req) {
+export async function getInsumosById({ db, req }) {
     const { insumoId } = req.params;
 
-    // 1) Traer la versión activa del insumo
     const insumoRows = await executeQuery(
         db,
         `
@@ -24,7 +23,6 @@ export async function getInsumosById(db, req) {
 
     const insumo = insumoRows[0];
 
-    // 2) Traer los clientes asociados activos
     const clientesRows = await executeQuery(
         db,
         `

@@ -1,6 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function getlogisticaById(db, req) {
+export async function getlogisticaById({ db, req }) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user;
 

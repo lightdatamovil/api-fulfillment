@@ -1,6 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function createInsumo(db, req) {
+export async function createInsumo({ db, req }) {
     const { codigo, clientes_dids, habilitado, nombre, unidad } = req.body;
     const { userId } = req.user;
 

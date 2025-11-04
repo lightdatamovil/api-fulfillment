@@ -1,7 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-
-export async function deleteInsumo(db, req) {
+export async function deleteInsumo({ db, req }) {
     const { insumoId } = req.params;
     const { userId } = req.user;
 

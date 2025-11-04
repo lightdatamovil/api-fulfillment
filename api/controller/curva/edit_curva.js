@@ -1,18 +1,6 @@
 import { isNonEmpty, LightdataORM, CustomException, Status } from "lightdata-tools";
 
-/**
- * PUT /curvas/:curvaDid
- *
- * Body:
- * {
- *   nombre?: string,
- *   categorias?: {
- *     add?: number[],      // DIDs de categorias a vincular
- *     remove?: number[]    // DIDs de categorias a desvincular (delete lógico)
- *   }
- * }
- */
-export async function editCurva(db, req) {
+export async function editCurva({ db, req }) {
     const { nombre, categorias, codigo, habilitado } = req.body || {};
     const { userId } = req.user || {};
     const curvaDid = Number(req.params?.curvaDid);
@@ -25,7 +13,6 @@ export async function editCurva(db, req) {
         });
     }
 
-    // Normalización de arrays (dedupe + solo números > 0)
     const normIds = (arr) =>
         Array.isArray(arr)
             ? [...new Set(arr.map(Number))].filter((n) => Number.isFinite(n) && n > 0)
@@ -34,7 +21,6 @@ export async function editCurva(db, req) {
     const addIds = normIds(categorias?.add);
     const delIds = normIds(categorias?.remove);
 
-    // 1) Verificar que la curva exista (vigente)
     const [curr] = await LightdataORM.select({
         db,
         table: "curvas",
@@ -42,7 +28,6 @@ export async function editCurva(db, req) {
         throwExceptionIfNotExists: true,
     });
 
-    // 2) Versionar la curva (solo nombre si vino)
     const newNombre = isNonEmpty(nombre) ? String(nombre).trim() : curr.nombre;
 
     await LightdataORM.update({
@@ -51,14 +36,13 @@ export async function editCurva(db, req) {
         where: { did: curvaDid },
         quien: userId,
         data: {
-            nombre: newNombre
-            , codigo: isNonEmpty(codigo) ? String(codigo).trim() : null, habilitado: habilitado ? 1 : 0
+            nombre: newNombre,
+            codigo: isNonEmpty(codigo) ? String(codigo).trim() : null,
+            habilitado: habilitado ? 1 : 0
         },
     });
 
-    // 3) Vincular categorías nuevas (si las hay)
     if (addIds.length > 0) {
-        // (Opcional pero sano) validar existencia de categorías
         await LightdataORM.select({
             db,
             table: "variantes_categorias",
@@ -66,10 +50,9 @@ export async function editCurva(db, req) {
             throwExceptionIfNotExists: true,
         });
 
-        // Insert bulk en pivote (usamos la misma pivote que ya tenías, con did_categoria)
         await LightdataORM.insert({
             db,
-            table: "variantes_curvas", // pivote curva <-> categoría
+            table: "variantes_curvas",
             quien: userId,
             data: addIds.map((didCat) => ({
                 did_curva: curvaDid,
@@ -78,9 +61,7 @@ export async function editCurva(db, req) {
         });
     }
 
-    // 4) Desvincular categorías (delete lógico versionado) si las hay
     if (delIds.length > 0) {
-        // delete versionado por condiciones (curva + listado de categorías)
         await LightdataORM.delete({
             db,
             table: "variantes_curvas",

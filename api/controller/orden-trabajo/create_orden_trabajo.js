@@ -1,6 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function createOrdenTrabajo(db, req) {
+export async function createOrdenTrabajo({ db, req }) {
     const { userId } = req.user;
     const {
         estado,
@@ -32,7 +32,7 @@ export async function createOrdenTrabajo(db, req) {
             flex: item.flex ?? 0,
             estado: item.estado
         }));
-        console.log(data);
+
         await LightdataORM.insert({
             db,
             table: "ordenes_trabajo_pedidos",

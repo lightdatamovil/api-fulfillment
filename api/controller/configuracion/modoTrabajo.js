@@ -1,6 +1,6 @@
 import { CustomException, LightdataORM } from "lightdata-tools";
 
-export async function toggleModoTrabajo(db, req) {
+export async function toggleModoTrabajo({ db, req }) {
     const { modo_trabajo } = req.body;
     const { companyId, userId } = req.user;
 

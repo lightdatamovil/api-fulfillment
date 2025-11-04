@@ -1,10 +1,6 @@
 import { CustomException, executeQuery } from "lightdata-tools";
 
-/**
- * Devuelve la OT + pedidos asignados vigentes + historial por-pedido (últimos N o todos).
- * Query opcional: ?historial=1 para incluir historial completo (default: 1 igualmente).
- */
-export async function getOrdenTrabajoById(db, req) {
+export async function getOrdenTrabajoById({ db, req }) {
     const didParam = req.params?.did ?? req.params?.id;
     const did = Number(didParam);
 
