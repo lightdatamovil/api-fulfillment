@@ -41,10 +41,14 @@ export async function getPedidoById(db, req) {
     const productos = items.map(pp => ({
         did: pp.did,
         did_producto: pp.did_producto,
-        did_producto_variante_valor: pp.variacion,
+        did_producto_variante_valor: pp.did_producto_variante_valor,
         cantidad: pp.cantidad,
         precio_unitario: pp.precio_unitario,
         subtotal: pp.subtotal,
+        descripcion: pp.descripcion,
+        variante_descripcion: pp.variation_attributes,
+
+
     }));
 
     const comprador = {
@@ -70,6 +74,7 @@ export async function getPedidoById(db, req) {
         did_cliente: p.did_cliente,
         did_deposito: p.did_deposito,
         fecha_venta: p.fecha_venta,
+        flex: p.flex,
         estado: p.status,
         id_venta: p.number,
         total: p.total_amount,
