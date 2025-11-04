@@ -45,7 +45,7 @@ export async function updateProducto(dbConnection, req) {
   const curr = currRows[0];
 
   //files
-  let filesInsert = [];
+  let filesInsert;
   if (files == null) {
     filesInsert = curr.files; //no hay cambios
   } else if (files.length === 0) {
@@ -63,7 +63,7 @@ export async function updateProducto(dbConnection, req) {
       { headers: { "Content-Type": "application/json" } }
     );
     console.log('urlResponse:', urlResponse.data);
-    filesInsert.push(urlResponse.data.file.url);
+    filesInsert = urlResponse.data.file.url;
 
   }
 
@@ -79,7 +79,7 @@ export async function updateProducto(dbConnection, req) {
     alto,
     ancho,
     profundo,
-    filesInsert,
+    imagen: filesInsert,
     sku,
     ean,
     did_curva,
