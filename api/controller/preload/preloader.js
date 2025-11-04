@@ -150,11 +150,28 @@ export async function preloader(dbConnection) {
     }
   }
   const curvas = Array.from(curvasMap.values());
-  const usuarios = await LightdataORM.select({
+  const selectUsuario = await LightdataORM.select({
     dbConnection,
     table: "usuarios",
     where: { elim: 0, superado: 0 },
   });
+
+  const usuarios = selectUsuario.map((u) => ({
+    did: u.did,
+    nombre: u.nombre,
+    apellido: u.apellido,
+    habilitado: u.habilitado,
+    perfil: u.perfil,
+    telefono: u.telefono,
+    usuario: u.usuario,
+    imagen: u.imagen,
+    codigo_cliente: u.codigo_cliente,
+    app_habilitada: u.app_habilitada,
+    accesos: u.accesos,
+
+
+    email: u.email,
+  }));
 
 
   const insumos = await LightdataORM.select({
