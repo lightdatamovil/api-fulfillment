@@ -23,14 +23,14 @@ export async function createPedido(db, payload, userId) {
 
     // Insert encabezado
     const cols = [
-        "did_cuenta", "status", "number", "fecha_venta", "buyer_id", "buyer_nickname",
+        "status", "number", "fecha_venta", "buyer_id", "buyer_nickname",
         "buyer_name", "buyer_last_name", "total_amount", "ml_shipment_id", "ml_id",
         "ml_pack_id", "observaciones", "armado", "descargado",
         "quien_armado", "reference_id", "billing", "quien", "superado", "elim"
     ];
     const ph = cols.map(() => "?");
     const vals = [
-        payload.did_cuenta,
+
         payload.status,
         payload.number,
         payload.fecha_venta,
@@ -74,7 +74,7 @@ export async function createPedido(db, payload, userId) {
 
         const icol = [
             "did_pedido", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
-            "variacion", "id_variacion", "user_product_id", "cantidad", "variation_attributes",
+            "did_producto_variante_valor", "id_variacion", "user_product_id", "cantidad", "variation_attributes",
             "imagen", "quien", "superado", "elim"
         ];
         const iph = icol.map(() => "?").join(",");
@@ -86,7 +86,7 @@ export async function createPedido(db, payload, userId) {
             it.descripcion ?? null,
             mlItemIdFinal,                         // nunca null
             s(it.dimensions ?? ""),                // NUNCA null
-            s(it.variacion ?? ""),                 // NUNCA null
+            s(it.did_producto_variante_valor ?? ""),                 // NUNCA null
             it.id_variacion ?? null,
             it.user_product_id ?? null,
             Number(it.cantidad),
