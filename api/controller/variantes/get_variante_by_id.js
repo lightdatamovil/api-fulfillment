@@ -45,7 +45,7 @@ export async function getVarianteById({ db, req }) {
     ORDER BY vc.did ASC, vcv.did ASC
   `;
 
-    const rows = await executeQuery(db, selectQuery, [didVariante]);
+    const rows = await executeQuery({ db, query: selectQuery, values: [didVariante] });
 
     if (!rows || rows.length === 0) {
         throw new CustomException({

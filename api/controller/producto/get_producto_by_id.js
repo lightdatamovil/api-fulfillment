@@ -11,7 +11,7 @@ import { CustomException, Status, executeQuery } from "lightdata-tools";
  *   combos:[{ did:number, didProducto:number, cantidad:number }]
  * }
  */
-export async function getProductoById(db, req) {
+export async function getProductoById({ db, req }) {
   const didParam = req.params?.did ?? req.params?.id ?? req.params?.productoId;
   const didProducto = Number(didParam);
 

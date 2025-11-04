@@ -72,12 +72,12 @@ export function makeSort(q, sortMap, { defaultKey = Object.keys(sortMap)[0], byK
 }
 
 /** Ejecuta SELECT + COUNT con mismos WHERE/PARAMS */
-export async function runPagedQuery(connection, { select, from, whereSql, orderSql, params, pageSize, offset }) {
+export async function runPagedQuery(db, { select, from, whereSql, orderSql, params, pageSize, offset }) {
     const dataSql = `SELECT ${select} ${from} ${whereSql} ${orderSql} LIMIT ? OFFSET ?`;
-    const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset], true);
+    const rows = await executeQuery({ db, query: dataSql, values: [...params, pageSize, offset] });
 
     const countSql = `SELECT COUNT(*) AS total ${from} ${whereSql}`;
-    const [{ total = 0 } = {}] = await executeQuery(connection, countSql, params);
+    const [{ total = 0 } = {}] = await executeQuery({ db, query: countSql, values: params });
 
     return { rows, total };
 }

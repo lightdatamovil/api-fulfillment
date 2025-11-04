@@ -60,7 +60,7 @@ export async function preloader({ db }) {
     WHERE v.elim = 0 AND v.superado = 0
     ORDER BY v.did DESC, vc.did DESC, vcv.did DESC
   `;
-  const rowsVariantes = await executeQuery(db, queryVariantes, []);
+  const rowsVariantes = await executeQuery({ db, query: queryVariantes });
 
   const variantesMap = new Map();
 
@@ -121,7 +121,7 @@ export async function preloader({ db }) {
     WHERE cu.elim = 0 AND cu.superado = 0
     ORDER BY cu.did DESC, vc.did DESC, vcv.did DESC
   `;
-  const rowsCurvas = await executeQuery(db, queryCurvas, []);
+  const rowsCurvas = await executeQuery({ db, query: queryCurvas });
 
   const curvasMap = new Map();
 
@@ -194,7 +194,7 @@ export async function preloader({ db }) {
     ORDER BY c.did DESC
   `;
 
-  const rowsClientes = await executeQuery(db, queryClientes, []);
+  const rowsClientes = await executeQuery({ db, query: queryClientes });
 
   const clientesMap = new Map();
 

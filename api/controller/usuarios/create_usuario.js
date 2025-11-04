@@ -30,11 +30,11 @@ export async function createUsuario({ db, req }) {
         });
     }
 
-    const existingUser = await executeQuery(
+    const existingUser = await executeQuery({
         db,
-        `SELECT did FROM usuarios WHERE (usuario = ? OR email = ?) AND superado = 0 AND elim = 0 LIMIT 1`,
-        [usuario, email]
-    );
+        query: `SELECT did FROM usuarios WHERE (usuario = ? OR email = ?) AND superado = 0 AND elim = 0 LIMIT 1`,
+        values: [usuario, email]
+    });
 
     if (existingUser.length > 0) {
         throw new CustomException({
@@ -87,11 +87,12 @@ export async function createUsuario({ db, req }) {
                 { headers: { "Content-Type": "application/json" } }
             );
             insertImage = uploadRes.data.file.url;
-            await executeQuery(
+            await LightdataORM.update({
                 db,
-                `UPDATE usuarios SET imagen = ? WHERE did = ?`,
-                [insertImage, didUserInsert], true
-            );
+                table: "usuarios",
+                data: { imagen: insertImage },
+                where: { did: didUserInsert }
+            });
 
         } catch (err) {
             throw new CustomException({
@@ -100,7 +101,6 @@ export async function createUsuario({ db, req }) {
                 message: err.message || "No se pudo subir la imagen proporcionada"
             });
         }
-
     }
 
     return {

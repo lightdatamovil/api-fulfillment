@@ -10,14 +10,13 @@ export async function createVariante({ db, req }) {
     const habValue = number01(habilitado, 1);
     const ordenValue = Number.isFinite(Number(orden)) ? Number(orden) : 0;
 
-    const existe = await executeQuery(
+    await LightdataORM.select({
         db,
-        `SELECT id FROM variantes WHERE codigo = ? AND superado = 0 AND elim = 0 LIMIT 1`,
-        [codigoTrim]
-    );
-    if (existe.length > 0) {
-        throw new Error(`Ya existe una variante con el código '${codigoTrim}'`);
-    }
+        table: "variantes",
+        where: { codigo: codigoTrim },
+        select: ["id"],
+        throwIfExists: true,
+    })
 
     const [idVariante] = await LightdataORM.insert({
         db,
@@ -98,7 +97,7 @@ export async function createVariante({ db, req }) {
           AND v.elim = 0;
     `;
 
-    const rows = await executeQuery(db, sql, [idVariante]);
+    const rows = await executeQuery({ db, query: sql, values: [idVariante] });
 
     if (!rows.length) {
         throw new Error("Error al obtener la variante creada.");

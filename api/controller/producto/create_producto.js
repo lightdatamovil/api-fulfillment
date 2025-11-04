@@ -1,17 +1,9 @@
 import axios from "axios";
-import {
-    CustomException,
-    Status,
-    isNonEmpty,
-    isDefined,
-    number01,
-    LightdataORM,
-    executeQuery,
-} from "lightdata-tools";
+import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM, executeQuery } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
 
 
-export async function createProducto(db, req) {
+export async function createProducto({ db, req }) {
     const {
         did_cliente,
         titulo,
@@ -28,8 +20,8 @@ export async function createProducto(db, req) {
         ean,
         files,
         ecommerce,
-        insumos, //LISTA DE JSON
-        combos, //LISTA DE JSON
+        insumos,
+        combos,
     } = req.body;
 
     const { userId, companyId } = req.user;
