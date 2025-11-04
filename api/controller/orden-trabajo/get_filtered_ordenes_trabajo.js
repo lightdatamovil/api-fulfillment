@@ -23,10 +23,12 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
     const filtros = {
         estado: Number.isFinite(Number(q.estado)) ? Number(q.estado) : undefined,
         asignada: toBool01(q.asignada, undefined),
+        did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
         fecha_inicio_from: toStr(q.fecha_inicio_from),
         fecha_inicio_to: toStr(q.fecha_inicio_to),
         fecha_fin_from: toStr(q.fecha_fin_from),
         fecha_fin_to: toStr(q.fecha_fin_to),
+
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
@@ -44,11 +46,13 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
         fecha_inicio: "ot.fecha_inicio",
         fecha_fin: "ot.fecha_fin",
     };
-    const { orderSql } = makeSort(qp, sortMap, { defaultKey: "did", byKey: "sort_by", dirKey: "sort_dir" });
+    //todo default orden por ordenes_total no se si esta bien implementado preguntar a gonzalo
+    const { orderSql } = makeSort(qp, sortMap, { defaultKey: "ordenes_total", byKey: "sort_by", dirKey: "sort_dir" });
 
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado=0");
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
     if (filtros.asignada !== undefined) where.eq("ot.asignada", filtros.asignada);
+    if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
     if (filtros.fecha_inicio_from) where.add("ot.fecha_inicio >= ?", [filtros.fecha_inicio_from]);
     if (filtros.fecha_inicio_to) where.add("ot.fecha_inicio <= ?", [filtros.fecha_inicio_to]);
     if (filtros.fecha_fin_from) where.add("ot.fecha_fin >= ?", [filtros.fecha_fin_from]);
@@ -60,21 +64,21 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
 
     const dataSql = `
         SELECT 
-    p.did_cliente,
-    COUNT(DISTINCT ot.did) AS ordenes_total,
-    COUNT(DISTINCT CASE WHEN pp.did_producto IS NULL THEN ot.did END) AS ordenes_alertadas,
-    COUNT(DISTINCT CASE WHEN pp.did_producto IS NOT NULL THEN ot.did END) AS ordenes_pendientes
-FROM ordenes_trabajo AS ot
-LEFT JOIN ordenes_trabajo_pedidos AS otp 
-    ON ot.did = otp.did_orden_trabajo
-LEFT JOIN pedidos AS p
-    ON otp.did_pedido = p.id
-LEFT JOIN pedidos_productos AS pp 
-    ON otp.did_pedido = pp.did_pedido
-${whereSql /* Ej: WHERE ot.elim = 0 AND ot.superado = 0 */}
-GROUP BY p.did_cliente
-${orderSql /* Ej: ORDER BY p.did_cliente ASC */}
-LIMIT ? OFFSET ?;
+            p.did_cliente,
+            COUNT(DISTINCT ot.did) AS ordenes_total,
+            COUNT(DISTINCT CASE WHEN pp.did_producto IS NULL THEN ot.did END) AS ordenes_alertadas,
+            COUNT(DISTINCT CASE WHEN pp.did_producto IS NOT NULL THEN ot.did END) AS ordenes_pendientes
+        FROM ordenes_trabajo AS ot
+        LEFT JOIN ordenes_trabajo_pedidos AS otp 
+            ON ot.did = otp.did_orden_trabajo
+        LEFT JOIN pedidos AS p
+            ON otp.did_pedido = p.id
+        LEFT JOIN pedidos_productos AS pp 
+            ON otp.did_pedido = pp.did_pedido
+        ${whereSql /* Ej: WHERE ot.elim = 0 AND ot.superado = 0 */}
+        GROUP BY p.did_cliente
+        ${orderSql /* Ej: ORDER BY p.did_cliente ASC */}
+        LIMIT ? OFFSET ?;
 
         `;
 
@@ -89,7 +93,7 @@ LIMIT ? OFFSET ?;
             pageSize,
             offset,
         });
-        */
+    */
 
     const total = rows.length;
 
