@@ -1,6 +1,6 @@
 import { isNonEmpty, number01, LightdataORM, executeQuery } from "lightdata-tools";
 
-export async function createVariante(dbConnection, req) {
+export async function createVariante(db, req) {
     const { codigo, nombre, descripcion, habilitado, orden, categorias } = req.body;
     const userId = Number(req.user.userId);
 
@@ -11,7 +11,7 @@ export async function createVariante(dbConnection, req) {
     const ordenValue = Number.isFinite(Number(orden)) ? Number(orden) : 0;
 
     const existe = await executeQuery(
-        dbConnection,
+        db,
         `SELECT id FROM variantes WHERE codigo = ? AND superado = 0 AND elim = 0 LIMIT 1`,
         [codigoTrim]
     );
@@ -20,7 +20,7 @@ export async function createVariante(dbConnection, req) {
     }
 
     const [idVariante] = await LightdataORM.insert({
-        dbConnection,
+        db,
         table: "variantes",
         quien: userId,
         data: {
@@ -44,7 +44,7 @@ export async function createVariante(dbConnection, req) {
         }));
 
         idCats = await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "variantes_categorias",
             quien: userId,
             data: catRows,
@@ -64,7 +64,7 @@ export async function createVariante(dbConnection, req) {
 
         if (valoresRows.length > 0) {
             await LightdataORM.insert({
-                dbConnection,
+                db,
                 table: "variantes_categoria_valores",
                 quien: userId,
                 data: valoresRows,
@@ -98,7 +98,7 @@ export async function createVariante(dbConnection, req) {
           AND v.elim = 0;
     `;
 
-    const rows = await executeQuery(dbConnection, sql, [idVariante]);
+    const rows = await executeQuery(db, sql, [idVariante]);
 
     if (!rows.length) {
         throw new Error("Error al obtener la variante creada.");

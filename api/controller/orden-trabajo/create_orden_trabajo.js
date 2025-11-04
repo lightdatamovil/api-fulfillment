@@ -13,7 +13,7 @@ export async function createOrdenTrabajo(db, req) {
     } = req.body;
 
     const [did_ot] = await LightdataORM.insert({
-        dbConnection: db,
+        db,
         table: "ordenes_trabajo",
         data: {
             estado,
@@ -34,7 +34,7 @@ export async function createOrdenTrabajo(db, req) {
         }));
         console.log(data);
         await LightdataORM.insert({
-            dbConnection: db,
+            db,
             table: "ordenes_trabajo_pedidos",
             data,
             quien: userId
@@ -43,7 +43,7 @@ export async function createOrdenTrabajo(db, req) {
 
     if (pedidosEstados.length > 0) {
         await LightdataORM.insert({
-            dbConnection: db,
+            db,
             table: "ordenes_trabajo_pedidos_estados",
             data: pedidosEstados.map(item => ({
                 did_orden_trabajo: did_ot,
@@ -56,7 +56,7 @@ export async function createOrdenTrabajo(db, req) {
     }
 
     await LightdataORM.update({
-        dbConnection: db,
+        db,
         table: "pedidos",
         data: {
             trabajada: 1

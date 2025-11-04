@@ -11,7 +11,7 @@ import { LightdataORM } from "lightdata-tools";
  * Estrategia: versionado automático con LightdataORM.update() / delete().
  * Sin transacciones.
  */
-export async function editCliente(dbConnection, req) {
+export async function editCliente(db, req) {
     const { userId } = req.user;
     const { clienteId } = req.params;
     const { direcciones, contactos, cuentas, nombre_fantasia, razon_social, codigo, observaciones, habilitado } = req.body;
@@ -29,7 +29,7 @@ export async function editCliente(dbConnection, req) {
     const aDel = cuentas?.remove;
 
     const [vigente] = await LightdataORM.select({
-        dbConnection,
+        db,
         table: "clientes",
         where: { did: clienteId },
         throwIfNotExists: true,
@@ -44,7 +44,7 @@ export async function editCliente(dbConnection, req) {
     };
 
     await LightdataORM.update({
-        dbConnection,
+        db,
         table: "clientes",
 
         where: { did: Number(clienteId) },
@@ -66,7 +66,7 @@ export async function editCliente(dbConnection, req) {
             titulo: d?.titulo ?? null,
         }));
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "clientes_direcciones",
             quien: userId,
             data: direccionesAdd,
@@ -75,7 +75,7 @@ export async function editCliente(dbConnection, req) {
 
     if (dUpd.length > 0) {
         await LightdataORM.update({
-            dbConnection,
+            db,
             table: "clientes_direcciones",
             where: { did: dUpd.map(d => d.did) },
             data: dUpd.map(d => ({
@@ -94,7 +94,7 @@ export async function editCliente(dbConnection, req) {
 
     if (dDel.length > 0) {
         await LightdataORM.delete({
-            dbConnection,
+            db,
             table: "clientes_direcciones",
             where: { did: dDel },
             quien: userId,
@@ -108,7 +108,7 @@ export async function editCliente(dbConnection, req) {
             valor: c?.valor ?? null,
         }));
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "clientes_contactos",
             quien: userId,
             data: contactosAdd,
@@ -117,7 +117,7 @@ export async function editCliente(dbConnection, req) {
 
     if (cUpd.length > 0) {
         await LightdataORM.update({
-            dbConnection,
+            db,
             table: "clientes_contactos",
             where: { did: cUpd.map(c => c.did) },
             quien: userId,
@@ -130,7 +130,7 @@ export async function editCliente(dbConnection, req) {
 
     if (cDel.length > 0) {
         await LightdataORM.delete({
-            dbConnection,
+            db,
             table: "clientes_contactos",
             where: { did: cDel },
             quien: userId,
@@ -148,7 +148,7 @@ export async function editCliente(dbConnection, req) {
         }));
 
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "clientes_cuentas",
             quien: userId,
             data: cuentasAdd,
@@ -165,7 +165,7 @@ export async function editCliente(dbConnection, req) {
         }));
 
         await LightdataORM.update({
-            dbConnection,
+            db,
             table: "clientes_cuentas",
             where: { did: aUpd.map(a => a.did) },
             quien: userId,
@@ -175,7 +175,7 @@ export async function editCliente(dbConnection, req) {
 
     if (aDel.length > 0) {
         await LightdataORM.delete({
-            dbConnection,
+            db,
             table: "clientes_cuentas",
             where: { did: aDel },
             quien: userId,

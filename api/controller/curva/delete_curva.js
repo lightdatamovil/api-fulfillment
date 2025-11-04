@@ -1,11 +1,11 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function deleteCurva(dbConnection, req) {
+export async function deleteCurva(db, req) {
     const { curvaDid } = req.params;
     const { userId } = req.user;
 
     await LightdataORM.delete({
-        dbConnection,
+        db,
         table: "curvas",
         where: { did: curvaDid },
         quien: userId,
@@ -13,14 +13,14 @@ export async function deleteCurva(dbConnection, req) {
     });
 
     const vlinks = await LightdataORM.select({
-        dbConnection,
+        db,
         table: "variantes_curvas",
         where: { did_curva: curvaDid },
     });
 
     if (vlinks.length > 0) {
         await LightdataORM.delete({
-            dbConnection,
+            db,
             table: "variantes_curvas",
             where: { did: vlinks.map((l) => l.did) },
             quien: userId,

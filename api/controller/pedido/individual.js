@@ -1,14 +1,14 @@
 import { isNonEmpty, LightdataORM } from "lightdata-tools";
 
-export async function createPedido(dbConnection, req) {
+export async function createPedido(db, req) {
     const { didCuenta, status, fecha_venta, observaciones, total_amount, pedidosProducto, direccion } = req.body;
 
     const userId = Number(req.user.userId);
 
-    const [didPedido] = await LightdataORM.insert({ dbConnection, table: "pedidos", quien: userId, data: { did_cuenta: didCuenta, status, fecha_venta, observaciones: isNonEmpty(observaciones) ? String(observaciones).trim() : null, total_amount, }, });
+    const [didPedido] = await LightdataORM.insert({ db, table: "pedidos", quien: userId, data: { did_cuenta: didCuenta, status, fecha_venta, observaciones: isNonEmpty(observaciones) ? String(observaciones).trim() : null, total_amount, }, });
 
     await LightdataORM.insert({
-        dbConnection, table: "pedidos_historial",
+        db, table: "pedidos_historial",
         quien: userId, data: {
             did_pedido: didPedido,
             estado: isNonEmpty(status) ? String(status).trim() : "nuevo",
@@ -34,7 +34,7 @@ export async function createPedido(dbConnection, req) {
 
     if (rowsDetalle.length > 0) {
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "pedidos_productos",
             quien: userId,
             data: rowsDetalle,
@@ -62,7 +62,7 @@ export async function createPedido(dbConnection, req) {
             hora_desde: isNonEmpty(direccion.hora_desde) ? String(direccion.hora_desde).trim() : null, hora_hasta: isNonEmpty(direccion.hora_hasta) ? String(direccion.hora_hasta).trim() : null,
         };
         const [insertedDidDireccion] = await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "pedidos_ordenes_direcciones_destino",
             quien: userId,
             data: rowDireccion,

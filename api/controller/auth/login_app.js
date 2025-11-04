@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { CustomException, executeQuery, generateToken, Status } from "lightdata-tools";
 
-export async function loginApp(dbConnection, req) {
+export async function loginApp(db, req) {
     const { username, password, companyId } = req.body ?? {};
 
     if (!username || !password) {
@@ -18,7 +18,7 @@ export async function loginApp(dbConnection, req) {
         WHERE usuario = ? AND elim = 0 AND superado = 0
         LIMIT 1
     `;
-    const users = await executeQuery(dbConnection, userSql, [username]);
+    const users = await executeQuery(db, userSql, [username]);
     const user = users[0];
 
     const invalid = () =>

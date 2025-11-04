@@ -5,7 +5,7 @@ export async function getlogisticaById(db, req) {
     const { userId } = req.user;
 
     const logistica = await LightdataORM.select({
-        dbConnection: db,
+        db,
         table: "logisticas",
         where: { did: logisticaDid },
         select: ["nombre", "codigo", "codigoLD", "logisticaLD", "habilitado"],
@@ -15,7 +15,7 @@ export async function getlogisticaById(db, req) {
     const { nombre, codigo, codigoLD, logisticaLD, habilitado } = logistica[0];
 
     const logisticaDirecciones = await LightdataORM.select({
-        dbConnection: db,
+        db,
         table: "logisticas_direcciones",
         where: { did_logistica: logisticaDid },
         select: ["did", "titulo", "cp", "calle", "localidad", "numero", "provincia"]

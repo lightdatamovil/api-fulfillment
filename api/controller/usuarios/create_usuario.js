@@ -2,7 +2,7 @@ import axios from "axios";
 import { CustomException, Status, toStr, toBool01, toInt, hashPassword, emptyToNull, LightdataORM, executeQuery } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
 
-export async function createUsuario(dbConnection, req) {
+export async function createUsuario(db, req) {
     const { companyId } = req.user;
     const data = req.body;
     const quien = req.user.userId;
@@ -31,7 +31,7 @@ export async function createUsuario(dbConnection, req) {
     }
 
     const existingUser = await executeQuery(
-        dbConnection,
+        db,
         `SELECT did FROM usuarios WHERE (usuario = ? OR email = ?) AND superado = 0 AND elim = 0 LIMIT 1`,
         [usuario, email]
     );
@@ -62,7 +62,7 @@ export async function createUsuario(dbConnection, req) {
     };
 
     const userInsert = await LightdataORM.insert({
-        dbConnection,
+        db,
         table: "usuarios",
         data: dataInsert,
         quien: quien,
@@ -88,7 +88,7 @@ export async function createUsuario(dbConnection, req) {
             );
             insertImage = uploadRes.data.file.url;
             await executeQuery(
-                dbConnection,
+                db,
                 `UPDATE usuarios SET imagen = ? WHERE did = ?`,
                 [insertImage, didUserInsert], true
             );

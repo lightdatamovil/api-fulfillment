@@ -1,7 +1,7 @@
 import { pickNonEmpty } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta, } from "../../src/functions/query_utils.js";
 
-export async function getFilteredInsumos(dbConnection, req) {
+export async function getFilteredInsumos(db, req) {
     const q = req.query;
 
     // paginación (notar pageSize camelCase)
@@ -40,7 +40,7 @@ export async function getFilteredInsumos(dbConnection, req) {
     const { whereSql, params } = where.finalize();
 
     // SELECT + COUNT
-    const { rows, total } = await runPagedQuery(dbConnection, {
+    const { rows, total } = await runPagedQuery(db, {
         select: "i.did, i.nombre, i.codigo, i.habilitado",
         from: "FROM insumos i",
         whereSql,

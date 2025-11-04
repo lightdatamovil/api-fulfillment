@@ -11,7 +11,7 @@ import { urlSubidaImagenes } from "../../db.js";
  * - Marca superado=1 en versión activa.
  * - Inserta nueva fila con mismo did y cambios.
  */
-export async function editUsuario(dbConnection, req) {
+export async function editUsuario(db, req) {
     const {
         nombre, apellido, email,
         usuario, pass, imagen,
@@ -27,7 +27,7 @@ export async function editUsuario(dbConnection, req) {
 
     const userVerify = await LightdataORM.select(
         {
-            dbConnection,
+            db,
             table: "usuarios",
             where: { did: userId },
             throwExceptionIfNotExists: true,
@@ -69,7 +69,7 @@ export async function editUsuario(dbConnection, req) {
     }
     await LightdataORM.update(
         {
-            dbConnection,
+            db,
             table: "usuarios",
             where: { did: userId },
             quien: quien,

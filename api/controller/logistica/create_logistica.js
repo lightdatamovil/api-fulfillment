@@ -28,7 +28,7 @@ export async function createlogistica(db, req) {
     }
 
     const [inserted] = await LightdataORM.insert({
-        dbConnection: db,
+        db,
         table: "logisticas",
         data: { nombre, logisticaLD, codigo, codigoLD, habilitado },
         quien: userId,
@@ -47,7 +47,7 @@ export async function createlogistica(db, req) {
             address_line: d.address_line
         }))
         await LightdataORM.insert({
-            dbConnection: db,
+            db,
             table: "logisticas_direcciones",
             data,
             quien: userId,
@@ -55,7 +55,7 @@ export async function createlogistica(db, req) {
     }
 
     const direccionesSelect = await LightdataORM.select({
-        dbConnection: db,
+        db,
         table: "logisticas_direcciones",
         where: { did_logistica: inserted },
         select: ["did", "titulo", "cp", "calle", "pais", "localidad", "numero", "provincia", "address_line"],

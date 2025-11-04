@@ -1,11 +1,11 @@
 import { CustomException, LightdataORM } from "lightdata-tools";
 
-export async function toggleModoTrabajo(dbConnection, req) {
+export async function toggleModoTrabajo(db, req) {
     const { modo_trabajo } = req.body;
     const { companyId, userId } = req.user;
 
     const [modoActual] = await LightdataORM.select({
-        dbConnection,
+        db,
         table: "sistema_empresa",
         where: { did: companyId },
         select: ["modo_trabajo"],
@@ -19,7 +19,7 @@ export async function toggleModoTrabajo(dbConnection, req) {
     }
 
     await LightdataORM.update({
-        dbConnection,
+        db,
         table: "sistema_empresa",
         where: { did: companyId },
         quien: userId,

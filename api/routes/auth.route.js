@@ -14,10 +14,7 @@ auth.post(
             const company = await companiesService.getByCode(companyCode);
             return company;
         },
-        controller: async ({ db, req }) => {
-            const result = await login(db, req);
-            return result;
-        },
+        controller: async ({ req, db }) => await login({ db, req }),
     })
 );
 

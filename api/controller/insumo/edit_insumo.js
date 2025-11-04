@@ -1,6 +1,6 @@
 import { isDefined, LightdataORM } from "lightdata-tools";
 
-export async function editInsumo(dbConnection, req) {
+export async function editInsumo(db, req) {
     const { userId } = req.user;
     const { insumoId } = req.params;
     const { codigo, nombre, unidad, habilitado, clientes_dids } = req.body ?? {};
@@ -18,7 +18,7 @@ export async function editInsumo(dbConnection, req) {
 
     // 1) Obtener el registro actual (y validar existencia)
     const [current] = await LightdataORM.select({
-        dbConnection,
+        db,
         table: "insumos",
         where: { did: didInsumo },
         throwIfNotExists: true,
@@ -27,7 +27,7 @@ export async function editInsumo(dbConnection, req) {
     // 2) Validar unicidad de "codigo" (si vino algo)
     if (isDefined(codigo) && String(codigo).trim() !== "") {
         const posibles = await LightdataORM.select({
-            dbConnection,
+            db,
             table: "insumos",
             where: { elim: 0, codigo },
         });
@@ -46,7 +46,7 @@ export async function editInsumo(dbConnection, req) {
 
     // 3) Actualizar insumo
     await LightdataORM.update({
-        dbConnection,
+        db,
         table: "insumos",
         where: { did: didInsumo },
         quien: userId,
@@ -65,7 +65,7 @@ export async function editInsumo(dbConnection, req) {
     // 4a) Remover vínculos por (did_insumo, did_cliente)
     if (toRemove.length > 0) {
         await LightdataORM.delete({
-            dbConnection,
+            db,
             table: "insumos_clientes",
             where: { did_insumo: didInsumo, did_cliente: toRemove },
             quien: userId,
@@ -75,7 +75,7 @@ export async function editInsumo(dbConnection, req) {
     // 4b) Agregar vínculos nuevos, evitando duplicados
     if (toAdd.length > 0) {
         await LightdataORM.select({
-            dbConnection,
+            db,
             table: "insumos_clientes",
             where: { did_insumo: didInsumo, did_cliente: toAdd },
             throwIfExists: true,
@@ -84,7 +84,7 @@ export async function editInsumo(dbConnection, req) {
         const data = toAdd.map((did_cliente) => ({ did_insumo: didInsumo, did_cliente }));
 
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "insumos_clientes",
             quien: userId,
             data,

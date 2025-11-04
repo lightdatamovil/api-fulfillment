@@ -1,8 +1,8 @@
 import { executeQuery, LightdataORM } from "lightdata-tools";
 
-export async function preloader(dbConnection) {
+export async function preloader(db) {
   const rows = await executeQuery(
-    dbConnection,
+    db,
     `
     SELECT 
       p.*, 
@@ -59,7 +59,7 @@ export async function preloader(dbConnection) {
     WHERE v.elim = 0 AND v.superado = 0
     ORDER BY v.did DESC, vc.did DESC, vcv.did DESC
   `;
-  const rowsVariantes = await executeQuery(dbConnection, queryVariantes, []);
+  const rowsVariantes = await executeQuery(db, queryVariantes, []);
 
   // Mapear variantes → categorías → valores
   const variantesMap = new Map();
@@ -121,7 +121,7 @@ export async function preloader(dbConnection) {
     WHERE cu.elim = 0 AND cu.superado = 0
     ORDER BY cu.did DESC, vc.did DESC, vcv.did DESC
   `;
-  const rowsCurvas = await executeQuery(dbConnection, queryCurvas, []);
+  const rowsCurvas = await executeQuery(db, queryCurvas, []);
 
   // Mapear curvas → categorías → valores (SIN variantes)
   const curvasMap = new Map();
@@ -150,7 +150,7 @@ export async function preloader(dbConnection) {
   const curvas = Array.from(curvasMap.values());
 
   const insumos = await LightdataORM.select({
-    dbConnection,
+    db,
     table: "insumos",
     where: { elim: 0, superado: 0 },
   });
@@ -172,7 +172,7 @@ export async function preloader(dbConnection) {
     WHERE c.elim = 0 AND c.superado = 0
     ORDER BY c.did DESC
   `;
-  const rowsClientes = await executeQuery(dbConnection, queryClientes, []);
+  const rowsClientes = await executeQuery(db, queryClientes, []);
 
   const clientesMap = new Map();
   for (const row of rowsClientes) {

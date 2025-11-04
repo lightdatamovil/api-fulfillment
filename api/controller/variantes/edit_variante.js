@@ -7,7 +7,7 @@ import { isNonEmpty, isDefined, number01, LightdataORM, CustomException, Status 
  * - categorias.update: permite "valores" con { add[], update[], remove[] }
  * - categorias.remove: borra primero valores asociados y luego la categoría
  */
-export async function editVariante(dbConnection, req) {
+export async function editVariante(db, req) {
     const { varianteId } = req.params;
     const userId = Number(req.user.userId);
     const body = req.body;
@@ -23,7 +23,7 @@ export async function editVariante(dbConnection, req) {
     const cDel = normRemove(body?.categorias?.remove);
 
     const [vigente] = await LightdataORM.select({
-        dbConnection,
+        db,
         table: "variantes",
         where: { did: varianteId },
         throwIfNotExists: true,
@@ -33,7 +33,7 @@ export async function editVariante(dbConnection, req) {
 
     if (nextCodigo !== vigente.codigo) {
         await LightdataORM.select({
-            dbConnection,
+            db,
             table: "variantes",
             where: { codigo: nextCodigo },
             throwIfExists: true,
@@ -66,7 +66,7 @@ export async function editVariante(dbConnection, req) {
         : (vigente.orden ?? 0);
 
     await LightdataORM.update({
-        dbConnection,
+        db,
         table: "variantes",
         where: { did: varianteId },
         quien: userId,
@@ -90,7 +90,7 @@ export async function editVariante(dbConnection, req) {
 
     if (batchInsertsCategorias.length > 0) {
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "variantes_categorias",
             data: batchInsertsCategorias,
             quien: userId,
@@ -99,7 +99,7 @@ export async function editVariante(dbConnection, req) {
         // recuperar dids por nombre (asumimos nombres únicos dentro de la variante)
         const nombres = batchInsertsCategorias.map((r) => r.nombre);
         const creadas = await LightdataORM.select({
-            dbConnection,
+            db,
             table: "variantes_categorias",
             where: { did_variante: Number(varianteId), nombre: nombres },
             throwIfNotExists: false,
@@ -128,7 +128,7 @@ export async function editVariante(dbConnection, req) {
         }
         if (valoresNuevos.length > 0) {
             await LightdataORM.insert({
-                dbConnection,
+                db,
                 table: "variantes_categoria_valores",
                 data: valoresNuevos,
                 quien: userId,
@@ -144,7 +144,7 @@ export async function editVariante(dbConnection, req) {
 
         if (dids.length > 0) {
             await LightdataORM.update({
-                dbConnection,
+                db,
                 table: "variantes_categorias",
                 where: { did: dids },
                 data: datas,
@@ -171,7 +171,7 @@ export async function editVariante(dbConnection, req) {
                 }));
             if (rows.length > 0) {
                 await LightdataORM.insert({
-                    dbConnection,
+                    db,
                     table: "variantes_categoria_valores",
                     data: rows,
                     quien: userId,
@@ -187,7 +187,7 @@ export async function editVariante(dbConnection, req) {
             }));
             if (dids.length > 0) {
                 await LightdataORM.update({
-                    dbConnection,
+                    db,
                     table: "variantes_categoria_valores",
                     where: { did: dids },
                     data: datas,
@@ -198,7 +198,7 @@ export async function editVariante(dbConnection, req) {
 
         if (vDel.length > 0) {
             await LightdataORM.delete({
-                dbConnection,
+                db,
                 table: "variantes_categoria_valores",
                 where: { did: vDel },
                 quien: userId,
@@ -208,13 +208,13 @@ export async function editVariante(dbConnection, req) {
 
     if (cDel.length > 0) {
         await LightdataORM.delete({
-            dbConnection,
+            db,
             table: "variantes_categoria_valores",
             where: { did_categoria: cDel },
             quien: userId,
         });
         await LightdataORM.delete({
-            dbConnection,
+            db,
             table: "variantes_categorias",
             where: { did: cDel },
             quien: userId,

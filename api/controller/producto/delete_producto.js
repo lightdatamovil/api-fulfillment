@@ -4,19 +4,19 @@ import { LightdataORM } from "lightdata-tools";
  *  - Marca las asociaciones como eliminadas (elim=1).
  *  - Marca el producto principal como eliminado (elim=1).
  */
-export async function deleteProducto(dbConnection, req) {
+export async function deleteProducto(db, req) {
     const { did } = req.params;
     const quien = req.user.userId;
 
     await LightdataORM.select({
-        dbConnection,
+        db,
         table: "productos",
         where: { did: did },
         throwIfNotExists: true,
     });
 
     await LightdataORM.delete({
-        dbConnection,
+        db,
         table: "productos",
         where: { did: did },
         quien,
@@ -36,7 +36,7 @@ export async function deleteProducto(dbConnection, req) {
     for (const table of dependencias) {
         try {
             await LightdataORM.delete({
-                dbConnection,
+                db,
                 table,
                 where: { did_producto: did },
                 quien,

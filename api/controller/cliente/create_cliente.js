@@ -1,6 +1,6 @@
 import { isNonEmpty, isDefined, LightdataORM, } from "lightdata-tools";
 
-export async function createCliente(dbConnection, req) {
+export async function createCliente(db, req) {
     const {
         nombre_fantasia,
         razon_social,
@@ -21,14 +21,14 @@ export async function createCliente(dbConnection, req) {
     const vl = isDefined(habilitado) ? String(habilitado).trim() : null;
 
     await LightdataORM.select({
-        dbConnection,
+        db,
         table: "clientes",
         where: { nombre_fantasia: nf, codigo: cod },
         throwIfExists: true,
     });
 
     const [clienteId] = await LightdataORM.insert({
-        dbConnection,
+        db,
         table: "clientes",
         quien: userId,
         data: {
@@ -52,7 +52,7 @@ export async function createCliente(dbConnection, req) {
         }));
 
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "clientes_direcciones",
             quien: userId,
             data,
@@ -67,7 +67,7 @@ export async function createCliente(dbConnection, req) {
         }));
 
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "clientes_contactos",
             quien: userId,
             data,
@@ -99,7 +99,7 @@ export async function createCliente(dbConnection, req) {
             };
         });
         const cuentasIds = await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "clientes_cuentas",
             quien: userId,
             data: cuentasData,
@@ -115,7 +115,7 @@ export async function createCliente(dbConnection, req) {
 
             if (depositosData.length > 0) {
                 await LightdataORM.insert({
-                    dbConnection,
+                    db,
                     table: "clientes_cuentas_depositos",
                     quien: userId,
                     data: depositosData,

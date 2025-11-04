@@ -1,20 +1,20 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function createInsumo(dbConnection, req) {
+export async function createInsumo(db, req) {
     const { codigo, clientes_dids, habilitado, nombre, unidad } = req.body;
     const { userId } = req.user;
 
     const clientesArr = Array.from(new Set(clientes_dids.map(n => Number(n))));
 
     await LightdataORM.select({
-        dbConnection,
+        db,
         table: "insumos",
         where: { codigo },
         throwIfExists: true,
     });
 
     const [newId] = await LightdataORM.insert({
-        dbConnection,
+        db,
         table: "insumos",
         data: { codigo, nombre, unidad, habilitado },
         quien: userId,
@@ -26,7 +26,7 @@ export async function createInsumo(dbConnection, req) {
             did_cliente: clientDid
         }));
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "insumos_clientes",
             quien: userId,
             data

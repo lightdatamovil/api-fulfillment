@@ -11,7 +11,7 @@ import { CustomException, Status, executeQuery } from "lightdata-tools";
  *   combos:[{ did:number, didProducto:number, cantidad:number }]
  * }
  */
-export async function getProductoById(dbConnection, req) {
+export async function getProductoById(db, req) {
   const didParam = req.params?.did ?? req.params?.id ?? req.params?.productoId;
   const didProducto = Number(didParam);
 
@@ -24,7 +24,7 @@ export async function getProductoById(dbConnection, req) {
   }
 
   const prodRows = await executeQuery(
-    dbConnection,
+    db,
     `SELECT did, did_cliente, titulo, descripcion, imagen, habilitado, es_combo,
              posicion, cm3, alto, ancho, profundo, did_curva, sku, ean
       FROM productos
@@ -48,7 +48,7 @@ export async function getProductoById(dbConnection, req) {
   const [vvRows, ecRows, insRows, comboRows] = await Promise.all([
     // COMBINACIONES de variantes (CSV en 'valores')
     executeQuery(
-      dbConnection,
+      db,
       `
         SELECT did, valores
         FROM productos_variantes_valores
@@ -59,7 +59,7 @@ export async function getProductoById(dbConnection, req) {
     ),
     // Items ecommerce (grupos)
     executeQuery(
-      dbConnection,
+      db,
       `
         SELECT did, did_cuenta, did_producto_variante_valor, sku, ean, url, sync
         FROM productos_ecommerce
@@ -69,7 +69,7 @@ export async function getProductoById(dbConnection, req) {
     ),
     // Insumos
     executeQuery(
-      dbConnection,
+      db,
       `
         SELECT did, did_insumo, cantidad
         FROM productos_insumos
@@ -79,7 +79,7 @@ export async function getProductoById(dbConnection, req) {
     ),
     // Combos
     executeQuery(
-      dbConnection,
+      db,
       `SELECT did, did_producto_combo AS did_producto, cantidad
        FROM productos_combos
        WHERE did_producto = ? AND elim = 0 AND superado = 0

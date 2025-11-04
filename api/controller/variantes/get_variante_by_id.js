@@ -1,6 +1,6 @@
 import { CustomException, executeQuery } from "lightdata-tools";
 
-export async function getVarianteById(dbConnection, req) {
+export async function getVarianteById(db, req) {
     const { varianteId } = req.params; // DID de la variante (root)
     const didVariante = Number(varianteId);
 
@@ -45,7 +45,7 @@ export async function getVarianteById(dbConnection, req) {
     ORDER BY vc.did ASC, vcv.did ASC
   `;
 
-    const rows = await executeQuery(dbConnection, selectQuery, [didVariante]);
+    const rows = await executeQuery(db, selectQuery, [didVariante]);
 
     if (!rows || rows.length === 0) {
         throw new CustomException({

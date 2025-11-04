@@ -5,7 +5,7 @@ export async function deleteOrdenTrabajo(db, req) {
     const { userId } = req.user;
     console.log(did);
     await LightdataORM.delete({
-        dbConnection: db,
+        db,
         table: "ordenes_trabajo",
         where: { did: did },
         quien: userId,
@@ -13,7 +13,7 @@ export async function deleteOrdenTrabajo(db, req) {
     });
 
     await LightdataORM.delete({
-        dbConnection: db,
+        db,
         table: "ordenes_trabajo_pedidos",
         where: { did_orden_trabajo: did },
         quien: userId,
@@ -21,7 +21,7 @@ export async function deleteOrdenTrabajo(db, req) {
     });
 
     await LightdataORM.delete({
-        dbConnection: db,
+        db,
         table: "ordenes_trabajo_pedidos_estados",
         where: { did_orden_trabajo: did },
         quien: userId,

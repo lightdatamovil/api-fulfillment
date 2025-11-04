@@ -12,7 +12,7 @@ import { isNonEmpty, LightdataORM, CustomException, Status } from "lightdata-too
  *   }
  * }
  */
-export async function editCurva(dbConnection, req) {
+export async function editCurva(db, req) {
     const { nombre, categorias, codigo, habilitado } = req.body || {};
     const { userId } = req.user || {};
     const curvaDid = Number(req.params?.curvaDid);
@@ -36,7 +36,7 @@ export async function editCurva(dbConnection, req) {
 
     // 1) Verificar que la curva exista (vigente)
     const [curr] = await LightdataORM.select({
-        dbConnection,
+        db,
         table: "curvas",
         where: { did: curvaDid },
         throwExceptionIfNotExists: true,
@@ -46,7 +46,7 @@ export async function editCurva(dbConnection, req) {
     const newNombre = isNonEmpty(nombre) ? String(nombre).trim() : curr.nombre;
 
     await LightdataORM.update({
-        dbConnection,
+        db,
         table: "curvas",
         where: { did: curvaDid },
         quien: userId,
@@ -60,7 +60,7 @@ export async function editCurva(dbConnection, req) {
     if (addIds.length > 0) {
         // (Opcional pero sano) validar existencia de categorías
         await LightdataORM.select({
-            dbConnection,
+            db,
             table: "variantes_categorias",
             where: { did: addIds },
             throwExceptionIfNotExists: true,
@@ -68,7 +68,7 @@ export async function editCurva(dbConnection, req) {
 
         // Insert bulk en pivote (usamos la misma pivote que ya tenías, con did_categoria)
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "variantes_curvas", // pivote curva <-> categoría
             quien: userId,
             data: addIds.map((didCat) => ({
@@ -82,7 +82,7 @@ export async function editCurva(dbConnection, req) {
     if (delIds.length > 0) {
         // delete versionado por condiciones (curva + listado de categorías)
         await LightdataORM.delete({
-            dbConnection,
+            db,
             table: "variantes_curvas",
             where: { did_curva: curvaDid, did_categoria: delIds },
             quien: userId,

@@ -5,7 +5,7 @@ import { isNonEmpty, LightdataORM } from "lightdata-tools";
  *  - Objeto simple: { didCuenta, status, ... }
  *  - Objeto con { pedidos: [ { ... }, ... ] }  (MASIVO)
  */
-export async function createPedido(dbConnection, req) {
+export async function createPedido(db, req) {
     const userId = Number(req.user.userId);
 
     // Detectar forma del payload
@@ -28,7 +28,7 @@ export async function createPedido(dbConnection, req) {
     const results = [];
     for (const chunk of chunks) {
         const settled = await Promise.allSettled(
-            chunk.map((pedido) => insertOnePedido(dbConnection, userId, pedido))
+            chunk.map((pedido) => insertOnePedido(db, userId, pedido))
         );
         for (const r of settled) {
             if (r.status === "fulfilled") {
@@ -71,7 +71,7 @@ export async function createPedido(dbConnection, req) {
 }
 
 /** Crea UN (1) pedido reutilizando LightdataORM.insert (sin transacciones) */
-async function insertOnePedido(dbConnection, userId, pedido) {
+async function insertOnePedido(db, userId, pedido) {
     const {
 
         did_cliente,
@@ -90,7 +90,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
 
     // 1) pedidos
     const [didPedido] = await LightdataORM.insert({
-        dbConnection,
+        db,
         table: "pedidos",
         quien: userId,
         data: {
@@ -112,7 +112,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
 
     // 1b) historial inicial
     await LightdataORM.insert({
-        dbConnection,
+        db,
         table: "pedidos_historial",
         quien: userId,
         data: {
@@ -141,7 +141,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
 
     if (rowsDetalle.length > 0) {
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "pedidos_productos",
             quien: userId,
             data: rowsDetalle, // BULK
@@ -180,7 +180,7 @@ async function insertOnePedido(dbConnection, userId, pedido) {
         };
 
         const [insertedDidDireccion] = await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "pedidos_ordenes_direcciones_destino",
             quien: userId,
             data: rowDireccion,

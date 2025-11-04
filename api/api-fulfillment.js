@@ -1,21 +1,21 @@
 import express, { json, urlencoded } from 'express';
 import cors from "cors";
-import clientes from "./route/clientes.js";
-import pedido from "./route/pedidos.js";
-import insumos from "./route/insumos.js";
-import producto from "./route/producto.js";
-import publicacion from "./route/route-publicaciones.js";
-import variantes from "./route/variantes.js";
-import usuarios from "./route/usuarios.js";
-import curvas from './route/curva.js';
-import ordenesTrabajo from './route/ordenes_trabajo.js';
+import clientes from "./routes/clientes.route.js";
+import pedido from "./routes/pedidos.route.js";
+import insumos from "./routes/insumos.route.js";
+import producto from "./routes/producto.route.js";
+import publicacion from "./routes/route-publicaciones.route.js";
+import variantes from "./routes/variantes.route.js";
+import usuarios from "./routes/usuarios.route.js";
+import curvas from './routes/curva.route.js';
+import ordenesTrabajo from './routes/ordenes_trabajo.route.js';
 import { logBlue, logRed, verifyToken } from "lightdata-tools";
 import redisClient, { jwtIssuer, jwtAudience } from "./db.js";
-import auth from "./route/auth.js";
-import preload from './route/preload.js';
-import logisticas from './route/logisticas.js';
+import auth from "./routes/auth.route.js";
+import preload from './routes/preload.route.js';
+import logisticas from './routes/logisticas.route.js';
 import { jwtSecret } from './db.js';
-import configuracion from './route/configuracion.js';
+import configuracion from './routes/configuracion.route.js';
 
 const app = express();
 

@@ -11,7 +11,7 @@ import {
 import { urlSubidaImagenes } from "../../db.js";
 
 
-export async function createProducto(dbConnection, req) {
+export async function createProducto(db, req) {
     const {
         did_cliente,
         titulo,
@@ -35,14 +35,14 @@ export async function createProducto(dbConnection, req) {
     const { userId, companyId } = req.user;
 
     await LightdataORM.select({
-        dbConnection,
+        db,
         table: "productos",
         where: { sku },
         throwIfExists: true,
     });
 
     const [client] = await LightdataORM.select({
-        dbConnection,
+        db,
         table: "clientes",
         where: { did: did_cliente },
         //  throwIfNotExists: true,
@@ -50,7 +50,7 @@ export async function createProducto(dbConnection, req) {
 
     //  Inserción del producto principal
     const [idProducto] = await LightdataORM.insert({
-        dbConnection,
+        db,
         table: "productos",
         quien: userId,
         data: {
@@ -89,7 +89,7 @@ export async function createProducto(dbConnection, req) {
 
         // 2) Insert masivo de PVV (uno por bloque). Orden de IDs = orden de pvvRows
         const insertedPvvs = await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "productos_variantes_valores",
             quien: userId,
             data: pvvRows,
@@ -119,7 +119,7 @@ export async function createProducto(dbConnection, req) {
         // 4) Insert masivo de productos_ecommerce (una fila por grupo)
         if (ecomRows.length) {
             await LightdataORM.insert({
-                dbConnection,
+                db,
                 table: "productos_ecommerce",
                 quien: userId,
                 data: ecomRows,
@@ -156,7 +156,7 @@ export async function createProducto(dbConnection, req) {
         });
 
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "productos_insumos",
             quien: userId,
             data: insumoData,
@@ -203,7 +203,7 @@ export async function createProducto(dbConnection, req) {
         // Validar existencia de productos hijos
         const hijos = items.map((i) => i.did_producto_combo);
         const hijosValidos = await LightdataORM.select({
-            dbConnection,
+            db,
             table: "productos",
             where: { did: hijos },
             select: "did, es_combo",
@@ -227,7 +227,7 @@ export async function createProducto(dbConnection, req) {
         }
 
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "productos_combos",
             quien: userId,
             data: items.map((it) => ({
@@ -255,7 +255,7 @@ export async function createProducto(dbConnection, req) {
 
             urlReturn.push(urlResponse.data.file.url);
             // insertaf file en tabla productos
-            await executeQuery(dbConnection, "UPDATE productos SET imagen = ? WHERE id = ?", [urlReturn[0], idProducto], true);
+            await executeQuery(db, "UPDATE productos SET imagen = ? WHERE id = ?", [urlReturn[0], idProducto], true);
 
         }
 

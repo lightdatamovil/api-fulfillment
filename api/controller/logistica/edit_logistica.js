@@ -1,13 +1,13 @@
 import { LightdataORM } from "lightdata-tools";
 
 
-export async function editLogistica(dbConnection, req) {
+export async function editLogistica(db, req) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user ?? {};
     const { nombre, logisticaLD, codigo, codigoLD, habilitado, direcciones } = req.body ?? {};
 
     const verifyLogistica = await LightdataORM.select({
-        dbConnection: dbConnection,
+        db,
         table: "logisticas",
         where: { did: logisticaDid },
         throwIfNotExists: true,
@@ -20,7 +20,7 @@ export async function editLogistica(dbConnection, req) {
     const habilitadoInsert = isDefined(habilitado) ? habilitado : verifyLogistica.habilitado;
 
     await LightdataORM.update({
-        dbConnection: dbConnection,
+        db,
         table: "logisticas",
         where: { did: logisticaDid },
         quien: userId,
@@ -50,7 +50,7 @@ export async function editLogistica(dbConnection, req) {
         }));
 
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "logisticas_direcciones",
             quien: userId,
             data
@@ -59,7 +59,7 @@ export async function editLogistica(dbConnection, req) {
 
     if (hayDirecciones.hasRemove) {
         await LightdataORM.delete({
-            dbConnection,
+            db,
             table: "logisticas_direcciones",
             where: { did: hayDirecciones.didsRemove },
             quien: userId,
@@ -71,7 +71,7 @@ export async function editLogistica(dbConnection, req) {
         const normalized = normalizeDireccionesInsert(hayDirecciones.update);
 
         await LightdataORM.update({
-            dbConnection,
+            db,
             table: "logisticas_direcciones",
             where: { did: didsUpdate },
             quien: userId,
@@ -80,7 +80,7 @@ export async function editLogistica(dbConnection, req) {
     }
 
     const direccionesSelect = await LightdataORM.select({
-        dbConnection,
+        db,
         table: "logisticas_direcciones",
         where: { did_logistica: logisticaDid },
     });

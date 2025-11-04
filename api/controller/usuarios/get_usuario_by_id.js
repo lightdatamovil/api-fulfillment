@@ -1,11 +1,11 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function getUsuarioById(dbConnection, req) {
+export async function getUsuarioById(db, req) {
     const { userId } = req.params;
 
     const row = await LightdataORM.select(
         {
-            dbConnection,
+            db,
             table: "usuarios",
             where: { did: userId },
             throwExceptionIfNotExists: true,

@@ -6,7 +6,7 @@ export async function editOrdenTrabajo(db, req) {
     const did_ot = req.params.did;
 
     const [prev] = await LightdataORM.select({
-        dbConnection: db,
+        db,
         table: "ordenes_trabajo",
         throwIfNotExists: true,
         where: { did: did_ot },
@@ -14,7 +14,7 @@ export async function editOrdenTrabajo(db, req) {
     });
 
     await LightdataORM.update({
-        dbConnection: db,
+        db,
         table: "ordenes_trabajo",
         data: {
             estado: isDefined(estado) ? estado : prev.estado,
@@ -27,7 +27,7 @@ export async function editOrdenTrabajo(db, req) {
 
     if (pedidos.add.length > 0) {
         await LightdataORM.insert({
-            dbConnection: db,
+            db,
             table: "ordenes_trabajo_pedidos",
             data: pedidos.add.map(it => ({
                 did_orden_trabajo: did_ot,
@@ -39,7 +39,7 @@ export async function editOrdenTrabajo(db, req) {
 
     if (pedidos.remove.length > 0) {
         await LightdataORM.delete({
-            dbConnection: db,
+            db,
             table: "ordenes_trabajo_pedidos",
             where: { did: pedidos.remove.map(it => Number(it)) },
             quien: userId

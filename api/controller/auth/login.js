@@ -1,18 +1,16 @@
 import crypto from "crypto";
-import { CustomException, executeQuery, generateToken, Status } from "lightdata-tools";
+import { CustomException, generateToken, LightdataORM, Status } from "lightdata-tools";
 import { companiesService, jwtAudience, jwtIssuer, jwtSecret } from "../../db.js";
 
-export async function login(dbConnection, req) {
+export async function login({ db, req }) {
     const { username, password, companyCode } = req.body;
 
-    const userSql = `
-        SELECT did, perfil, nombre, apellido, email, pass, usuario
-        FROM usuarios
-        WHERE usuario = ? AND elim = 0 AND superado = 0
-        LIMIT 1
-    `;
-    const users = await executeQuery(dbConnection, userSql, [username]);
-    const user = users[0];
+    const [user] = await LightdataORM.select({
+        db,
+        table: "usuarios",
+        where: { usuario: username, },
+        throwIfNotExists: true,
+    });
 
     const invalid = () =>
         new CustomException({
@@ -20,8 +18,6 @@ export async function login(dbConnection, req) {
             message: "Usuario o contraseña incorrectos",
             status: Status.unauthorized,
         });
-
-    if (!user) throw invalid();
 
     const inputHash = crypto.createHash("sha256").update(password).digest("hex").toLowerCase();
     const dbHash = String(user.pass || "").toLowerCase();
@@ -49,7 +45,13 @@ export async function login(dbConnection, req) {
         expiresIn: 3600 * 8,
     });
 
-    const sistemaData = await executeQuery(dbConnection, `SELECT codigo, nombre, modo_trabajo, tipo, imagen FROM sistema_empresa WHERE did = ? AND superado = 0 and elim = 0`, [company.did], true);
+    const [sistemaData] = await LightdataORM.select({
+        db,
+        table: "sistema_empresa",
+        where: {
+            did: company.did,
+        }
+    });
 
     return {
         success: true,
@@ -67,10 +69,10 @@ export async function login(dbConnection, req) {
             company: {
                 codigo: company.codigo,
                 did: company.did,
-                nombre: sistemaData[0].nombre || null,
+                nombre: sistemaData.nombre || null,
                 tipo: company.tipo,
-                imagen: sistemaData[0].imagen || null,
-                modo_trabajo: sistemaData[0].modo_trabajo
+                imagen: sistemaData.imagen || null,
+                modo_trabajo: sistemaData.modo_trabajo
             }
         },
         meta: {

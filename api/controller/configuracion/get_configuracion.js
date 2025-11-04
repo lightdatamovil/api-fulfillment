@@ -4,7 +4,7 @@ import { LightdataORM } from "lightdata-tools";
 export async function getModoTrabajo(connection) {
 
     const [row] = await LightdataORM.select({
-        dbConnection: connection,
+        connection,
         table: "sistema_empresa",
         //! SACAR ESTO CON LA VERSION 1.4.70 DE LIGHTDATA TOOLS
         where: { elim: 0 },

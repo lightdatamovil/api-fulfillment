@@ -13,7 +13,7 @@ import { CustomException, executeQuery } from "lightdata-tools";
  *   }>
  * }
  */
-export async function getCurvaById(dbConnection, req) {
+export async function getCurvaById(db, req) {
     const didParam = req.params.curvaDid;
     const didCurva = Number(didParam);
 
@@ -26,7 +26,7 @@ export async function getCurvaById(dbConnection, req) {
 
     // Curva → (pivot) variantes_curvas.did_categoria → variantes_categorias (para traer did_variante)
     const rows = await executeQuery(
-        dbConnection,
+        db,
         `
       SELECT
         cu.did              AS curva_did,

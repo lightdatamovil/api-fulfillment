@@ -2,7 +2,7 @@ import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM,
 import { urlSubidaImagenes } from "../../db.js";
 import axios from "axios";
 
-export async function updateProducto(dbConnection, req) {
+export async function updateProducto(db, req) {
   const {
     did_cliente,
     titulo,
@@ -37,7 +37,7 @@ export async function updateProducto(dbConnection, req) {
   }
 
   const currRows = await LightdataORM.select({
-    dbConnection,
+    db,
     table: "productos",
     where: { did: didProducto },
     throwIfNotExists: true,
@@ -86,7 +86,7 @@ export async function updateProducto(dbConnection, req) {
   };
 
   await LightdataORM.update({
-    dbConnection,
+    db,
     table: "productos",
     where: { did: didProducto },
     data: newData,
@@ -102,13 +102,13 @@ export async function updateProducto(dbConnection, req) {
 
     //preguntar a agus si vale corrar la variante
     await LightdataORM.delete({
-      dbConnection,
+      db,
       table: "productos_variantes_valores",
       where: { did_producto: didProducto, did: hayEcomerce.didsRemove },
       quien: quien,
     });
     await LightdataORM.delete({
-      dbConnection,
+      db,
       table: "productos_ecommerce",
       where: { did_producto: didProducto, did_producto_variante_valor: hayEcomerce.didsRemove },
       quien,
@@ -129,7 +129,7 @@ export async function updateProducto(dbConnection, req) {
     }));
 
     await LightdataORM.update({
-      dbConnection,
+      db,
       table: "productos_variantes_valores",
       where: { did_producto: didProducto, did: hayEcomerce.didsUpdate },
       data: dataUpdate,
@@ -152,7 +152,7 @@ export async function updateProducto(dbConnection, req) {
     }
 
     await LightdataORMHOTFIX.update({
-      db: dbConnection,
+      db: db,
       table: "productos_ecommerce",
       where: {
         did_producto: didProducto,
@@ -175,7 +175,7 @@ export async function updateProducto(dbConnection, req) {
 
     // 2) Insert masivo de PVV (uno por bloque). Orden de IDs = orden de pvvRows
     const insertedPvvs = await LightdataORM.insert({
-      dbConnection,
+      db,
       table: "productos_variantes_valores",
       quien: quien,
       data: pvvRows,
@@ -206,7 +206,7 @@ export async function updateProducto(dbConnection, req) {
     if (ecomRows.length) {
 
       await LightdataORM.insert({
-        dbConnection,
+        db,
         table: "productos_ecommerce",
         quien: quien,
         data: ecomRows,
@@ -222,7 +222,7 @@ export async function updateProducto(dbConnection, req) {
     const hayCombos = getUpdateOpsState(combos);
     if (hayCombos.hasRemove) {
       await LightdataORM.delete({
-        dbConnection,
+        db,
         table: "productos_combos",
         where: { did: hayCombos.didsRemove },
         quien,
@@ -235,7 +235,7 @@ export async function updateProducto(dbConnection, req) {
         cantidad: Number(c.cantidad),
       }));
       await LightdataORM.update({
-        dbConnection,
+        db,
         table: "productos_combos",
         where: { did_producto: didProducto, did: didsUpdate },
         data: dataUpdate,
@@ -249,7 +249,7 @@ export async function updateProducto(dbConnection, req) {
         cantidad: Number(c.cantidad),
       }));
       const combosInsert = await LightdataORM.insert({
-        dbConnection,
+        db,
         table: "productos_combos",
         data,
         quien,
@@ -267,14 +267,14 @@ export async function updateProducto(dbConnection, req) {
 
     /* insumos_clientes no --- dudoso si borrar
     await LightdataORM.delete({
-      dbConnection,
+      db,
       table: "insumos_clientes",
       where: { did_insumo: hayInsumos.didsRemove, did_cliente: did_cliente },
       quien,
     });
   */
     await LightdataORM.delete({
-      dbConnection,
+      db,
       table: "productos_insumos",
       where: { did: hayInsumos.didsRemove, did_producto: didProducto },
       quien,
@@ -289,7 +289,7 @@ export async function updateProducto(dbConnection, req) {
       cantidad: Number(i.cantidad),
     }));
     await LightdataORM.update({
-      dbConnection,
+      db,
       table: "productos_insumos",
       where: { did: didsUpdate },
       data: dataUpdate,
@@ -306,7 +306,7 @@ export async function updateProducto(dbConnection, req) {
       cantidad: Number(i.cantidad),
     }));
     await LightdataORM.insert({
-      dbConnection,
+      db,
       table: "productos_insumos",
       data,
       quien,

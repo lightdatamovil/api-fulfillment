@@ -1,6 +1,6 @@
 import { LightdataORM } from "lightdata-tools";
 
-export async function editPedido(dbConnection, req) {
+export async function editPedido(db, req) {
     const userId = Number(req.user.userId);
 
     const didPedido = Number(
@@ -32,7 +32,7 @@ export async function editPedido(dbConnection, req) {
 
     if (Object.keys(updateData).length > 0) {
         await LightdataORM.update({
-            dbConnection,
+            db,
             table: "pedidos",
             where: { did: didPedido },
             quien: userId,
@@ -43,7 +43,7 @@ export async function editPedido(dbConnection, req) {
     // 1b) historial si viene status
     if (status !== undefined) {
         await LightdataORM.insert({
-            dbConnection,
+            db,
             table: "pedidos_historial",
             quien: userId,
             data: {
@@ -75,7 +75,7 @@ export async function editPedido(dbConnection, req) {
             }));
 
             await LightdataORM.insert({
-                dbConnection,
+                db,
                 table: "pedidos_productos",
                 quien: userId,
                 data: rowsAdd,
@@ -87,7 +87,7 @@ export async function editPedido(dbConnection, req) {
             for (const r of pedidosProducto.remove) {
                 if (typeof r === "number") {
                     await LightdataORM.delete({
-                        dbConnection,
+                        db,
                         table: "pedidos_productos",
                         quien: userId,
                         where: { did: r, did_pedido: didPedido },
@@ -95,7 +95,7 @@ export async function editPedido(dbConnection, req) {
                     eliminados++;
                 } else if (r?.did_producto) {
                     await LightdataORM.delete({
-                        dbConnection,
+                        db,
                         table: "pedidos_productos",
                         quien: userId,
                         where: { did_producto: r.did_producto, did_pedido: didPedido },
@@ -130,14 +130,14 @@ export async function editPedido(dbConnection, req) {
         };
 
         const existing = await LightdataORM.select({
-            dbConnection,
+            db,
             table: "pedidos_ordenes_direcciones_destino",
             where: { did_pedido: didPedido },
         });
 
         if (existing.length > 0) {
             await LightdataORM.update({
-                dbConnection,
+                db,
                 table: "pedidos_ordenes_direcciones_destino",
                 quien: userId,
                 where: { did_pedido: didPedido },
@@ -145,7 +145,7 @@ export async function editPedido(dbConnection, req) {
             });
         } else {
             await LightdataORM.insert({
-                dbConnection,
+                db,
                 table: "pedidos_ordenes_direcciones_destino",
                 quien: userId,
                 data: { did_pedido: didPedido, ...rowDireccion },
