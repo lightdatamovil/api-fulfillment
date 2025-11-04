@@ -37,7 +37,6 @@ export async function getClienteById({ db, req }) {
       cc.ml_user AS cuenta_ml_user,
       cc.data
 
-      
     FROM clientes c
     LEFT JOIN clientes_direcciones d
       ON d.did_cliente = c.did AND d.elim = 0 AND d.superado = 0
@@ -50,7 +49,7 @@ export async function getClienteById({ db, req }) {
       AND c.did = ?
   `;
 
-    const rows = await executeQuery(db, sql, [clienteId]);
+    const rows = await executeQuery({ db, query: sql, values: [clienteId] });
 
     if (!rows?.length) {
         throw new CustomException({

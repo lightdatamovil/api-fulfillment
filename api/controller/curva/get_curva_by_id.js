@@ -3,18 +3,7 @@ import { CustomException, executeQuery } from "lightdata-tools";
 export async function getCurvaById({ db, req }) {
     const didParam = req.params.curvaDid;
     const didCurva = Number(didParam);
-
-    if (!Number.isFinite(didCurva) || didCurva <= 0) {
-        throw new CustomException({
-            title: "Parámetro inválido",
-            message: "El parámetro curvaDid debe ser numérico y mayor que 0",
-        });
-    }
-
-    // Curva → (pivot) variantes_curvas.did_categoria → variantes_categorias (para traer did_variante)
-    const rows = await executeQuery(
-        db,
-        `
+    const q = `
       SELECT
         cu.did              AS curva_did,
         cu.nombre           AS curva_nombre,
@@ -37,9 +26,8 @@ export async function getCurvaById({ db, req }) {
       WHERE cu.did = ?
         AND cu.elim = 0
         AND cu.superado = 0
-    `,
-        [didCurva]
-    );
+    `;
+    const rows = await executeQuery({ db, query: q, values: [didCurva] });
 
     if (!rows || rows.length === 0) {
         throw new CustomException({
@@ -48,11 +36,9 @@ export async function getCurvaById({ db, req }) {
         });
     }
 
-    // Base de la curva (la LEFT JOIN garantiza al menos una fila si la curva existe)
     const base = rows[0];
     const categorias = [];
 
-    // Evitar duplicados por si hay múltiples filas por categoría
     const catSeen = new Set();
 
     for (const r of rows) {
@@ -72,7 +58,7 @@ export async function getCurvaById({ db, req }) {
         nombre: base.curva_nombre,
         codigo: base.codigo,
         habilitado: base.habilitado,
-        categorias, // [] si no hay categorías activas
+        categorias,
     };
 
     return {

@@ -1,7 +1,7 @@
 import { executeQuery, toStr, toBool, pickNonEmpty } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functions/query_utils.js";
 
-export async function getFilteredLogisticas(connection, req) {
+export async function getFilteredLogisticas({ db, req }) {
   const q = req.query;
 
   const qp = { ...q, page: q.page ?? q.pagina, page_size: q.page_size ?? q.cantidad };
@@ -44,7 +44,7 @@ export async function getFilteredLogisticas(connection, req) {
   const { whereSql, params } = where.finalize();
 
   const countSql = `SELECT COUNT(*) AS total FROM logisticas l ${whereSql}`;
-  const [{ total = 0 } = {}] = await executeQuery(connection, countSql, params);
+  const [{ total = 0 } = {}] = await executeQuery({ db, query: countSql, values: params });
 
   const dataSql = `
 SELECT
@@ -84,7 +84,7 @@ ${orderSql}
 LIMIT ? OFFSET ?;
   `;
 
-  const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset]);
+  const rows = await executeQuery({ db, query: dataSql, values: [...params, pageSize, offset] });
 
   const logisticasFinal = rows.map(l => ({
     did: l.did,

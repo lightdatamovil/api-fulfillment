@@ -1,4 +1,4 @@
-import { CustomException, executeQuery } from "lightdata-tools";
+import { CustomException, LightdataORM } from "lightdata-tools";
 
 export async function getOrdenTrabajoById({ db, req }) {
     const didParam = req.params?.did ?? req.params?.id;
@@ -8,31 +8,25 @@ export async function getOrdenTrabajoById({ db, req }) {
         throw new CustomException({ title: "Parámetro inválido", message: "did debe ser numérico > 0" });
     }
 
-    const ot = await executeQuery(
+    const [ot] = await LightdataORM.select({
         db,
-        `SELECT * FROM ordenes_trabajo WHERE did = ? AND elim = 0 LIMIT 1`,
-        [did]
-    );
-    if (!ot || ot.length === 0) {
-        throw new CustomException({ title: "No encontrado", message: `No existe OT con did ${did}` });
-    }
+        table: "ordenes_trabajo",
+        where: { did },
+        throwIfNotExists: true,
+    });
 
-    const pedidos = await executeQuery(
-        db,
-        `SELECT did_orden_trabajo, did_pedido, quien, autofecha
-     FROM ordenes_trabajo_pedidos
-     WHERE did_orden_trabajo = ? AND elim = 0 AND superado = 0`,
-        [did]
-    );
+    const pedidos = await LightdataORM.select({
+        db, table: "ordenes_trabajo_pedidos",
+        where: { did_orden_trabajo: did },
+        select: ["did_orden_trabajo", "did_pedido", "quien", "autofecha"],
+    });
 
-    const historial = await executeQuery(
+    const historial = await LightdataORM.select({
         db,
-        `SELECT did, did_pedido, did_orden_trabajo, fecha, quien, autofecha
-     FROM ordenes_trabajo_pedidos_estados
-     WHERE did_orden_trabajo = ? AND elim = 0
-     ORDER BY fecha DESC, autofecha DESC`,
-        [did]
-    );
+        table: "ordenes_trabajo_pedidos_estados",
+        where: { did_orden_trabajo: did },
+        select: ["did", "did_pedido", "did_orden_trabajo", "fecha", "quien", "autofecha"],
+    });
 
     return {
         success: true,

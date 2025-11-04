@@ -42,7 +42,7 @@ export async function getFilteredClientes({ db, req }) {
   const { whereSql, params } = where.finalize();
 
   const countSql = `SELECT COUNT(*) AS total FROM clientes c ${whereSql}`;
-  const [{ total = 0 } = {}] = await executeQuery(db, countSql, params);
+  const [{ total = 0 } = {}] = await executeQuery({ db, query: countSql, values: params });
 
   const dataSql = `
     SELECT
@@ -59,7 +59,7 @@ export async function getFilteredClientes({ db, req }) {
     LIMIT ? OFFSET ?;
   `;
 
-  const rows = await executeQuery(db, dataSql, [...params, pageSize, offset]);
+  const rows = await executeQuery({ db, query: dataSql, values: [...params, pageSize, offset] });
 
   const clientesFinal = rows.map(r => ({
     did: r.did,

@@ -1,24 +1,31 @@
-import { CustomException, executeQuery, Status } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
 export async function deletePedido({ db, req }) {
     const didParam = req.body?.did ?? req.params?.did;
+    const { userId } = req.user;
     const did = Number(didParam);
 
-    if (!Number.isFinite(did) || did <= 0) {
-        throw new CustomException({ title: "Parámetro inválido", message: "'did' debe ser numérico > 0", status: Status.badRequest });
-    }
-
-    const cur = await executeQuery(db, `SELECT did FROM pedidos WHERE did = ? AND elim = 0 LIMIT 1`, [did]);
-    if (!cur || cur.length === 0) {
-        throw new CustomException({ title: "No encontrado", message: `No existe pedido activo con did ${did}`, status: Status.notFound });
-    }
-
-    const updItems = await executeQuery(
+    await LightdataORM.delete({
         db,
-        `UPDATE pedidos_productos SET elim = 1 WHERE did_pedido = ? AND elim = 0`,
-        [did],
-        true
-    );
+        table: "pedidos",
+        where: { did_pedido: did },
+        quien: userId,
+        throwIfNotFound: true
+    })
+
+    await LightdataORM.delete({
+        db,
+        table: "pedidos_productos",
+        where: { did_pedido: did },
+        quien: userId,
+    })
+
+    await LightdataORM.delete({
+        db,
+        table: "pedidos",
+        where: { did },
+        quien: userId,
+    })
 
     // Si quisieras eliminar historial:
     // const updHist = await executeQuery(
@@ -28,23 +35,10 @@ export async function deletePedido({ db, req }) {
     //   true
     // );
 
-    const updPed = await executeQuery(
-        db,
-        `UPDATE pedidos SET elim = 1 WHERE did = ? AND elim = 0`,
-        [did],
-        true
-    );
-
     return {
         success: true,
         message: "Pedido eliminado correctamente",
-        data: {
-            did,
-            affected: {
-                pedido: updPed?.affectedRows ?? 0,
-                items: updItems?.affectedRows ?? 0,
-            },
-        },
+        data: { did },
         meta: { timestamp: new Date().toISOString() },
     };
 }

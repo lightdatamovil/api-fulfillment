@@ -12,13 +12,11 @@ export async function createlogistica({ db, req }) {
 
     const { userId } = req.user;
 
-    const logisticaDuplicada = await executeQuery(
-        db,
-        `SELECT * FROM logisticas WHERE 
+    const q = `SELECT * FROM logisticas WHERE 
         (nombre = ? OR codigo = ? ) AND superado = 0 AND elim = 0
-        LIMIT 1;`,
-        [nombre, codigo], true
-    );
+        LIMIT 1;`;
+    const logisticaDuplicada = await executeQuery({ db, query: q, values: [nombre, codigo] });
+
     if (logisticaDuplicada?.length) {
         throw new CustomException({
             title: "Duplicado",
@@ -45,7 +43,8 @@ export async function createlogistica({ db, req }) {
             numero: d.numero,
             provincia: d.provincia,
             address_line: d.address_line
-        }))
+        }));
+
         await LightdataORM.insert({
             db,
             table: "logisticas_direcciones",
