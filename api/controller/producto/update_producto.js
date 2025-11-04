@@ -100,7 +100,7 @@ export async function updateProducto(dbConnection, req) {
   if (hayEcomerce.hasRemove) {
     console.log('Entre a remove ecommerce');
 
-    //preguntar a agus si vale corrar la variante
+    //preguntar a agus si vale borrar la variante
     await LightdataORM.delete({
       dbConnection,
       table: "productos_variantes_valores",
@@ -117,16 +117,20 @@ export async function updateProducto(dbConnection, req) {
 
   if (hayEcomerce.hasUpdate) {
     console.log('Entre a update ecommerce');
+    console.log(hayEcomerce.update);
 
+    /*
     const dataUpdate = hayEcomerce.update.map(u => ({
       did_producto: didProducto,
       // convertir array de números a CSV normalizado
-      valores: Array.isArray(u.variantes_valores)
-        ? Array.from(new Set(u.variantes_valores.filter(Number.isInteger)))
+      valores: Array.isArray(u.variantes_valores)    ? Array.from(new Set(u.variantes_valores.filter(Number.isInteger)))
           .sort((a, b) => a - b)
           .join(",")
         : "",
     }));
+
+    console.log('dataUpdate ecommerce:', dataUpdate);
+    
 
     await LightdataORM.update({
       dbConnection,
@@ -135,10 +139,16 @@ export async function updateProducto(dbConnection, req) {
       data: dataUpdate,
       quien,
     });
+    */
     let dataUpdateEcommerce = [];
+    const didCuentaUpdate = [];
 
     for (const ecom of hayEcomerce.update) {
+      console.log('ecom a update:', ecom);
+
       for (const grupo of ecom.grupos) {
+        didCuentaUpdate.push(grupo.did);
+        console.log('grupo a update:', grupo);
         dataUpdateEcommerce.push({
           did_producto: didProducto,
           did_cuenta: grupo.didCuenta,
@@ -150,13 +160,15 @@ export async function updateProducto(dbConnection, req) {
         });
       }
     }
+    console.log('didCuentaUpdate:', didCuentaUpdate);
+    console.log('hayEcomerce.didsUpdate:', hayEcomerce.didsUpdate);
+    console.log('dataUpdateEcommerce:', dataUpdateEcommerce);
 
     await LightdataORMHOTFIX.update({
       db: dbConnection,
       table: "productos_ecommerce",
       where: {
-        did_producto: didProducto,
-        did_producto_variante_valor: hayEcomerce.didsUpdate
+        did: didCuentaUpdate
       },
       data: dataUpdateEcommerce,
       quien,
@@ -172,6 +184,7 @@ export async function updateProducto(dbConnection, req) {
       did_producto: didProducto,
       valores: setKey(e.variantes_valores), // CSV normalizado del bloque
     }));
+    console.log('pvvRows a insertar:', pvvRows);
 
     // 2) Insert masivo de PVV (uno por bloque). Orden de IDs = orden de pvvRows
     const insertedPvvs = await LightdataORM.insert({
@@ -245,7 +258,7 @@ export async function updateProducto(dbConnection, req) {
     }
     if (hayCombos.hasAdd) {
       console.log('Entre a add combos');
-      console.log(hayCombos.add);
+      //     console.log(hayCombos.add);
       const data = hayCombos.add.map(c => ({
         did_producto: didProducto,
         did_producto_combo: c.didProducto,
@@ -300,7 +313,7 @@ export async function updateProducto(dbConnection, req) {
     });
   }
   if (hayInsumos.hasAdd) {
-    console.log('Entre a add insumos');
+    //   console.log('Entre a add insumos');
     //preguntar habilitado
     const data = hayInsumos.add.map(i => ({
       habilitado: 1,
