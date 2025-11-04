@@ -11,8 +11,8 @@ const ordenes = Router();
 ordenes.post(
     "/",
     buildHandlerWrapper({
-        required: ["estado", "asignada", "fecha_inicio", "pedidos", "pedidosEstados"],
-        controller: ({ db, req }) => createOrdenTrabajo({ db, req }),
+        optional: ["estado", "did_usuario", "did_pedidos"],
+        controller: async ({ db, req }) => createOrdenTrabajo({ db, req }),
     })
 );
 

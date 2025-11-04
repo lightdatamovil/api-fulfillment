@@ -24,7 +24,9 @@ export async function preloader({ db }) {
     if (row.did_productos_variantes_valores) {
       acc[row.did].valores.push({
         did_productos_variantes_valores: row.did_productos_variantes_valores,
-        valores: row.valores_raw.split(",").map(v => Number(v.trim()))
+        valores: row.valores_raw
+          ? row.valores_raw.split(",").map(v => Number(v.trim()))
+          : []
       });
     }
     delete acc[row.did].did_productos_variantes_valores;
@@ -147,12 +149,27 @@ export async function preloader({ db }) {
   }
 
   const curvas = Array.from(curvasMap.values());
-
-  const usuarios = await LightdataORM.select({
+  const selectUsuario = await LightdataORM.select({
     db,
     table: "usuarios",
-    where: { elim: 0, superado: 0 },
   });
+
+  const usuarios = selectUsuario.map((u) => ({
+    did: u.did,
+    nombre: u.nombre,
+    apellido: u.apellido,
+    habilitado: u.habilitado,
+    perfil: u.perfil,
+    telefono: u.telefono,
+    usuario: u.usuario,
+    codigo_cliente: u.codigo_cliente,
+    app_habilitada: u.app_habilitada,
+    accesos: u.accesos,
+
+
+    email: u.email,
+  }));
+
 
   const insumos = await LightdataORM.select({
     db,

@@ -2,58 +2,49 @@ import { LightdataORM } from "lightdata-tools";
 
 export async function createOrdenTrabajo({ db, req }) {
     const { userId } = req.user;
-    const {
-        estado,
-        asignada,
-        did_cliente,
-        fecha_inicio,
-        fecha_fin,
-        pedidos = [],
-        pedidosEstados = []
-    } = req.body;
+    const { did_usuario, did_pedidos = [] } = req.body;
+
+    if (!did_usuario || !Array.isArray(did_pedidos) || did_pedidos.length === 0) {
+        throw new Error("Datos inválidos: falta did_usuario o did_pedidos vacío");
+    }
 
     const [did_ot] = await LightdataORM.insert({
         db,
         table: "ordenes_trabajo",
         data: {
-            estado,
-            asignada,
-            did_cliente,
-            fecha_inicio,
-            fecha_fin
+            estado: "pending",
+            did_usuario,
+            fecha_inicio: new Date(),
         },
-        quien: userId
+        quien: userId,
     });
 
-    if (pedidos.length > 0) {
-        const data = pedidos.map(item => ({
+    const pedidosData = did_pedidos.map(item => {
+        const did_pedido = typeof item === "object" ? item.did_pedido : item;
+        if (!did_pedido) throw new Error("Falta did_pedido en alguno de los pedidos");
+
+        return {
             did_orden_trabajo: did_ot,
-            did_pedido: item.did_pedido,
-            flex: item.flex ?? 0,
-            estado: item.estado
-        }));
+            did_pedido,
+            flex: (typeof item === "object" ? item.flex : 0) ?? 0,
+            estado: (typeof item === "object" ? item.estado : "pendiente") ?? "pendiente",
+        };
+    });
 
-        await LightdataORM.insert({
-            db,
-            table: "ordenes_trabajo_pedidos",
-            data,
-            quien: userId
-        });
-    }
+    await LightdataORM.insert({
+        dbConnection: db,
+        table: "ordenes_trabajo_pedidos",
+        data: pedidosData,
+        quien: userId,
+    });
 
-    if (pedidosEstados.length > 0) {
-        await LightdataORM.insert({
-            db,
-            table: "ordenes_trabajo_pedidos_estados",
-            data: pedidosEstados.map(item => ({
-                did_orden_trabajo: did_ot,
-                did_pedido: item.did_pedido,
-                estado: item.estado,
-                fecha: item.fecha,
-            })),
-            quien: userId
-        });
-    }
+    await LightdataORM.update({
+        dbConnection: db,
+        table: "pedidos",
+        data: { trabajado: 1, did_ot: did_ot },
+        where: { did: did_pedidos },
+        quien: userId,
+    });
 
     await LightdataORM.update({
         db,
@@ -61,7 +52,7 @@ export async function createOrdenTrabajo({ db, req }) {
         data: {
             trabajada: 1
         },
-        where: `did IN (${pedidos.map(p => p.did_pedido).join(",")})`,
+        where: { did: did_pedidos },
         quien: userId
     });
 
@@ -69,7 +60,7 @@ export async function createOrdenTrabajo({ db, req }) {
     return {
         success: true,
         message: "Orden de Trabajo creada correctamente",
-        data: {},
+        data: { did_ot },
         meta: { timestamp: new Date().toISOString() },
     };
 }
