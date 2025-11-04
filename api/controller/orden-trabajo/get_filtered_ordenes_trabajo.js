@@ -4,10 +4,10 @@ import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "..
 /**
  * Listado filtrado/paginado de OT.
  * Query soportados:
- *  - estado (EQ), did_usuario (0/1)
+ *  - estado (EQ), asignada (0/1)
  *  - fecha_inicio_from / fecha_inicio_to
  *  - fecha_fin_from / fecha_fin_to
- *  - sort_by: did|estado|did_usuario|fecha_inicio|fecha_fin
+ *  - sort_by: did|estado|asignada|fecha_inicio|fecha_fin
  */
 export async function getFilteredOrdenesTrabajo(connection, req) {
     const q = req.query || {};
@@ -22,7 +22,7 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
 
     const filtros = {
         estado: Number.isFinite(Number(q.estado)) ? Number(q.estado) : undefined,
-        did_usuario: toBool01(q.did_usuario, undefined),
+        asignada: toBool01(q.asignada, undefined),
         fecha_inicio_from: toStr(q.fecha_inicio_from),
         fecha_inicio_to: toStr(q.fecha_inicio_to),
         fecha_fin_from: toStr(q.fecha_fin_from),
@@ -40,7 +40,7 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
     const sortMap = {
         did: "ot.did",
         estado: "ot.estado",
-        did_usuario: "ot.did_usuario",
+        asignada: "ot.asignada",
         fecha_inicio: "ot.fecha_inicio",
         fecha_fin: "ot.fecha_fin",
     };
@@ -48,7 +48,7 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
 
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado=0");
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
-    if (filtros.did_usuario !== undefined) where.eq("ot.did_usuario", filtros.did_usuario);
+    if (filtros.asignada !== undefined) where.eq("ot.asignada", filtros.asignada);
     if (filtros.fecha_inicio_from) where.add("ot.fecha_inicio >= ?", [filtros.fecha_inicio_from]);
     if (filtros.fecha_inicio_to) where.add("ot.fecha_inicio <= ?", [filtros.fecha_inicio_to]);
     if (filtros.fecha_fin_from) where.add("ot.fecha_fin >= ?", [filtros.fecha_fin_from]);
@@ -57,7 +57,7 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
     const { whereSql, params } = where.finalize();
 
     const { rows, total } = await runPagedQuery(connection, {
-        select: `ot.did, ot.estado, ot.did_usuario, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
+        select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
         from: "FROM ordenes_trabajo ot",
         whereSql,
         orderSql,
@@ -68,7 +68,7 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
 
     const filtersForMeta = pickNonEmpty({
         ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
-        ...(filtros.did_usuario !== undefined ? { did_usuario: filtros.did_usuario } : {}),
+        ...(filtros.asignada !== undefined ? { asignada: filtros.asignada } : {}),
         ...(filtros.fecha_inicio_from ? { fecha_inicio_from: filtros.fecha_inicio_from } : {}),
         ...(filtros.fecha_inicio_to ? { fecha_inicio_to: filtros.fecha_inicio_to } : {}),
         ...(filtros.fecha_fin_from ? { fecha_fin_from: filtros.fecha_fin_from } : {}),
