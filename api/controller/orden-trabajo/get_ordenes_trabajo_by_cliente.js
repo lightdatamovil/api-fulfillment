@@ -61,7 +61,7 @@ export async function getFilteredOrdenesTrabajoByCliente(connection, req) {
         SELECT 
             ot.did AS did_orden_trabajo,
             ot.estado,
-            ot.asignadO,
+            ot.asignado,
             ot.fecha_inicio,
             ot.fecha_fin,
             otp.did_pedido,
