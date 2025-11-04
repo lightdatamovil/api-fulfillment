@@ -29,8 +29,7 @@ productos.put(
   "/:did",
   buildHandlerWrapper({
     requiredParams: ["did"],
-    optional: ["titulo", "posicion", "cm3", "alto", "ancho", "profundo", "es_combo", "combo", "descripcion", "imagen", "habilitado"
-      , "insumos", "ecommerce", "did_cliente"],
+    optional: ["did_cliente", "titulo", "descripcion", "habilitado", "es_combo", "posicion", "cm3", "alto", "ancho", "profundo", "combos", "files", "sku", "ean", "did_curva", "insumos", "ecommerce"],
     controller: async ({ db, req }) => {
       // Pasamos el DID de params → body para el controlador
       req.body.did = Number(req.params.did);

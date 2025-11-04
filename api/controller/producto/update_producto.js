@@ -1,15 +1,12 @@
-import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM } from "lightdata-tools";
+import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM, executeQuery } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
 import axios from "axios";
 
 export async function updateProducto(dbConnection, req) {
   const {
-    did,
     did_cliente,
     titulo,
-    sku,
     descripcion,
-    files,
     habilitado,
     es_combo,
     posicion,
@@ -17,13 +14,16 @@ export async function updateProducto(dbConnection, req) {
     alto,
     ancho,
     profundo,
-    depositos,
+    files,
+    sku,
+    ean,
+    did_curva,
     insumos,
-    variantesValores,
     ecommerce,
-    combo,
+    combos,
   } = req.body;
 
+  const { did } = req.params;
   const quien = Number(req.user.userId);
   const { companyId } = req.user;
   const didProducto = Number(did);
@@ -72,7 +72,6 @@ export async function updateProducto(dbConnection, req) {
     did_cliente,
     titulo,
     descripcion,
-    filesInsert,
     habilitado,
     es_combo,
     posicion,
@@ -80,10 +79,13 @@ export async function updateProducto(dbConnection, req) {
     alto,
     ancho,
     profundo,
+    filesInsert,
     sku,
+    ean,
+    did_curva,
   };
 
-  const newIds = await LightdataORM.update({
+  await LightdataORM.update({
     dbConnection,
     table: "productos",
     where: { did: didProducto },
@@ -91,138 +93,450 @@ export async function updateProducto(dbConnection, req) {
     quien,
   });
 
-  // revisar si es combo
-  const newId = newIds[0];
-  const newEsCombo = newData.es_combo;
+  //ECOMMERCE
+  let ecommerceInsert;
 
-  if (Array.isArray(depositos)) {
-    await LightdataORM.delete({
-      dbConnection,
-      table: "productos_depositos",
-      where: { did_producto: didProducto },
-      quien,
-    });
+  const hayEcomerce = getUpdateOpsState(ecommerce);
+  if (hayEcomerce.hasRemove) {
+    console.log('Entre a remove ecommerce');
 
-    const data = depositos.map(d => ({
-      did_producto: didProducto,
-      did_deposito: Number(d),
-    }));
-
-    await LightdataORM.insert({ dbConnection, table: "productos_depositos", data, quien });
-  }
-
-  if (Array.isArray(insumos)) {
-    await LightdataORM.delete({
-      dbConnection,
-      table: "productos_insumos",
-      where: { did_producto: didProducto },
-      quien,
-    });
-
-    const data = insumos.map((it) => ({
-      did_producto: didProducto,
-      did_insumo: Number(it.did_insumo),
-      habilitado: isDefined(it.habilitado) ? number01(it.habilitado) : 1,
-    }));
-
-    await LightdataORM.insert({ dbConnection, table: "productos_insumos", data, quien });
-  }
-
-  if (Array.isArray(variantesValores)) {
+    //preguntar a agus si vale corrar la variante
     await LightdataORM.delete({
       dbConnection,
       table: "productos_variantes_valores",
-      where: { did_producto: didProducto },
-      quien,
+      where: { did_producto: didProducto, did: hayEcomerce.didsRemove },
+      quien: quien,
     });
-
-    const data = variantesValores.map(v => ({
-      did_producto: didProducto,
-      did_variante_valor: Number(v),
-    }));
-
-    await LightdataORM.insert({ dbConnection, table: "productos_variantes_valores", data, quien });
-  }
-
-  if (Array.isArray(ecommerce)) {
     await LightdataORM.delete({
       dbConnection,
       table: "productos_ecommerce",
-      where: { did_producto: didProducto },
+      where: { did_producto: didProducto, did_producto_variante_valor: hayEcomerce.didsRemove },
       quien,
     });
-
-    const data = ecommerce.map(e => ({
-      did_producto: didProducto,
-      did_cuenta: Number(e.did_cuenta),
-      did_producto_valor: isDefined(e.did_producto_valor) ? Number(e.did_producto_valor) : null,
-      sku: isNonEmpty(e.sku) ? String(e.sku).trim() : null,
-      ean: isNonEmpty(e.ean) ? String(e.ean).trim() : null,
-      url: isNonEmpty(e.url) ? String(e.url).trim() : null,
-      sync: isDefined(e.actualizar_sync) ? number01(e.actualizar_sync) : 0,
-      actualizar: 0,
-    }));
-
-    await LightdataORM.insert({ dbConnection, table: "productos_ecommerce", data, quien });
   }
 
-  if (newEsCombo === 0) {
-    await LightdataORM.delete({
+  if (hayEcomerce.hasUpdate) {
+    console.log('Entre a update ecommerce');
+
+    const dataUpdate = hayEcomerce.update.map(u => ({
+      did_producto: didProducto,
+      // convertir array de números a CSV normalizado
+      valores: Array.isArray(u.variantes_valores)
+        ? Array.from(new Set(u.variantes_valores.filter(Number.isInteger)))
+          .sort((a, b) => a - b)
+          .join(",")
+        : "",
+    }));
+
+    await LightdataORM.update({
       dbConnection,
-      table: "productos_combos",
-      where: { did_producto: didProducto },
+      table: "productos_variantes_valores",
+      where: { did_producto: didProducto, did: hayEcomerce.didsUpdate },
+      data: dataUpdate,
       quien,
     });
-  } else if (newEsCombo === 1 && Array.isArray(combo)) {
-    const hijos = combo.map(c => Number(c.did_producto));
-    const hijosRows = await LightdataORM.select({
-      dbConnection,
-      table: "productos",
-      where: { did: hijos },
-      select: "did, es_combo, elim, superado",
-    });
+    let dataUpdateEcommerce = [];
 
-    const mapHijos = new Map(hijosRows.map(r => [Number(r.did), r]));
-    for (const it of combo) {
-      const didHijo = Number(it.did_producto);
-      const cant = Number(it.cantidad);
-
-      const row = mapHijos.get(didHijo);
-      if (!row || row.elim || row.superado)
-        throw new CustomException({ title: "Producto hijo no válido", message: `El hijo ${didHijo} no está vigente.`, status: Status.badRequest });
-      if (Number(row.es_combo) === 1)
-        throw new CustomException({ title: "Combo anidado no permitido", message: `El hijo ${didHijo} es un combo.`, status: Status.badRequest });
-      if (didHijo === didProducto)
-        throw new CustomException({ title: "Referencia inválida", message: "Un combo no puede referenciarse a sí mismo.", status: Status.badRequest });
-      if (!Number.isFinite(cant) || cant <= 0)
-        throw new CustomException({ title: "Cantidad inválida", message: "La cantidad debe ser > 0.", status: Status.badRequest });
+    for (const ecom of hayEcomerce.update) {
+      for (const grupo of ecom.grupos) {
+        dataUpdateEcommerce.push({
+          did_producto: didProducto,
+          did_cuenta: grupo.didCuenta,
+          sku: grupo.sku,
+          ean: grupo.ean,
+          url: grupo.url,
+          actualizar: 0,
+          sync: grupo.sync,
+        });
+      }
     }
 
-    await LightdataORM.delete({
-      dbConnection,
-      table: "productos_combos",
-      where: { did_producto: didProducto },
+    await LightdataORMHOTFIX.update({
+      db: dbConnection,
+      table: "productos_ecommerce",
+      where: {
+        did_producto: didProducto,
+        did_producto_variante_valor: hayEcomerce.didsUpdate
+      },
+      data: dataUpdateEcommerce,
       quien,
     });
+  }
+  if (hayEcomerce.hasAdd) {
+    const setKey = (arr) =>
+      Array.from(new Set((Array.isArray(arr) ? arr : []).filter(Number.isInteger)))
+        .sort((a, b) => a - b)
+        .join(",");
 
-    const data = combo.map(it => ({
+    const pvvRows = ecommerce.add.map(e => ({
       did_producto: didProducto,
-      did_producto_combo: Number(it.did_producto),
-      cantidad: Number(it.cantidad),
+      valores: setKey(e.variantes_valores), // CSV normalizado del bloque
     }));
 
-    await LightdataORM.insert({ dbConnection, table: "productos_combos", data, quien });
+    // 2) Insert masivo de PVV (uno por bloque). Orden de IDs = orden de pvvRows
+    const insertedPvvs = await LightdataORM.insert({
+      dbConnection,
+      table: "productos_variantes_valores",
+      quien: quien,
+      data: pvvRows,
+    }); // ej: [67, 68, ...] alineado con ecommerce[0], ecommerce[1], ...
+
+    // 3) Con esos DID, armar todas las filas para productos_ecommerce
+    const ecomRows = [];
+    for (let i = 0; i < ecommerce.add.length; i++) {
+      const e = ecommerce.add[i];
+      const did_pvv = insertedPvvs[i]; // DID del conjunto de ese bloque
+      const grupos = Array.isArray(e.grupos) ? e.grupos : [];
+
+      for (const g of grupos) {
+        ecomRows.push({
+          did_producto: didProducto,
+          did_cuenta: isNonEmpty(g.didCuenta) ? g.didCuenta : null,
+          did_producto_variante_valor: did_pvv,
+          sku: isNonEmpty(g.sku) ? String(g.sku).trim() : null,
+          ean: isNonEmpty(g.ean) ? String(g.ean).trim() : null,
+          url: isNonEmpty(g.url) ? String(g.url).trim() : null,
+          actualizar: 0,
+          sync: isDefined(g.sync) ? number01(g.sync) : 0,
+        });
+      }
+    }
+
+    // 4) Insert masivo de productos_ecommerce (una fila por grupo)
+    if (ecomRows.length) {
+
+      await LightdataORM.insert({
+        dbConnection,
+        table: "productos_ecommerce",
+        quien: quien,
+        data: ecomRows,
+      });
+    }
   }
+
+  let combosInsert;
+
+  // combos
+  if (es_combo === 1 && Array.isArray(combos)) {
+
+    const hayCombos = getUpdateOpsState(combos);
+    if (hayCombos.hasRemove) {
+      await LightdataORM.delete({
+        dbConnection,
+        table: "productos_combos",
+        where: { did: hayCombos.didsRemove },
+        quien,
+      });
+
+    } if (hayCombos.hasUpdate) {
+      const didsUpdate = hayCombos.update.map(c => c.did);
+      const dataUpdate = hayCombos.update.map(c => ({
+        did_producto: didProducto,
+        cantidad: Number(c.cantidad),
+      }));
+      await LightdataORM.update({
+        dbConnection,
+        table: "productos_combos",
+        where: { did_producto: didProducto, did: didsUpdate },
+        data: dataUpdate,
+        quien,
+      });
+    }
+    if (hayCombos.hasAdd) {
+      const data = hayCombos.add.map(c => ({
+        did_producto: didProducto,
+        didproducto_combo: c.didProducto,
+        cantidad: Number(c.cantidad),
+      }));
+      const combosInsert = await LightdataORM.insert({
+        dbConnection,
+        table: "productos_combos",
+        data,
+        quien,
+      });
+    }
+
+  }
+  //insumos con cliente
+
+  let insumosInsert;
+  const hayInsumos = getUpdateOpsState(insumos);
+  if (hayInsumos.hasRemove) {
+    console.log('Entre a remove insumos');
+
+
+    /* insumos_clientes no --- dudoso si borrar
+    await LightdataORM.delete({
+      dbConnection,
+      table: "insumos_clientes",
+      where: { did_insumo: hayInsumos.didsRemove, did_cliente: did_cliente },
+      quien,
+    });
+  */
+    await LightdataORM.delete({
+      dbConnection,
+      table: "productos_insumos",
+      where: { did: hayInsumos.didsRemove, did_producto: didProducto },
+      quien,
+    });
+  }
+
+  if (hayInsumos.hasUpdate) {
+    console.log('Entre a update insumos');
+    const didsUpdate = hayInsumos.update.map(i => i.did);
+    const dataUpdate = insumos.update.map(i => ({
+      did_producto: didProducto,
+      cantidad: Number(i.cantidad),
+    }));
+    await LightdataORM.update({
+      dbConnection,
+      table: "productos_insumos",
+      where: { did: didsUpdate },
+      data: dataUpdate,
+      quien,
+    });
+  }
+  if (hayInsumos.hasAdd) {
+    console.log('Entre a add insumos');
+    //preguntar habilitado
+    const data = hayInsumos.add.map(i => ({
+      habilitado: 1,
+      did_insumo: i.didInsumo,
+      did_producto: didProducto,
+      cantidad: Number(i.cantidad),
+    }));
+    await LightdataORM.insert({
+      dbConnection,
+      table: "productos_insumos",
+      data,
+      quien,
+    });
+  }
+
+
 
   return {
     success: true,
     message: "Producto versionado correctamente (ORM)",
     data: {
       did: didProducto,
-      idVersionNueva: newId,
       titulo: newData.titulo,
-      es_combo: newEsCombo,
-    },
-    meta: { timestamp: new Date().toISOString() },
+      es_combo: es_combo,
+      data_create: {
+        ecommerce: ecommerceInsert,
+        insumos: insumosInsert,
+        combos: combosInsert,
+
+      },
+      meta: { timestamp: new Date().toISOString() },
+    }
+
+  }
+};
+
+
+function getUpdateOpsState(updateArray) {
+  const add = toArray(updateArray?.add);
+  const update = toArray(updateArray?.update);
+  const remove = toArray(updateArray?.remove);
+
+  const hasAdd = add.length > 0;
+  const hasUpdate = update.length > 0;
+  const hasRemove = remove.length > 0;
+
+  const getId = (x) => (x && (x.did ?? x.did)) ?? x ?? null;
+  const isValidId = (v) => v !== null && v !== undefined && v !== '';
+
+  const didsUpdate = hasUpdate ? update.map(getId).filter(isValidId) : [];
+  const didsRemove = hasRemove ? remove.map(getId).filter(isValidId) : [];
+
+  return {
+    hasAdd,
+    hasUpdate,
+    hasRemove,
+    add,
+    update,
+    remove,
+    didsUpdate,
+    didsRemove,
   };
+}
+
+const toArray = (v) => Array.isArray(v) ? v : [];
+
+class LightdataORMHOTFIX {
+
+  /**
+  * UPDATE - Versiona uno o varios registros en batch.
+  * Marca previos como superados e inserta nuevas versiones en una sola query.
+  *
+  * @param {Object} opts
+  * @param {Object} opts.db - Conexión MySQL.
+  * @param {string} opts.table - Tabla a actualizar.
+  * @param {Object} opts.where - Condición WHERE (clave/valor, puede incluir arrays).
+  * @param {Object|Object[]} opts.data - Nuevos datos (uno o varios, en el mismo orden que los valores del WHERE).
+  * @param {number} opts.quien - Usuario responsable.
+  * @param {boolean} [opts.throwIfNotExists=true] - Si no hay filas previas para versionar, lanza error o no.
+  * @param {boolean} [opts.log=false] - Si se deben loguear las queries ejecutadas.
+  * @returns {Promise<number[]>} IDs de las nuevas versiones insertadas (o [] si no hay filas previas y throwIfNotExists=false).
+  */
+  static async update({ db, table, where, data, quien, throwIfNotExists = true, log = false }) {
+    if (!table || !where || !data || !quien) {
+      throw new CustomException({
+        title: "LightdataORM.update: parámetros faltantes",
+        message: "Debes proporcionar 'table', 'where', 'data' y 'quien'.",
+        status: Status.badRequest,
+      });
+    }
+
+    // 🔹 Normalización de WHERE dinámico
+    const [whereKey, whereValue] = Object.entries(where)[0] || [];
+    if (!whereKey || whereValue === undefined) {
+      throw new CustomException({
+        title: "LightdataORM.update",
+        message: "Debe especificarse una condición WHERE válida.",
+        status: Status.badRequest,
+      });
+    }
+
+    // 🔹 Normalización de valores
+    const ids = Array.isArray(whereValue)
+      ? whereValue.map(Number).filter(n => n > 0)
+      : [Number(whereValue)];
+    const datas = Array.isArray(data) ? data : [data];
+
+    if (ids.length === 0) {
+      throw new CustomException({
+        title: "LightdataORM.update",
+        message: "Debe especificarse al menos un valor válido en el WHERE.",
+        status: Status.badRequest,
+      });
+    }
+
+    // 🔹 Obtener columnas válidas de la tabla
+    const colsQuery = `
+          SELECT COLUMN_NAME
+          FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_NAME = ? AND TABLE_SCHEMA = DATABASE();
+      `;
+    const colsResult = await executeQuery(db, colsQuery, [table], log);
+    if (!colsResult.length)
+      throw new CustomException({
+        title: "Error al actualizar",
+        message: `No se encontraron columnas para la tabla ${table}`,
+      });
+
+    const validCols = colsResult
+      .map(r => r.COLUMN_NAME)
+      .filter(c => !["id", "autofecha"].includes(c));
+
+    // 🔹 Marcar las versiones previas como superadas
+    const qSuperar = `
+          UPDATE ${table}
+          SET superado = 1
+          WHERE ${whereKey} IN (${ids.map(() => "?").join(", ")})
+          AND elim = 0
+          AND superado = 0;
+      `;
+    await executeQuery(db, qSuperar, ids, log);
+
+    // 🔹 Construcción dinámica de SELECT / INSERT versionado
+    const insertColumns = [];
+    const selectExpressions = [];
+
+    for (const col of validCols) {
+      insertColumns.push(col);
+
+      if (col === whereKey) {
+        selectExpressions.push(col);
+        continue;
+      }
+
+      if (col === "quien") {
+        selectExpressions.push(`${quien} AS quien`);
+        continue;
+      }
+
+      if (col === "superado") {
+        selectExpressions.push("0 AS superado");
+        continue;
+      }
+
+      if (col === "elim") {
+        selectExpressions.push("0 AS elim");
+        continue;
+      }
+
+      const hasAny = datas.some(row => row[col] !== undefined);
+      if (!hasAny) {
+        selectExpressions.push(col);
+        continue;
+      }
+
+      const cases = ids
+        .map((id, i) => {
+          const value = datas[i]?.[col];
+          return value !== undefined
+            ? `WHEN ${id} THEN ${db.escape(value)}`
+            : "";
+        })
+        .filter(Boolean)
+        .join(" ");
+
+      if (cases) {
+        selectExpressions.push(`(CASE ${whereKey} ${cases} ELSE ${col} END) AS ${col}`);
+      } else {
+        selectExpressions.push(col);
+      }
+    }
+
+    // 🔹 Query final: versionado batch
+    const qInsert = `
+          INSERT INTO ${table} (${insertColumns.join(", ")})
+          SELECT ${selectExpressions.join(", ")}
+          FROM (
+              SELECT *
+              FROM ${table}
+              WHERE ${whereKey} IN (${ids.map(() => "?").join(", ")})
+              AND elim = 0
+              ORDER BY id DESC
+          ) AS t
+          GROUP BY ${whereKey};
+      `;
+
+    const inserted = await executeQuery(db, qInsert, ids, log);
+
+    // 🔹 Validación del resultado
+    if (!inserted || typeof inserted.affectedRows !== "number") {
+      throw new CustomException({
+        title: "Error al versionar",
+        message: `Resultado inválido al insertar en ${table}`,
+        status: Status.internalServerError,
+      });
+    }
+
+    if (inserted.affectedRows === 0) {
+      if (throwIfNotExists) {
+        throw new CustomException({
+          title: "Error al versionar",
+          message: `No se encontró registro previo en ${table} para versionar.`,
+          status: Status.notFound,
+        });
+      } else {
+        if (log) console.log(`⚠️ No se encontraron registros previos para versionar en ${table}.`);
+        return [];
+      }
+    }
+
+    const firstId = Number(inserted.insertId);
+    if (isNaN(firstId)) {
+      throw new CustomException({
+        title: "LightdataORM.update",
+        message: `insertId inválido (${inserted.insertId}) al actualizar ${table}`,
+        status: Status.internalServerError,
+      });
+    }
+
+    return Array.from({ length: inserted.affectedRows }, (_, i) => firstId + i);
+  }
 }
