@@ -1,4 +1,4 @@
-import { toStr, toBool01, pickNonEmpty } from "lightdata-tools";
+import { toStr, toBool01, pickNonEmpty, executeQuery } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
 /**
@@ -56,15 +56,42 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
 
     const { whereSql, params } = where.finalize();
 
-    const { rows, total } = await runPagedQuery(connection, {
-        select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
-        from: "FROM ordenes_trabajo ot",
-        whereSql,
-        orderSql,
-        params,
-        pageSize,
-        offset,
-    });
+
+
+    const dataSql = `
+        SELECT 
+    p.did_cliente,
+    COUNT(DISTINCT ot.did) AS ordenes_total,
+    COUNT(DISTINCT CASE WHEN pp.did_producto IS NULL THEN ot.did END) AS ordenes_alertadas,
+    COUNT(DISTINCT CASE WHEN pp.did_producto IS NOT NULL THEN ot.did END) AS ordenes_pendientes
+FROM ordenes_trabajo AS ot
+LEFT JOIN ordenes_trabajo_pedidos AS otp 
+    ON ot.did = otp.did_orden_trabajo
+LEFT JOIN pedidos AS p
+    ON otp.did_pedido = p.id
+LEFT JOIN pedidos_productos AS pp 
+    ON otp.did_pedido = pp.did_pedido
+${whereSql /* Ej: WHERE ot.elim = 0 AND ot.superado = 0 */}
+GROUP BY p.did_cliente
+${orderSql /* Ej: ORDER BY p.did_cliente ASC */}
+LIMIT ? OFFSET ?;
+
+        `;
+
+    const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset], true);
+    /*
+        const { rows, total } = await runPagedQuery(connection, {
+            select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
+            from: "FROM ordenes_trabajo ot",
+            whereSql,
+            orderSql,
+            params,
+            pageSize,
+            offset,
+        });
+        */
+
+    const total = rows.length;
 
     const filtersForMeta = pickNonEmpty({
         ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
