@@ -21,12 +21,17 @@ export async function createOrdenTrabajo(db, req) {
     });
 
     // Crear las relaciones entre la OT y los pedidos
-    const pedidosData = did_pedidos.map(item => ({
-        did_orden_trabajo: did_ot,
-        did_pedido: item.did_pedido,
-        flex: item.flex ?? 0,
-        estado: item.estado ?? "pendiente",
-    }));
+    const pedidosData = did_pedidos.map(item => {
+        const did_pedido = typeof item === "object" ? item.did_pedido : item;
+        if (!did_pedido) throw new Error("Falta did_pedido en alguno de los pedidos");
+
+        return {
+            did_orden_trabajo: did_ot,
+            did_pedido,
+            flex: (typeof item === "object" ? item.flex : 0) ?? 0,
+            estado: (typeof item === "object" ? item.estado : "pendiente") ?? "pendiente",
+        };
+    });
 
     await LightdataORM.insert({
         dbConnection: db,
@@ -35,14 +40,14 @@ export async function createOrdenTrabajo(db, req) {
         quien: userId,
     });
 
+    // Actualizar pedidos como trabajados
     await LightdataORM.update({
         dbConnection: db,
         table: "pedidos",
         data: { trabajado: 1, did_ot: did_ot },
-        where: { did: did_pedidos.map(item => item.did_pedido) },
+        where: `did IN (${did_pedidos.join(",")})`,
         quien: userId,
     });
-
 
     return {
         success: true,
