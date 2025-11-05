@@ -1,4 +1,4 @@
-import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM, executeQuery } from "lightdata-tools";
+import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
 import axios from "axios";
 

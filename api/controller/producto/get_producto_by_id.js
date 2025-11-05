@@ -1,4 +1,4 @@
-import { CustomException, Status, executeQuery } from "lightdata-tools";
+import { CustomException, LightdataORM, Status } from "lightdata-tools";
 
 /**
  * GET producto por DID con esta forma exacta:
@@ -23,69 +23,37 @@ export async function getProductoById({ db, req }) {
     });
   }
 
-  const prodRows = await executeQuery({
+  const p = await LightdataORM.select({
     db,
-    query: `SELECT did, did_cliente, titulo, descripcion, imagen, habilitado, es_combo,
-             posicion, cm3, alto, ancho, profundo, did_curva, sku, ean
-      FROM productos
-      WHERE did = ? AND elim = 0 AND superado = 0
-      ORDER BY id DESC
-      LIMIT 1
-    `,
-    values: [didProducto]
+    table: "productos",
+    where: { did: didProducto },
+    throwIfNotExists: true,
   });
-
-  if (!prodRows?.length) {
-    throw new CustomException({
-      title: "No encontrado",
-      message: `No se encontró un producto vigente con DID ${didProducto}`,
-      status: Status.notFound,
-    });
-  }
-
-  const p = prodRows[0];
 
   const [vvRows, ecRows, insRows, comboRows] = await Promise.all([
     // COMBINACIONES de variantes (CSV en 'valores')
-    executeQuery({
+    LightdataORM.select({
       db,
-      query: `
-        SELECT did, valores
-        FROM productos_variantes_valores
-        WHERE did_producto = ? AND elim = 0 AND superado = 0
-        ORDER BY id ASC
-      `,
-      values: [didProducto]
+      table: "productos_variantes_valores",
+      where: { did_producto: didProducto },
     }),
     // Items ecommerce (grupos)
-    executeQuery({
+    LightdataORM.select({
       db,
-      query: `
-        SELECT did, did_cuenta, did_producto_variante_valor, sku, ean, url, sync
-        FROM productos_ecommerce
-        WHERE did_producto = ? AND elim = 0 AND superado = 0
-      `,
-      values: [didProducto]
+      table: "productos_ecommerce",
+      where: { did_producto: didProducto },
     }),
     // Insumos
-    executeQuery({
+    LightdataORM.select({
       db,
-      query: `
-        SELECT did, did_insumo, cantidad
-        FROM productos_insumos
-        WHERE did_producto = ? AND elim = 0 AND superado = 0
-      `,
-      values: [didProducto]
+      table: "productos_insumos",
+      where: { did_producto: didProducto },
     }),
     // Combos
-    executeQuery({
+    LightdataORM.select({
       db,
-      query: `
-        SELECT did, did_producto_combo AS did_producto, cantidad
-        FROM productos_combos
-        WHERE did_producto = ? AND elim = 0 AND superado = 0
-      `,
-      values: [didProducto]
+      table: "productos_combos",
+      where: { did_producto: didProducto },
     }),
   ]);
 

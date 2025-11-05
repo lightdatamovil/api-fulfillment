@@ -38,7 +38,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
         fecha_inicio: "ot.fecha_inicio",
         fecha_fin: "ot.fecha_fin",
     };
-    //todo default orden por ordenes_total no se si esta bien implementado preguntar a gonzalo
+
     const { orderSql } = makeSort(qp, sortMap, { defaultKey: "ordenes_total", byKey: "sort_by", dirKey: "sort_dir" });
 
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado=0");
@@ -51,8 +51,6 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
     if (filtros.fecha_fin_to) where.add("ot.fecha_fin <= ?", [filtros.fecha_fin_to]);
 
     const { whereSql, params } = where.finalize();
-
-
 
     const dataSql = `
         SELECT 

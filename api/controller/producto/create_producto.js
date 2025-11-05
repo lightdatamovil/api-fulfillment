@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM, executeQuery } from "lightdata-tools";
+import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
 
 
@@ -33,11 +33,11 @@ export async function createProducto({ db, req }) {
         throwIfExists: true,
     });
 
-    const [client] = await LightdataORM.select({
+    await LightdataORM.select({
         db,
         table: "clientes",
         where: { did: did_cliente },
-        //  throwIfNotExists: true,
+        throwIfNotExists: true,
     });
 
     //  Inserción del producto principal
@@ -231,7 +231,6 @@ export async function createProducto({ db, req }) {
     }
 
     let urlReturn = [];
-    // 🖼️ Subida de imagen (base64 o URL)
     if (isNonEmpty(files.length)) {
         for (const file of files) {
             const urlResponse = await axios.post(
@@ -246,14 +245,14 @@ export async function createProducto({ db, req }) {
             );
 
             urlReturn.push(urlResponse.data.file.url);
-            // insertaf file en tabla productos
-            await executeQuery({ db, query: "UPDATE productos SET imagen = ? WHERE id = ?", values: [urlReturn[0], idProducto] });
-
+            await LightdataORM.update({
+                db,
+                table: "productos",
+                where: { id: idProducto },
+                data: { imagen: urlReturn[0] },
+            });
         }
-
     }
-
-
 
     return {
         success: true,
