@@ -1,4 +1,4 @@
-import { toStr, toBool01, pickNonEmpty, executeQuery } from "lightdata-tools";
+import { toStr, toBool01, pickNonEmpty, executeQuery, toIntList } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
 /**
@@ -23,7 +23,7 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
     const filtros = {
         estado: Number.isFinite(Number(q.estado)) ? Number(q.estado) : undefined,
         asignada: toBool01(q.asignada, undefined),
-        did_cliente: Number.isFinite(Number(q.did_cliente)) ? Number(q.did_cliente) : undefined,
+        did_cliente: toIntList(q.did_cliente, undefined),
         fecha_inicio_from: toStr(q.fecha_inicio_from),
         fecha_inicio_to: toStr(q.fecha_inicio_to),
         fecha_fin_from: toStr(q.fecha_fin_from),
@@ -52,7 +52,7 @@ export async function getFilteredOrdenesTrabajo(connection, req) {
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado=0");
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
     if (filtros.asignada !== undefined) where.eq("ot.asignada", filtros.asignada);
-    if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
+    if (filtros.did_cliente !== undefined) where.in("p.did_cliente", filtros.did_cliente);
     if (filtros.fecha_inicio_from) where.add("ot.fecha_inicio >= ?", [filtros.fecha_inicio_from]);
     if (filtros.fecha_inicio_to) where.add("ot.fecha_inicio <= ?", [filtros.fecha_inicio_to]);
     if (filtros.fecha_fin_from) where.add("ot.fecha_fin >= ?", [filtros.fecha_fin_from]);
