@@ -23,7 +23,7 @@ export async function createPedido(db, payload, userId) {
 
     // Insert encabezado
     const cols = [
-        "status", "number", "fecha_venta", "buyer_id", "buyer_nickname",
+        "status", "flex", "number", "fecha_venta", "buyer_id", "buyer_nickname",
         "buyer_name", "buyer_last_name", "total_amount", "ml_shipment_id", "ml_id",
         "ml_pack_id", "observaciones", "armado", "descargado",
         "quien_armado", "reference_id", "billing", "quien", "superado", "elim"
@@ -32,6 +32,7 @@ export async function createPedido(db, payload, userId) {
     const vals = [
 
         payload.status,
+        1,
         payload.number,
         payload.fecha_venta,
         payload.buyer_id,
@@ -73,7 +74,7 @@ export async function createPedido(db, payload, userId) {
         const mlItemIdFinal = s(it.ml_id ?? it.codigo ?? pedidoMlId ?? "");
 
         const icol = [
-            "did_pedido", "flex", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
+            "did_pedido", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
             "did_producto_variante_valor", "id_variacion", "user_product_id", "cantidad", "variation_attributes",
             "imagen", "quien", "superado", "elim"
         ];
@@ -81,7 +82,6 @@ export async function createPedido(db, payload, userId) {
 
         const ival = [
             did,
-            1,
             s(it.seller_sku ?? ""),               // nunca null
             it.codigo ?? null,
             it.descripcion ?? null,
