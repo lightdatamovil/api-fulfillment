@@ -3,7 +3,7 @@ import { LightdataORM } from "lightdata-tools";
 export async function getModoTrabajo({ db }) {
 
     const [row] = await LightdataORM.select({
-        connection: db,
+        db,
         table: "sistema_empresa",
         select: ["modo_trabajo"],
     });
