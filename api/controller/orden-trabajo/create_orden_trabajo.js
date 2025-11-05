@@ -32,14 +32,14 @@ export async function createOrdenTrabajo({ db, req }) {
     });
 
     await LightdataORM.insert({
-        dbConnection: db,
+        db,
         table: "ordenes_trabajo_pedidos",
         data: pedidosData,
         quien: userId,
     });
 
     await LightdataORM.update({
-        dbConnection: db,
+        db,
         table: "pedidos",
         data: { trabajado: 1, did_ot: did_ot },
         where: { did: did_pedidos },

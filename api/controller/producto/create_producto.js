@@ -247,7 +247,7 @@ export async function createProducto({ db, req }) {
 
             urlReturn.push(urlResponse.data.file.url);
             // insertaf file en tabla productos
-            await executeQuery(db, "UPDATE productos SET imagen = ? WHERE id = ?", [urlReturn[0], idProducto], true);
+            await executeQuery({ db, query: "UPDATE productos SET imagen = ? WHERE id = ?", values: [urlReturn[0], idProducto] });
 
         }
 

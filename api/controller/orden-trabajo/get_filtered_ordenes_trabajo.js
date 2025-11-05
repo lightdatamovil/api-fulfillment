@@ -1,5 +1,5 @@
 import { toStr, toBool01, pickNonEmpty, executeQuery, toIntList } from "lightdata-tools";
-import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
+import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functions/query_utils.js";
 
 export async function getFilteredOrdenesTrabajo({ db, req }) {
     const q = req.query || {};
@@ -74,7 +74,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
 
         `;
 
-    const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset], true);
+    const rows = await executeQuery({ db, query: dataSql, values: [...params, pageSize, offset] });
     /*
         const { rows, total } = await runPagedQuery(connection, {
             select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
