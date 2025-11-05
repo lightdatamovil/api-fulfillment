@@ -16,6 +16,7 @@ import preload from './routes/preload.route.js';
 import logisticas from './routes/logisticas.route.js';
 import { jwtSecret } from './db.js';
 import configuracion from './routes/configuracion.route.js';
+import depositos from './routes/depositos.route.js';
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use("/api/usuarios", usuarios);
 app.use("/api/curvas", curvas);
 app.use("/api/ordenes-trabajo", ordenesTrabajo);
 app.use("/api/configuracion", configuracion);
+app.use("/api/depositos", depositos);
 
 (async () => {
   try {
