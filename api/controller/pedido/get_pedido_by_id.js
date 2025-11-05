@@ -42,15 +42,15 @@ export async function getPedidoById({ db, req }) {
 
 
     let direccion_pedido = {
-        calle: direccion.calle || "",
-        numero: direccion.numero || "",
-        localidad: direccion.localidad || "",
-        provincia: direccion.provincia || "",
-        pais: direccion.pais || "",
-        cp: direccion.cp || "",
-        latitud: direccion.latitud || "",
-        longitud: direccion.longitud || "",
-        referencia: direccion.destination_coments || "",
+        calle: direccion?.calle || "",
+        numero: direccion?.numero || "",
+        localidad: direccion?.localidad || "",
+        provincia: direccion?.provincia || "",
+        pais: direccion?.pais || "",
+        cp: direccion?.cp || "",
+        latitud: direccion?.latitud || "",
+        longitud: direccion?.longitud || "",
+        referencia: direccion?.destination_coments || "",
     };
 
 
