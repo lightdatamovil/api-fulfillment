@@ -1,6 +1,5 @@
 import { LightdataORM } from "lightdata-tools";
 
-
 export async function editLogistica({ db, req }) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user ?? {};

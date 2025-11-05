@@ -131,7 +131,6 @@ async function insertOnePedido(db, userId, pedido) {
         });
     }
 
-
     let didPedidoDireccion = null;
     if (direccion && typeof direccion === "object") {
         const calle = isNonEmpty(direccion.calle) ? String(direccion.calle).trim() : null;

@@ -6,7 +6,6 @@ export function mapMlToPedidoPayload(ml, sellerData) {
     const receiver_address = ml?.shipping?.receiver_address || null;
     console.log(receiver_address, "receiver_address");
 
-
     return {
         did_cuenta: sellerData?.idcuenta ?? 0,
         status: ml?.status || "created",

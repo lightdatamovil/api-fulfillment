@@ -16,6 +16,7 @@ import preload from './routes/preload.route.js';
 import logisticas from './routes/logisticas.route.js';
 import { jwtSecret } from './db.js';
 import configuracion from './routes/configuracion.route.js';
+import depositos from './routes/depositos.route.js';
 import stock from './routes/stock.route.js';
 
 const app = express();

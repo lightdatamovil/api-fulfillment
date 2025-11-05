@@ -8,6 +8,5 @@ export async function getPedidoDidByNumber(db, number) {
     );
     const did = rows.did || 0;
 
-
     return did;
 }

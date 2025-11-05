@@ -6,8 +6,6 @@ export function mapTNToPedidoPayload(tn, sellerData) {
         tn?.customer?.default_address ||
         null;
 
-
-
     // 2) Normalizamos la dirección destino al formato que usa createPedido
     const receiver_address = srcAddr
         ? {

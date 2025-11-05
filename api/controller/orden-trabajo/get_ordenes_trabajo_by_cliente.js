@@ -46,8 +46,6 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
 
     const { whereSql, params } = where.finalize();
 
-
-
     const dataSql = `
         SELECT 
             ot.did,
@@ -64,19 +62,19 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
                         'did', p.did,
                         'cliente', p.did_cliente,
                         'flex', p.flex,
-                        'status', p.status,
-                        'number', p.number,
+                        'estado', p.status,
+                        'id_venta', p.number,
                         'observaciones', p.observaciones,
                         'productos', (
                             SELECT COALESCE(
                                 JSON_ARRAYAGG(
                                     JSON_OBJECT(
-                                        'did_producto', pp2.did_producto,
+                                        'did', pp2.did_producto,
                                         'descripcion', pp2.descripcion,
                                         'codigo', pp2.codigo,
-                                        'ml_id', pp2.ml_id,
+                                        'variation_attributes', pp2.variation_attributes,
                                         'cantidad', pp2.cantidad,
-                                        'seller_sku', pp2.seller_sku
+                                        'sku', pp2.seller_sku
                                     )
                                 ),
                                 JSON_ARRAY()

@@ -30,7 +30,6 @@ async function fetchShipmentReceiverAddress(shippingId, token) {
     if (!rx) return null;
     console.log("rx", rx);
 
-
     const s = (v) => (v == null ? null : String(v).trim());
     const num = (v) => {
         const n = Number(v);
