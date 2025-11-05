@@ -1,7 +1,9 @@
-import { toStr, toBool01, pickNonEmpty, executeQuery, toIntList } from "lightdata-tools";
-import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
+import { toStr, toBool01, pickNonEmpty, executeQuery } from "lightdata-tools";
+import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functions/query_utils.js";
 
-export async function getFilteredOrdenesTrabajo({ db, req }) {
+export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
+    console.log("params", req.params);
+    console.log("req.query", req.query);
     const q = req.query || {};
 
     const qp = {
@@ -15,12 +17,8 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
     const filtros = {
         estado: Number.isFinite(Number(q.estado)) ? Number(q.estado) : undefined,
         asignada: toBool01(q.asignada, undefined),
-        did_cliente: toIntList(q.did_cliente, undefined),
-        fecha_inicio_from: toStr(q.fecha_inicio_from),
-        fecha_inicio_to: toStr(q.fecha_inicio_to),
-        fecha_fin_from: toStr(q.fecha_fin_from),
-        fecha_fin_to: toStr(q.fecha_fin_to),
-
+        alertada: toStr(q.alertada),
+        pendiente: toStr(q.pendiente),
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
@@ -34,21 +32,17 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
     const sortMap = {
         did: "ot.did",
         estado: "ot.estado",
-        asignado: "ot.asignado",
+        asignada: "ot.asignada",
         fecha_inicio: "ot.fecha_inicio",
         fecha_fin: "ot.fecha_fin",
     };
-    //todo default orden por ordenes_total no se si esta bien implementado preguntar a gonzalo
-    const { orderSql } = makeSort(qp, sortMap, { defaultKey: "ordenes_total", byKey: "sort_by", dirKey: "sort_dir" });
+    const { orderSql } = makeSort(qp, sortMap, { defaultKey: "did", byKey: "sort_by", dirKey: "sort_dir" });
 
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado=0");
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
     if (filtros.asignada !== undefined) where.eq("ot.asignada", filtros.asignada);
-    if (filtros.did_cliente !== undefined) where.in("p.did_cliente", filtros.did_cliente);
-    if (filtros.fecha_inicio_from) where.add("ot.fecha_inicio >= ?", [filtros.fecha_inicio_from]);
-    if (filtros.fecha_inicio_to) where.add("ot.fecha_inicio <= ?", [filtros.fecha_inicio_to]);
-    if (filtros.fecha_fin_from) where.add("ot.fecha_fin >= ?", [filtros.fecha_fin_from]);
-    if (filtros.fecha_fin_to) where.add("ot.fecha_fin <= ?", [filtros.fecha_fin_to]);
+    if (filtros.alertada == "1") where.add("pp.did_producto IS null");
+    if (filtros.pendiente == "1") where.add("pp.did_producto IS NOT null");
 
     const { whereSql, params } = where.finalize();
 
@@ -56,10 +50,14 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
 
     const dataSql = `
         SELECT 
+            ot.did,
+            ot.estado,
+            ot.asignado,
+            ot.fecha_inicio,
+            ot.fecha_fin,
+            otp.did_pedido,
             p.did_cliente,
-            COUNT(DISTINCT ot.did) AS ordenes_total,
-            COUNT(DISTINCT CASE WHEN pp.did_producto IS NULL THEN ot.did END) AS ordenes_alertadas,
-            COUNT(DISTINCT CASE WHEN pp.did_producto IS NOT NULL THEN ot.did END) AS ordenes_pendientes
+            pp.did_producto
         FROM ordenes_trabajo AS ot
         LEFT JOIN ordenes_trabajo_pedidos AS otp 
             ON ot.did = otp.did_orden_trabajo
@@ -67,14 +65,13 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
             ON otp.did_pedido = p.id
         LEFT JOIN pedidos_productos AS pp 
             ON otp.did_pedido = pp.did_pedido
-        ${whereSql /* Ej: WHERE ot.elim = 0 AND ot.superado = 0 */}
-        GROUP BY p.did_cliente
-        ${orderSql /* Ej: ORDER BY p.did_cliente ASC */}
+        ${whereSql}
+        GROUP BY ot.did, otp.did_pedido, p.did_cliente, pp.did_producto
+        ${orderSql}
         LIMIT ? OFFSET ?;
-
         `;
 
-    const rows = await executeQuery(connection, dataSql, [...params, pageSize, offset], true);
+    const rows = await executeQuery(db, dataSql, [...params, pageSize, offset], true);
     /*
         const { rows, total } = await runPagedQuery(connection, {
             select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
@@ -85,13 +82,13 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
             pageSize,
             offset,
         });
-    */
+        */
 
     const total = rows.length;
 
     const filtersForMeta = pickNonEmpty({
         ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
-        ...(filtros.asignado !== undefined ? { asignado: filtros.asignado } : {}),
+        ...(filtros.asignada !== undefined ? { asignada: filtros.asignada } : {}),
         ...(filtros.fecha_inicio_from ? { fecha_inicio_from: filtros.fecha_inicio_from } : {}),
         ...(filtros.fecha_inicio_to ? { fecha_inicio_to: filtros.fecha_inicio_to } : {}),
         ...(filtros.fecha_fin_from ? { fecha_fin_from: filtros.fecha_fin_from } : {}),

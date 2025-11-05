@@ -62,8 +62,8 @@ export async function updateProducto(db, req) {
       },
       { headers: { "Content-Type": "application/json" } }
     );
-
-    filesInsert.push(urlResponse.data.file.url);
+    console.log('urlResponse:', urlResponse.data);
+    filesInsert = urlResponse.data.file.url;
 
   }
 
@@ -79,7 +79,7 @@ export async function updateProducto(db, req) {
     alto,
     ancho,
     profundo,
-    filesInsert,
+    imagen: filesInsert,
     sku,
     ean,
     did_curva,

@@ -5,6 +5,7 @@ import { editOrdenTrabajo } from "../controller/orden-trabajo/edit_orden_trabajo
 import { deleteOrdenTrabajo } from "../controller/orden-trabajo/delete_orden_trabajo.js";
 import { getOrdenTrabajoById } from "../controller/orden-trabajo/get_orden_trabajo_by_id.js";
 import { getFilteredOrdenesTrabajo } from "../controller/orden-trabajo/get_filtered_ordenes_trabajo.js";
+import { getFilteredOrdenesTrabajoByCliente } from "../controller/orden-trabajo/get_ordenes_trabajo_by_cliente.js";
 
 const ordenes = Router();
 
@@ -33,11 +34,12 @@ ordenes.delete(
     })
 );
 
+// GET /ordenes-trabajo/:did // LOCAMBIO A ORDEN DE TRABAJO BY CIENTE
 ordenes.get(
     "/:did",
     buildHandlerWrapper({
         requiredParams: ["did"],
-        controller: ({ db, req }) => getOrdenTrabajoById({ db, req }),
+        controller: async ({ db, req }) => getFilteredOrdenesTrabajoByCliente({ db, req }),
     })
 );
 
