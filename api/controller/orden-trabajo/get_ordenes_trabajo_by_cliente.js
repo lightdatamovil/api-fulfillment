@@ -71,7 +71,7 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
         LIMIT ? OFFSET ?;
         `;
 
-    const rows = await executeQuery(db, dataSql, [...params, pageSize, offset], true);
+    const rows = await executeQuery({ db, query: dataSql, values: [...params, pageSize, offset] });
     /*
         const { rows, total } = await runPagedQuery(connection, {
             select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
