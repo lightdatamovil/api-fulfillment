@@ -36,7 +36,7 @@ ordenes.delete(
 
 // GET /ordenes-trabajo/:did // LOCAMBIO A ORDEN DE TRABAJO BY CIENTE
 ordenes.get(
-    "/:did",
+    "/:did_cliente",
     buildHandlerWrapper({
         requiredParams: ["did"],
         controller: async ({ db, req }) => getFilteredOrdenesTrabajoByCliente({ db, req }),

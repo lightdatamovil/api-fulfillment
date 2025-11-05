@@ -4,6 +4,7 @@ import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functio
 export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     console.log("params", req.params);
     console.log("req.query", req.query);
+    const { did_cliente } = req.params;
     const q = req.query || {};
 
     const qp = {
@@ -43,6 +44,7 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     if (filtros.asignada !== undefined) where.eq("ot.asignada", filtros.asignada);
     if (filtros.alertada == "1") where.add("pp.did_producto IS null");
     if (filtros.pendiente == "1") where.add("pp.did_producto IS NOT null");
+    if (did_cliente) where.eq("p.did_cliente", Number(did_cliente));
 
     const { whereSql, params } = where.finalize();
 
@@ -55,26 +57,25 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
             ot.fecha_fin,
             otp.did_pedido,
             p.did_cliente,
-            pp.did_producto,
             COALESCE(
                 JSON_ARRAYAGG(
                     JSON_OBJECT(
-                        'did', p.did,
+                        'did', p.id,
                         'cliente', p.did_cliente,
                         'flex', p.flex,
-                        'estado', p.status,
-                        'id_venta', p.number,
+                        'status', p.status,
+                        'number', p.number,
                         'observaciones', p.observaciones,
                         'productos', (
                             SELECT COALESCE(
                                 JSON_ARRAYAGG(
                                     JSON_OBJECT(
-                                        'did', pp2.did_producto,
+                                        'did_producto', pp2.did_producto,
                                         'descripcion', pp2.descripcion,
                                         'codigo', pp2.codigo,
-                                        'variation_attributes', pp2.variation_attributes,
+                                        'ml_id', pp2.ml_id,
                                         'cantidad', pp2.cantidad,
-                                        'sku', pp2.seller_sku
+                                        'seller_sku', pp2.seller_sku
                                     )
                                 ),
                                 JSON_ARRAY()
@@ -91,18 +92,17 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
             ON ot.did = otp.did_orden_trabajo
         LEFT JOIN pedidos AS p
             ON otp.did_pedido = p.id
-        LEFT JOIN pedidos_productos AS pp 
-            ON otp.did_pedido = pp.did_pedido
-        ${whereSql}
-        GROUP BY ot.did, otp.did_pedido, p.did_cliente, pp.did_producto
+        ${whereSql /* Ejemplo: WHERE ot.elim = 0 AND ot.superado = 0 */}
+        GROUP BY ot.did, otp.did_pedido, p.did_cliente
         ${orderSql}
         LIMIT ? OFFSET ?;
+
         `;
 
     const rows = await executeQuery({ db, query: dataSql, values: [...params, pageSize, offset] });
     /*
         const { rows, total } = await runPagedQuery(connection, {
-            select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
+            select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, otp.did_pedido`,
             from: "FROM ordenes_trabajo ot",
             whereSql,
             orderSql,
@@ -110,7 +110,7 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
             pageSize,
             offset,
         });
-        */
+     */
 
     const parsedRows = rows.map(r => ({
         ...r,
