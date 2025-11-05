@@ -43,6 +43,7 @@ app.use("/api/curvas", curvas);
 app.use("/api/ordenes-trabajo", ordenesTrabajo);
 app.use("/api/configuracion", configuracion);
 app.use("/api/stock", stock);
+app.use("/api/depositos", depositos);
 
 
 (async () => {
