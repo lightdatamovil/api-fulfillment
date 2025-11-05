@@ -57,7 +57,37 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
             ot.fecha_fin,
             otp.did_pedido,
             p.did_cliente,
-            pp.did_producto
+            pp.did_producto,
+            COALESCE(
+                JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'did', p.did,
+                        'cliente', p.did_cliente,
+                        'flex', p.flex,
+                        'status', p.status,
+                        'number', p.number,
+                        'observaciones', p.observaciones,
+                        'productos', (
+                            SELECT COALESCE(
+                                JSON_ARRAYAGG(
+                                    JSON_OBJECT(
+                                        'did_producto', pp2.did_producto,
+                                        'descripcion', pp2.descripcion,
+                                        'codigo', pp2.codigo,
+                                        'ml_id', pp2.ml_id,
+                                        'cantidad', pp2.cantidad,
+                                        'seller_sku', pp2.seller_sku
+                                    )
+                                ),
+                                JSON_ARRAY()
+                            )
+                            FROM pedidos_productos AS pp2
+                            WHERE pp2.did_pedido = p.id
+                        )
+                    )
+                ),
+                JSON_ARRAY()
+            ) AS pedidos
         FROM ordenes_trabajo AS ot
         LEFT JOIN ordenes_trabajo_pedidos AS otp 
             ON ot.did = otp.did_orden_trabajo
@@ -84,6 +114,11 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
         });
         */
 
+    const parsedRows = rows.map(r => ({
+        ...r,
+        pedidos: typeof r.pedidos === "string" ? JSON.parse(r.pedidos) : r.pedidos
+    }));
+
     const total = rows.length;
 
     const filtersForMeta = pickNonEmpty({
@@ -98,7 +133,7 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     return {
         success: true,
         message: "Órdenes de Trabajo obtenidas correctamente",
-        data: rows,
+        data: parsedRows,
         meta: buildMeta({ page, pageSize, totalItems: total, filters: filtersForMeta }),
     };
 }
