@@ -73,7 +73,7 @@ export async function createPedido(db, payload, userId) {
         const mlItemIdFinal = s(it.ml_id ?? it.codigo ?? pedidoMlId ?? "");
 
         const icol = [
-            "did_pedido", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
+            "did_pedido", "flex", "seller_sku", "codigo", "descripcion", "ml_id", "dimensions",
             "did_producto_variante_valor", "id_variacion", "user_product_id", "cantidad", "variation_attributes",
             "imagen", "quien", "superado", "elim"
         ];
@@ -81,6 +81,7 @@ export async function createPedido(db, payload, userId) {
 
         const ival = [
             did,
+            1,
             s(it.seller_sku ?? ""),               // nunca null
             it.codigo ?? null,
             it.descripcion ?? null,
