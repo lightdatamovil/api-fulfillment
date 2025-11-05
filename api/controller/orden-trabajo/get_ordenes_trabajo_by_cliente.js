@@ -56,20 +56,18 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
             ot.fecha_inicio,
             ot.fecha_fin,
             otp.did_pedido,
-            p.did_cliente,
             COALESCE(
                 JSON_ARRAYAGG(
                     JSON_OBJECT(
-                        'did', p.id,
-                        'cliente', p.did_cliente,
+                        'did', p.did,
                         'flex', p.flex,
-                        'status', p.status,
-                        'number', p.number,
-                        'observaciones', p.observaciones,
+                        'estado', p.status,
+                        'id_venta', p.number,
                         'productos', (
                             SELECT COALESCE(
                                 JSON_ARRAYAGG(
                                     JSON_OBJECT(
+                                        'did', pp2.did,
                                         'did_producto', pp2.did_producto,
                                         'descripcion', pp2.descripcion,
                                         'codigo', pp2.codigo,
