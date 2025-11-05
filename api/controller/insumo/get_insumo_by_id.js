@@ -13,7 +13,6 @@ export async function getInsumosById({ db, req }) {
         throwIfNotExists: true
     });
 
-
     const clientesRows = await LightdataORM.select({
         db,
         table: "insumos_clientes",

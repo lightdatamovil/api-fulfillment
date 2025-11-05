@@ -8,7 +8,6 @@ setInterval(() => {
   for (const k of Object.keys(ESTADOS_CACHE)) delete ESTADOS_CACHE[k];
 }, 1000 * 60 * 60 * 24 * 14);
 
-
 (async function main() {
   try {
     console.log(urlRabbit, "dsada");

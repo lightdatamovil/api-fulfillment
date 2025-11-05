@@ -46,8 +46,6 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
 
     const { whereSql, params } = where.finalize();
 
-
-
     const dataSql = `
         SELECT 
             ot.did,

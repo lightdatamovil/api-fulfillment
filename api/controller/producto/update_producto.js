@@ -279,8 +279,6 @@ export async function updateProducto(db, req) {
   const hayInsumos = getUpdateOpsState(insumos);
   if (hayInsumos.hasRemove) {
     console.log('Entre a remove insumos');
-
-
     /* insumos_clientes no --- dudoso si borrar
     await LightdataORM.delete({
       db,
@@ -329,8 +327,6 @@ export async function updateProducto(db, req) {
     });
   }
 
-
-
   return {
     success: true,
     message: "Producto versionado correctamente (ORM)",
@@ -349,7 +345,6 @@ export async function updateProducto(db, req) {
 
   }
 };
-
 
 function getUpdateOpsState(updateArray) {
   const add = toArray(updateArray?.add);

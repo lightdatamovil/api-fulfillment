@@ -52,7 +52,6 @@ export async function getFilteredProductos({ db, req }) {
         dirKey: "sort_dir",
     });
 
-
     const where = new SqlWhere()
         .add("p.elim = 0")
         .add("p.superado = 0");

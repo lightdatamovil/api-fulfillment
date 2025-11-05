@@ -2,7 +2,6 @@ import axios from "axios";
 import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
 
-
 export async function createProducto({ db, req }) {
     const {
         did_cliente,

@@ -27,7 +27,6 @@ export async function getVarianteById({ db, req }) {
       vcv.nombre     AS valor_nombre,
       vcv.codigo     AS codigo_valor
 
-
     FROM variantes v
     LEFT JOIN variantes_categorias vc
       ON vc.did_variante = v.did

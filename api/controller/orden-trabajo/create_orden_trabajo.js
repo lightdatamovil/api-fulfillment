@@ -56,7 +56,6 @@ export async function createOrdenTrabajo({ db, req }) {
         quien: userId
     });
 
-
     return {
         success: true,
         message: "Orden de Trabajo creada correctamente",

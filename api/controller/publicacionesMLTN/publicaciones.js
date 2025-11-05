@@ -398,7 +398,6 @@ async function getPublicacionesTNSimplificado(pagina = 1, cantidad = 20) {
 
     const publicacionesUnificadas = {};
 
-
     for (const pubTN of publicacionesTN.response.resultados) {
         const variant = pubTN.data_variant; 
         const sku = variant.sku || 'Sin SKU';

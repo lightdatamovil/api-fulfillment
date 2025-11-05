@@ -41,7 +41,6 @@ app.use("/api/curvas", curvas);
 app.use("/api/ordenes-trabajo", ordenesTrabajo);
 app.use("/api/configuracion", configuracion);
 
-
 (async () => {
   try {
     app.listen(PORT, () => {

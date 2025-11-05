@@ -38,14 +38,12 @@ publicacion.post("/publicacionesTN", async (req, res) => {
     }
 });
 publicacion.post("/juntar", async (req, res) => {
-
     try {
         const publicaciones = await getPublicacionesUnificadas();
         res.status(200).json({
             estado: true,
             response: publicaciones,
         });
-
     } catch (error) {
         return res.status(500).json({
             estado: false,
@@ -53,8 +51,6 @@ publicacion.post("/juntar", async (req, res) => {
             error: error.message,
         });
     }
-
-
 })
 
 publicacion.post("/uni", async (req, res) => {

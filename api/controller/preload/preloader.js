@@ -163,11 +163,8 @@ export async function preloader({ db }) {
     codigo_cliente: u.codigo_cliente,
     app_habilitada: u.app_habilitada,
     accesos: u.accesos,
-
-
     email: u.email,
   }));
-
 
   const insumos = await LightdataORM.select({
     db,

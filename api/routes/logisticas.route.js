@@ -42,7 +42,6 @@ logisticas.put(
   })
 );
 
-
 logisticas.get(
   '/',
   buildHandlerWrapper({

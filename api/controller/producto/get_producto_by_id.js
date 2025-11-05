@@ -57,7 +57,6 @@ export async function getProductoById({ db, req }) {
     }),
   ]);
 
-
   // helper para parsear CSV -> number[]
   const parseCSVToNums = (csv) =>
     String(csv || "")
@@ -93,7 +92,6 @@ export async function getProductoById({ db, req }) {
   for (const g of grupos) {
     delete g.did_producto_variante_valor;
   }
-
 
   // 6) Insumos & Combos
   const insumos = (insRows ?? []).map((r) => ({
@@ -143,6 +141,3 @@ export async function getProductoById({ db, req }) {
     meta: { timestamp: new Date().toISOString() },
   };
 }
-
-
-

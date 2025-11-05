@@ -70,7 +70,6 @@ export async function createUsuario({ db, req }) {
 
     const didUserInsert = userInsert[0];
 
-
     let insertImage = null;
 
     if (data.imagen) {

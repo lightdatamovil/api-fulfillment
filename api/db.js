@@ -4,7 +4,6 @@ import { CompaniesService, logRed } from "lightdata-tools";
 
 dotenv.config({ path: process.env.ENV_FILE || ".env" });
 
-
 /// Redis para obtener las empresas
 const redisHost = process.env.REDIS_HOST;
 const redisPort = process.env.REDIS_PORT;

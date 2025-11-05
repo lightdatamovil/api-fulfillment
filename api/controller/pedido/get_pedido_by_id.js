@@ -40,7 +40,6 @@ export async function getPedidoById({ db, req }) {
         telefono: pedido.buyer_phone,
     };
 
-
     let direccion_pedido = {
         calle: direccion?.calle || "",
         numero: direccion?.numero || "",
@@ -52,8 +51,6 @@ export async function getPedidoById({ db, req }) {
         longitud: direccion?.longitud || "",
         referencia: direccion?.destination_coments || "",
     };
-
-
 
     const data = {
         did: pedido.did,
