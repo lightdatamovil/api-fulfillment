@@ -17,7 +17,7 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
 
     const filtros = {
         estado: Number.isFinite(Number(q.estado)) ? Number(q.estado) : undefined,
-        asignada: toBool01(q.asignada, undefined),
+        asignado: toBool01(q.asignado, undefined),
         // Para evitar ambigüedades usamos "1" como true; cualquier otro valor = ignorar
         alertada: toStr(q.alertada),
         pendiente: toStr(q.pendiente),
@@ -34,7 +34,6 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     const sortMap = {
         did: "ot.did",
         estado: "ot.estado",
-        asignada: "ot.asignada",
         fecha_inicio: "ot.fecha_inicio",
         fecha_fin: "ot.fecha_fin",
     };
@@ -43,7 +42,7 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     // Armamos base de filtros seguros
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado = 0");
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
-    if (filtros.asignada !== undefined) where.eq("ot.asignada", filtros.asignada);
+    if (filtros.asignado !== undefined) where.eq("ot.asignado", filtros.asignado);
     if (did_cliente) where.eq("p.did_cliente", Number(did_cliente));
 
     // Filtro ALERTADAS: OTs con al menos un pedido SIN productos
@@ -80,7 +79,7 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     SELECT 
       ot.did,
       ot.estado,
-      ot.asignada,                 -- <== corregido (antes "asignado")
+      ot.asignado,                 -- <== corregido (antes "asignado")
       ot.fecha_inicio,
       ot.fecha_fin,
       COALESCE(
@@ -144,7 +143,7 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
 
     const filtersForMeta = pickNonEmpty({
         ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
-        ...(filtros.asignada !== undefined ? { asignada: filtros.asignada } : {}),
+        ...(filtros.asignado !== undefined ? { asignado: filtros.asignado } : {}),
         ...(filtros.alertada === "1" ? { alertada: 1 } : {}),
         ...(filtros.pendiente === "1" ? { pendiente: 1 } : {}),
     });
