@@ -12,9 +12,20 @@ export async function createOrdenTrabajo({ db, req }) {
         db,
         table: "ordenes_trabajo",
         data: {
-            estado: "0",
+            estado: "1",
             asignado: did_usuario,
             fecha_inicio: new Date(),
+        },
+        quien: userId,
+    });
+
+    await LightdataORM.insert({
+        db,
+        table: "ordenes_trabajo_pedidos_estados",
+        data: {
+            did_orden_trabajo: did_ot,
+            estado: "1",
+
         },
         quien: userId,
     });

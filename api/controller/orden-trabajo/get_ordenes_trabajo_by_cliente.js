@@ -4,8 +4,14 @@ import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functio
 export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     console.log("params", req.params);
     console.log("req.query", req.query);
-    const { did_cliente } = req.params;
+    const { did_cliente: didClienteParamRaw } = req.params;
     const q = req.query || {};
+
+    // normalizamos did_cliente param
+    const didClienteParam =
+        didClienteParamRaw === undefined || didClienteParamRaw === null
+            ? undefined
+            : String(didClienteParamRaw).trim().toLowerCase();
 
     const qp = {
         ...q,
@@ -18,7 +24,6 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     const filtros = {
         estado: Number.isFinite(Number(q.estado)) ? Number(q.estado) : undefined,
         asignado: toBool01(q.asignado, undefined),
-        // Para evitar ambigüedades usamos "1" como true; cualquier otro valor = ignorar
         alertada: toStr(q.alertada),
         pendiente: toStr(q.pendiente),
     };
@@ -39,13 +44,26 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     };
     const { orderSql } = makeSort(qp, sortMap, { defaultKey: "did", byKey: "sort_by", dirKey: "sort_dir" });
 
-    // Armamos base de filtros seguros
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado = 0");
+
+    // 🔒 siempre excluimos pedidos con did_cliente NULL
+    where.add("p.did_cliente IS NOT NULL");
+
+    // si viene un did_cliente válido, filtramos por ese cliente
+    const didClienteNum = Number(didClienteParam);
+    if (
+        didClienteParam !== undefined &&
+        didClienteParam !== "" &&
+        didClienteParam !== "null" &&
+        Number.isFinite(didClienteNum)
+    ) {
+        where.eq("p.did_cliente", didClienteNum);
+    }
+
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
     if (filtros.asignado !== undefined) where.eq("ot.asignado", filtros.asignado);
-    if (did_cliente) where.eq("p.did_cliente", Number(did_cliente));
 
-    // Filtro ALERTADAS: OTs con al menos un pedido SIN productos
+    // ALERTADAS: al menos un pedido SIN productos
     if (filtros.alertada === "1") {
         where.add(`
       EXISTS (
@@ -54,12 +72,13 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
         LEFT JOIN pedidos p1 ON p1.id = otp1.did_pedido
         LEFT JOIN pedidos_productos pp1 ON pp1.did_pedido = p1.id
         WHERE otp1.did_orden_trabajo = ot.did
+          AND p1.did_cliente IS NOT NULL
           AND pp1.did IS NULL
       )
     `);
     }
 
-    // Filtro PENDIENTES: OTs con al menos un pedido CON productos
+    // PENDIENTES: al menos un pedido CON productos
     if (filtros.pendiente === "1") {
         where.add(`
       EXISTS (
@@ -68,18 +87,18 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
         JOIN pedidos p2 ON p2.id = otp2.did_pedido
         JOIN pedidos_productos pp2 ON pp2.did_pedido = p2.id
         WHERE otp2.did_orden_trabajo = ot.did
+          AND p2.did_cliente IS NOT NULL
       )
     `);
     }
 
     const { whereSql, params } = where.finalize();
 
-    // Query principal: una fila por OT
     const dataSql = `
     SELECT 
       ot.did,
       ot.estado,
-      ot.asignado,                 -- <== corregido (antes "asignado")
+      ot.asignado,
       ot.fecha_inicio,
       ot.fecha_fin,
       COALESCE(
@@ -122,7 +141,6 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     LIMIT ? OFFSET ?;
   `;
 
-    // Total real: contar OTs (DISTINCT) con los mismos filtros
     const countSql = `
     SELECT COUNT(DISTINCT ot.did) AS total
     FROM ordenes_trabajo AS ot
@@ -142,6 +160,7 @@ export async function getFilteredOrdenesTrabajoByCliente({ db, req }) {
     }));
 
     const filtersForMeta = pickNonEmpty({
+        ...(Number.isFinite(didClienteNum) ? { did_cliente: didClienteNum } : {}),
         ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
         ...(filtros.asignado !== undefined ? { asignado: filtros.asignado } : {}),
         ...(filtros.alertada === "1" ? { alertada: 1 } : {}),
