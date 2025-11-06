@@ -213,10 +213,32 @@ export async function preloader({ db }) {
 
   const clientes = Array.from(clientesMap.values());
 
+
+  const estadosOtQuery = `
+    SELECT * 
+    FROM estados_ordenes_trabajo 
+    WHERE elim = 0 AND superado = 0
+    ORDER BY id ASC;
+  `;
+  const estadosOt = await executeQuery({ db, query: estadosOtQuery });
+
+  const estadosOtMap = new Map();
+  for (const estado of estadosOt) {
+    estadosOtMap.set(estado.did, {
+      did: estado.did,
+      nombre: estado.nombre,
+    });
+
+
+  }
+
+  const estados = Array.from(estadosOtMap.values());
+
+
   return {
     success: true,
     message: "Datos pre-cargados correctamente",
-    data: { productos, variantes, curvas, insumos, clientes, usuarios },
+    data: { productos, variantes, curvas, insumos, clientes, usuarios, estados },
     meta: { timestamp: new Date().toISOString() },
   };
 }
