@@ -3,9 +3,9 @@ import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { createOrdenTrabajo } from "../controller/orden-trabajo/create_orden_trabajo.js";
 import { editOrdenTrabajo } from "../controller/orden-trabajo/edit_orden_trabajo.js";
 import { deleteOrdenTrabajo } from "../controller/orden-trabajo/delete_orden_trabajo.js";
-import { getOrdenTrabajoById } from "../controller/orden-trabajo/get_orden_trabajo_by_id.js";
 import { getFilteredOrdenesTrabajo } from "../controller/orden-trabajo/get_filtered_ordenes_trabajo.js";
 import { getFilteredOrdenesTrabajoByCliente } from "../controller/orden-trabajo/get_ordenes_trabajo_by_cliente.js";
+import { changeEstadoAOrdenDeTrabajo } from "../controller/orden-trabajo/change_estado_a_orden_de_trabajo.js";
 
 const ordenes = Router();
 
@@ -14,6 +14,14 @@ ordenes.post(
     buildHandlerWrapper({
         optional: ["estado", "did_usuario", "did_pedidos"],
         controller: async ({ db, req }) => createOrdenTrabajo({ db, req }),
+    })
+);
+
+ordenes.put(
+    "/cambiar-estado",
+    buildHandlerWrapper({
+        required: ["estado", "dids_ots"],
+        controller: ({ db, req }) => changeEstadoAOrdenDeTrabajo({ db, req }),
     })
 );
 
