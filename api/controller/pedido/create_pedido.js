@@ -74,7 +74,8 @@ async function insertOnePedido(db, userId, pedido) {
         productos,
         direccion,
         id_venta,
-        comprador
+        comprador,
+        insumos,
     } = pedido || {};
 
     const [didPedido] = await LightdataORM.insert({
@@ -93,6 +94,7 @@ async function insertOnePedido(db, userId, pedido) {
             buyer_name: comprador.nombre,
             buyer_email: comprador.email,
             buyer_phone: comprador.telefono,
+            insumos: JSON.stringify(insumos),
 
         },
     });
