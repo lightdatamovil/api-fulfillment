@@ -23,11 +23,12 @@ export async function getProductoById({ db, req }) {
     });
   }
 
-  const p = await LightdataORM.select({
+  const [p] = await LightdataORM.select({
     db,
     table: "productos",
     where: { did: didProducto },
     throwIfNotExists: true,
+    log: true,
   });
 
   const [vvRows, ecRows, insRows, comboRows] = await Promise.all([

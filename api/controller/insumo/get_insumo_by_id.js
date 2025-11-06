@@ -3,7 +3,7 @@ import { LightdataORM } from "lightdata-tools";
 export async function getInsumosById({ db, req }) {
     const { insumoId } = req.params;
 
-    const insumos = await LightdataORM.select({
+    const [insumos] = await LightdataORM.select({
         db,
         table: "insumos",
         where: {
@@ -27,7 +27,7 @@ export async function getInsumosById({ db, req }) {
     return {
         success: true,
         message: "Insumo obtenido correctamente",
-        data: { insumos, clientes_dids },
+        data: { ...insumos, clientes_dids },
         meta: { timestamp: new Date().toISOString() },
     };
 }
