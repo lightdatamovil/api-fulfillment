@@ -12,7 +12,7 @@ pedidos.post(
     "/",
 
     buildHandlerWrapper({
-        optional: ["did_cliente", "did_cuenta", "estado", "observacion", "total", "productos", "direccion", "id_venta", "comprador", "deadline", "fecha_venta"],
+        optional: ["did_cliente", "did_cuenta", "estado", "observacion", "total", "productos", "direccion", "id_venta", "comprador", "deadline", "fecha_venta", "insumos"],
         controller: ({ db, req }) => createPedido({ db, req }),
     })
 );
