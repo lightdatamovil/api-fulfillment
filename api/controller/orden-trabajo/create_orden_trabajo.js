@@ -19,18 +19,6 @@ export async function createOrdenTrabajo({ db, req }) {
         quien: userId,
     });
 
-    await LightdataORM.insert({
-        db,
-        table: "ordenes_trabajo_pedidos_estados",
-        data: {
-            did_orden_trabajo: did_ot,
-            estado: "1",
-            fecha: new Date(),
-
-        },
-        quien: userId,
-    });
-
     const pedidosData = did_pedidos.map(item => {
         const did_pedido = typeof item === "object" ? item.did_pedido : item;
         if (!did_pedido) throw new Error("Falta did_pedido en alguno de los pedidos");
