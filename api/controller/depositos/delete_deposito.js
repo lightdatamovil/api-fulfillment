@@ -10,7 +10,6 @@ export async function deleteDeposito({ db, req }) {
         where: { did: Number(depositoDid) },
         quien: userId,
         throwIfNotFound: true,
-        log: true
     });
 
     return {

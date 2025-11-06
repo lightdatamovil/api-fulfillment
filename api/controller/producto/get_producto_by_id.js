@@ -28,7 +28,6 @@ export async function getProductoById({ db, req }) {
     table: "productos",
     where: { did: didProducto },
     throwIfNotExists: true,
-    log: true,
   });
 
   const [vvRows, ecRows, insRows, comboRows] = await Promise.all([
