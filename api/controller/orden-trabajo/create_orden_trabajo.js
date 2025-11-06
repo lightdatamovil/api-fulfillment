@@ -25,6 +25,7 @@ export async function createOrdenTrabajo({ db, req }) {
         data: {
             did_orden_trabajo: did_ot,
             estado: "1",
+            fecha: new Date(),
 
         },
         quien: userId,
