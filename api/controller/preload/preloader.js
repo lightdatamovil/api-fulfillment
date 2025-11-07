@@ -232,13 +232,13 @@ export async function preloader({ db }) {
 
   }
 
-  const estados = Array.from(estadosOtMap.values());
+  const estados_ot = Array.from(estadosOtMap.values());
 
 
   return {
     success: true,
     message: "Datos pre-cargados correctamente",
-    data: { productos, variantes, curvas, insumos, clientes, usuarios, estados },
+    data: { productos, variantes, curvas, insumos, clientes, usuarios, estados_ot },
     meta: { timestamp: new Date().toISOString() },
   };
 }

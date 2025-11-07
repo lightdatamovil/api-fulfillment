@@ -18,6 +18,7 @@ import { jwtSecret } from './db.js';
 import configuracion from './routes/configuracion.route.js';
 import depositos from './routes/depositos.route.js';
 import stock from './routes/stock.route.js';
+import identificadoresEspeciales from './routes/identificadores_adicionales.route.js';
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use("/api/ordenes-trabajo", ordenesTrabajo);
 app.use("/api/configuracion", configuracion);
 app.use("/api/stock", stock);
 app.use("/api/depositos", depositos);
+app.use("/api/identificadores-especiales", identificadoresEspeciales);
 
 
 (async () => {
