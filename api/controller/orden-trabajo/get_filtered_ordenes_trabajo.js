@@ -1,5 +1,5 @@
-import { toStr, toBool01, pickNonEmpty, executeQuery, toIntList } from "lightdata-tools";
-import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functions/query_utils.js";
+import { toStr, toBool01, pickNonEmpty, toIntList, executeQuery } from "lightdata-tools";
+import { SqlWhere, makePagination, makeSort, buildMeta, runPagedQuery } from "../../src/functions/query_utils.js";
 
 export async function getFilteredOrdenesTrabajo({ db, req }) {
     const q = req.query || {};
@@ -20,6 +20,8 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
         fecha_inicio_to: toStr(q.fecha_inicio_to),
         fecha_fin_from: toStr(q.fecha_fin_from),
         fecha_fin_to: toStr(q.fecha_fin_to),
+        alertada: toBool01(q.alertada, undefined),
+        pendiente: toBool01(q.pendiente, undefined),
 
     };
 
@@ -39,7 +41,7 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
         fecha_fin: "ot.fecha_fin",
     };
 
-    const { orderSql } = makeSort(qp, sortMap, { defaultKey: "ordenes_total", byKey: "sort_by", dirKey: "sort_dir" });
+    const { orderSql } = makeSort(qp, sortMap, { defaultKey: "ot.fecha_inicio", byKey: "sort_by", dirKey: "sort_dir" });
 
     const where = new SqlWhere().add("ot.elim = 0").add("ot.superado=0");
     if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
@@ -49,43 +51,112 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
     if (filtros.fecha_inicio_to) where.add("ot.fecha_inicio <= ?", [filtros.fecha_inicio_to]);
     if (filtros.fecha_fin_from) where.add("ot.fecha_fin >= ?", [filtros.fecha_fin_from]);
     if (filtros.fecha_fin_to) where.add("ot.fecha_fin <= ?", [filtros.fecha_fin_to]);
+    if (filtros.alertada) where.add("pp.did_producto IS NULL", filtros.alertada);
+    if (filtros.pendiente) where.add("pp.did_producto IS NOT NULL", filtros.pendiente);
+
+    // validación: son excluyentes
+    if (filtros.alertada === 1 && filtros.pendiente === 1) {
+        throw new Error("No se puede filtrar 'alertada' y 'pendiente' simultáneamente.");
+    }
+
+    // ALERTADA: existe al menos un producto sin did_producto en la OT
+    if (filtros.alertada === 1) {
+        where.add(`
+    EXISTS (
+      SELECT 1
+      FROM ordenes_trabajo_pedidos otp2
+      JOIN pedidos_productos pp2 ON pp2.did_pedido = otp2.did_pedido
+      WHERE otp2.did_orden_trabajo = ot.did
+        AND pp2.did_producto IS NULL
+    )
+  `);
+    }
+
+    // PENDIENTE: no existe ningún producto sin did_producto en la OT
+    if (filtros.pendiente === 1) {
+        where.add(`
+    NOT EXISTS (
+      SELECT 1
+      FROM ordenes_trabajo_pedidos otp3
+      JOIN pedidos_productos pp3 ON pp3.did_pedido = otp3.did_pedido
+      WHERE otp3.did_orden_trabajo = ot.did
+        AND pp3.did_producto IS NULL
+    )
+  `);
+    }
 
     const { whereSql, params } = where.finalize();
-
-    const dataSql = `
-        SELECT 
-            p.did_cliente,
-            COUNT(DISTINCT ot.did) AS ordenes_total,
-            COUNT(DISTINCT CASE WHEN pp.did_producto IS NULL THEN ot.did END) AS ordenes_alertadas,
-            COUNT(DISTINCT CASE WHEN pp.did_producto IS NOT NULL THEN ot.did END) AS ordenes_pendientes
-        FROM ordenes_trabajo AS ot
-        LEFT JOIN ordenes_trabajo_pedidos AS otp 
-            ON ot.did = otp.did_orden_trabajo
-        LEFT JOIN pedidos AS p
-            ON otp.did_pedido = p.id
-        LEFT JOIN pedidos_productos AS pp 
-            ON otp.did_pedido = pp.did_pedido
-        ${whereSql /* Ej: WHERE ot.elim = 0 AND ot.superado = 0 */}
-        GROUP BY p.did_cliente
-        ${orderSql /* Ej: ORDER BY p.did_cliente ASC */}
-        LIMIT ? OFFSET ?;
-
-        `;
-
-    const rows = await executeQuery({ db, query: dataSql, values: [...params, pageSize, offset] });
     /*
-        const { rows, total } = await runPagedQuery(connection, {
-            select: `ot.did, ot.estado, ot.asignada, ot.fecha_inicio, ot.fecha_fin, ot.autofecha`,
-            from: "FROM ordenes_trabajo ot",
-            whereSql,
-            orderSql,
-            params,
-            pageSize,
-            offset,
-        });
+        const dataSql = `
+            SELECT 
+      ot.did,
+      ot.estado,
+      ot.asignado,
+      ot.fecha_inicio,
+      ot.fecha_fin,
+      COALESCE(
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'did', p.did,
+            'flex', p.flex,
+            'estado', p.status,
+            'id_venta', p.number,
+            'productos', (
+              SELECT COALESCE(
+                JSON_ARRAYAGG(
+                  JSON_OBJECT(
+                    'did', pp2.did,
+                    'did_producto', pp2.did_producto,
+                    'descripcion', pp2.descripcion,
+                    'codigo', pp2.codigo,
+                    'ml_id', pp2.ml_id,
+                    'cantidad', pp2.cantidad,
+                    'seller_sku', pp2.seller_sku
+                  )
+                ),
+                JSON_ARRAY()
+              )
+              FROM pedidos_productos AS pp2
+              WHERE pp2.did_pedido = p.id
+            )
+          )
+        ),
+        JSON_ARRAY()
+      ) AS pedidos
+    FROM ordenes_trabajo AS ot
+    LEFT JOIN ordenes_trabajo_pedidos AS otp 
+      ON ot.did = otp.did_orden_trabajo
+    LEFT JOIN pedidos AS p
+      ON otp.did_pedido = p.id
+    ${whereSql}
+    GROUP BY ot.did
+    ${orderSql}
+    LIMIT ? OFFSET ?;
+    
+    
+    //    const rows = await executeQuery({ db, query: whereSql, values: [...params, pageSize, offset] });
+    //     const total = rows.length;
+    
+    
+    const from = `
+    FROM ordenes_trabajo AS ot
+    LEFT JOIN ordenes_trabajo_pedidos AS otp ON ot.did = otp.did_orden_trabajo
+    LEFT JOIN pedidos AS p ON otp.did_pedido = p.id
+    LEFT JOIN pedidos_productos AS pp ON otp.did_pedido = pp.did_pedido
+    `;
+    
+    // 5) ***IMPORTANTE***: como hay GROUP BY, usa la variante "groups"
+    const result = await runPagedQueryGroups(db, {
+        select,
+        from,
+        whereSql,
+        groupBy: "p.did_cliente",
+        orderSql,
+        params,
+        pageSize,
+        offset
+    });
     */
-
-    const total = rows.length;
 
     const filtersForMeta = pickNonEmpty({
         ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
@@ -97,9 +168,63 @@ export async function getFilteredOrdenesTrabajo({ db, req }) {
     });
 
     return {
-        success: true,
-        message: "Órdenes de Trabajo obtenidas correctamente",
-        data: rows,
-        meta: buildMeta({ page, pageSize, totalItems: total, filters: filtersForMeta }),
+        data: result.rows,            // [{ did_cliente, ordenes_total, ...}]
+        meta: {
+            page,
+            pageSize,
+            totalPages: Math.ceil(result.total / pageSize),
+            totalItems: result.total,
+            filtersForMeta
+        }
     };
+}
+
+
+
+
+export async function runPagedQueryGroups(
+    db,
+    { select, from, whereSql = "", groupBy, orderSql = "", params = [], pageSize, offset }
+) {
+    if (!groupBy) throw new Error("groupBy requerido para consultas agregadas");
+
+    // Datos paginados
+    const dataSql = `
+SELECT ${select}
+${from}
+${whereSql}
+GROUP BY ${groupBy}
+${orderSql}
+LIMIT ? OFFSET ?
+`;
+    const rows = await executeQuery({
+        db,
+        query: dataSql,
+        values: [...params, pageSize, offset],
+    });
+
+    // Total de grupos (clientes)
+    // Opción A: contar DISTINCT de la(s) clave(s) de agrupación
+    const countSql = `
+SELECT COUNT(DISTINCT ${groupBy}) AS total
+${from}
+${whereSql}
+`;
+    const [{ total = 0 } = {}] = await executeQuery({
+        db,
+        query: countSql,
+        values: params,
+    });
+
+    // Opción B (alternativa general): envolver la query agrupada y contar
+    // const countSql = `
+    //   SELECT COUNT(*) AS total FROM (
+    //     SELECT 1
+    //     ${from}
+    //     ${whereSql}
+    //     GROUP BY ${groupBy}
+    //   ) t
+    // `;
+
+    return { rows, total };
 }

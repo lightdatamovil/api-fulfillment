@@ -8,11 +8,12 @@ export async function getlogisticaById({ db, req }) {
         db,
         table: "logisticas",
         where: { did: logisticaDid },
-        select: ["nombre", "codigo", "codigoLD", "logisticaLD", "habilitado"],
-        throwExceptionIfNotExists: true
+        select: ["nombre", "codigo", "codigoSync", "sync", "habilitado"],
+        throwIfNotExists: true,
+        log: true,
     });
 
-    const { nombre, codigo, codigoLD, logisticaLD, habilitado } = logistica[0];
+    const { nombre, codigo, codigoSync, sync, habilitado } = logistica[0];
 
     const logisticaDirecciones = await LightdataORM.select({
         db,
@@ -38,9 +39,9 @@ export async function getlogisticaById({ db, req }) {
         data: {
             did: logisticaDid,
             nombre: nombre,
-            logisticaLD: logisticaLD,
+            sync: sync,
             codigo: codigo,
-            codigoLD: codigoLD,
+            codigoSync: codigoSync,
             habilitado: habilitado,
             direcciones: direcciones,
             quien: userId,

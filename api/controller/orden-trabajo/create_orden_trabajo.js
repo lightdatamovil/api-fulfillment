@@ -28,6 +28,7 @@ export async function createOrdenTrabajo({ db, req }) {
             did_pedido,
             flex: (typeof item === "object" ? item.flex : 0) ?? 0,
             estado: (typeof item === "object" ? item.estado : "pendiente") ?? "pendiente",
+            did_cliente: (typeof item === "object" ? item.did_cliente : null) ?? null
         };
     });
 

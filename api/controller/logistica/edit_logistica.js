@@ -3,7 +3,7 @@ import { LightdataORM } from "lightdata-tools";
 export async function editLogistica({ db, req }) {
     const logisticaDid = req.params.logisticaDid;
     const { userId } = req.user ?? {};
-    const { nombre, logisticaLD, codigo, codigoLD, habilitado, direcciones } = req.body ?? {};
+    const { nombre, sync, codigo, codigoSync, habilitado, direcciones } = req.body ?? {};
 
     const verifyLogistica = await LightdataORM.select({
         db,
@@ -14,8 +14,8 @@ export async function editLogistica({ db, req }) {
 
     const nombreInsert = isDefined(nombre) ? nombre : verifyLogistica.nombre;
     const codigoInsert = isDefined(codigo) ? codigo : verifyLogistica.codigo;
-    const codigoLDInsert = isDefined(codigoLD) ? codigoLD : verifyLogistica.codigoLD;
-    const logisticaLDInsert = isDefined(logisticaLD) ? logisticaLD : verifyLogistica.logisticaLD;
+    const codigoSyncInsert = isDefined(codigoSync) ? codigoSync : verifyLogistica.codigoSync;
+    const syncInsert = isDefined(sync) ? sync : verifyLogistica.sync;
     const habilitadoInsert = isDefined(habilitado) ? habilitado : verifyLogistica.habilitado;
 
     await LightdataORM.update({
@@ -26,8 +26,8 @@ export async function editLogistica({ db, req }) {
         data: {
             codigo: codigoInsert,
             nombre: nombreInsert,
-            codigoLD: codigoLDInsert,
-            logisticaLD: logisticaLDInsert,
+            codigoSync: codigoSyncInsert,
+            sync: syncInsert,
             habilitado: habilitadoInsert
         }
     });
@@ -37,7 +37,6 @@ export async function editLogistica({ db, req }) {
     if (hayDirecciones.hasAdd) {
         const data = hayDirecciones.add.map(direccion => ({
             did_logistica: logisticaDid,
-            direccion: direccion.direccion,
             titulo: direccion.titulo,
             cp: direccion.cp,
             calle: direccion.calle,
@@ -90,9 +89,9 @@ export async function editLogistica({ db, req }) {
         data: {
             did: logisticaDid,
             nombre: nombre,
-            logisticaLD: logisticaLD,
+            sync: sync,
             codigo: codigo,
-            codigoLD: codigoLD,
+            codigoSync: codigoSync,
             quien: userId,
             habilitado: habilitado,
             direcciones: direccionesSelect

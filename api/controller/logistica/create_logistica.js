@@ -3,12 +3,14 @@ import { CustomException, executeQuery, LightdataORM, Status } from "lightdata-t
 export async function createlogistica({ db, req }) {
     const {
         nombre,
-        logisticaLD,
+        sync,
         codigo,
-        codigoLD,
+        codigoSync,
         habilitado,
         direcciones
     } = req.body;
+
+    //logisticaLD pasa a ser sync  y codigoLD es codigoSync
 
     const { userId } = req.user;
 
@@ -28,7 +30,7 @@ export async function createlogistica({ db, req }) {
     const [inserted] = await LightdataORM.insert({
         db,
         table: "logisticas",
-        data: { nombre, logisticaLD, codigo, codigoLD, habilitado },
+        data: { nombre, sync, codigo, codigoSync, habilitado },
         quien: userId,
     });
 
@@ -66,9 +68,9 @@ export async function createlogistica({ db, req }) {
         data: {
             did: inserted,
             nombre: nombre,
-            logisticaLD: logisticaLD,
+            sync: sync,
             codigo: codigo,
-            codigoLD: codigoLD,
+            codigoSync: codigoSync,
             habilitado: habilitado,
             direcciones: direccionesSelect,
             quien: userId,
