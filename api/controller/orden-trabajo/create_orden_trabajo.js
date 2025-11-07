@@ -8,6 +8,16 @@ export async function createOrdenTrabajo({ db, req }) {
         throw new Error("Datos inválidos: falta did_usuario o did_pedidos vacío");
     }
 
+    const pedidoAlertado = await LightdataORM.select({
+        db,
+        table: "pedidos_productos",
+        where: {
+            did_pedido: did_pedidos,
+            did_producto: null
+        },
+        quien: userId
+    });
+
     const [did_ot] = await LightdataORM.insert({
         db,
         table: "ordenes_trabajo",
@@ -15,8 +25,9 @@ export async function createOrdenTrabajo({ db, req }) {
             estado: "1",
             asignado: did_usuario,
             fecha_inicio: new Date(),
+            alertada: pedidoAlertado.length > 0
         },
-        quien: userId,
+        quien: userId
     });
 
     const pedidosData = did_pedidos.map(item => {
