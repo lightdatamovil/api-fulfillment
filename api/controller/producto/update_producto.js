@@ -26,7 +26,6 @@ export async function updateProducto({ db, req }) {
   const quien = Number(req.user.userId);
   const { companyId } = req.user;
   const didProducto = Number(did);
-  let dataCreate = {};
 
   if (!Number.isFinite(didProducto) || didProducto <= 0) {
     throw new CustomException({
@@ -158,7 +157,6 @@ export async function updateProducto({ db, req }) {
       quien: quien,
       data: pvvRows,
     });
-    dataCreate.productos_variantes_valores = insertedPvvs;
 
     const combinacionesRows = [];
     for (let i = 0; i < combinaciones.add.length; i++) {
@@ -179,15 +177,12 @@ export async function updateProducto({ db, req }) {
     }
 
     if (combinacionesRows.length) {
-
-      const productos_ecommerce = await LightdataORM.insert({
+      await LightdataORM.insert({
         db,
         table: "productos_ecommerce",
         quien: quien,
         data: combinacionesRows,
       });
-
-      dataCreate.productos_ecommerce = productos_ecommerce;
     }
   }
 
@@ -224,13 +219,12 @@ export async function updateProducto({ db, req }) {
         did_producto_combo: ph.didProducto,
         cantidad: Number(ph.cantidad),
       }));
-      const combosInsert = await LightdataORM.insert({
+      await LightdataORM.insert({
         db,
         table: "productos_combos",
         data,
         quien,
       });
-      dataCreate.combos = combosInsert;
     }
   }
   const hayInsumos = getUpdateOpsState(insumos);
@@ -265,13 +259,12 @@ export async function updateProducto({ db, req }) {
       did_producto: didProducto,
       cantidad: Number(i.cantidad),
     }));
-    const insumosInsert = await LightdataORM.insert({
+    await LightdataORM.insert({
       db,
       table: "productos_insumos",
       data,
       quien,
     });
-    dataCreate.insumos = insumosInsert;
   }
 
   return {
@@ -280,7 +273,6 @@ export async function updateProducto({ db, req }) {
     data: {
       did: didProducto,
       titulo: newData.titulo,
-      data_create: dataCreate,
       meta: { timestamp: new Date().toISOString() },
     }
 
