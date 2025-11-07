@@ -1,7 +1,7 @@
 import { LightdataORM } from "lightdata-tools";
 
 export async function identificadores_especiales({ db, req }) {
-    const { nombre, config } = req.body;
+    const { nombre, tipo } = req.body;
     const { userId } = req.user;
 
 
@@ -16,7 +16,7 @@ export async function identificadores_especiales({ db, req }) {
     const [newId] = await LightdataORM.insert({
         db,
         table: "identificadores_especiales",
-        data: { nombre, config },
+        data: { nombre, tipo },
         quien: userId,
     });
 
@@ -28,7 +28,7 @@ export async function identificadores_especiales({ db, req }) {
         data: {
             did: newId,
             nombre,
-            config
+            tipo
         },
         meta: { timestamp: new Date().toISOString() },
     };
