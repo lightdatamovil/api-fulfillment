@@ -4,6 +4,43 @@ import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functio
 export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
   const q = req.query || {};
 
+  // ---- helpers CSV → arrays ----
+  // --- helpers robustos para CSVs ---
+  const parseCsvNums = (v) => {
+    // v puede ser "1,2,3", "  ", "", 0, "0", etc.
+    if (typeof v === "string") {
+      const out = [];
+      for (const raw of v.split(",")) {
+        const s = String(raw).trim();
+        if (!s) continue;                           // evita '' -> 0
+        if (/^(null|undefined)$/i.test(s)) continue; // evita "null"/"undefined"
+        const n = Number(s);
+        if (Number.isFinite(n)) out.push(n);
+      }
+      return out.length ? Array.from(new Set(out)) : undefined;
+    }
+    // si viene ya como número (poco común en query), lo respetamos
+    if (Number.isFinite(Number(v))) return [Number(v)];
+    return undefined;
+  };
+
+  const parseCsvBools01 = (v) => {
+    if (typeof v === "string") {
+      const out = [];
+      for (const raw of v.split(",")) {
+        const s = String(raw).trim();
+        if (!s) continue;                           // evita vacío
+        if (/^(null|undefined)$/i.test(s)) continue;
+        const b = toBool01(s, undefined);           // -> 0 | 1 | undefined
+        if (b === 0 || b === 1) out.push(b);
+      }
+      return out.length ? Array.from(new Set(out)) : undefined;
+    }
+    const b = toBool01(v, undefined);
+    return b === 0 || b === 1 ? [b] : undefined;
+  };
+
+
   const qp = {
     ...q,
     page: q.page ?? q.pagina,
@@ -12,17 +49,14 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
     sort_dir: q.sort_dir ?? q.sortDir,
   };
 
-  // ---- filtros ----
+  // ---- filtros (multi-valor) ----
   const filtros = {
-    // ahora did_cliente viene de query
-    did_cliente: q.did_cliente ? Number(q.did_cliente) : undefined,
+    did_cliente: parseCsvNums(q.did_cliente),   // p.did_cliente IN (...)
+    estado: parseCsvNums(q.estado),        // ot.estado IN (...)
+    asignado: parseCsvBools01(q.asignado),   // ot.asignado IN (0,1)
+    origen: parseCsvNums(q.origen),        // p.flex IN (...)
 
-    // estado de la OT
-    estado: q.estado ? Number(q.estado) : undefined,
-
-    asignado: toBool01(q.asignado, undefined),
-
-    // alertada tri-state (0 | 1 | undefined)
+    // alertada tri-state (0 | 1 | undefined) — mantiene lógica anterior
     alertada: (() => {
       const v = q.alertada;
       if (v === undefined || v === null || v === "") return undefined;
@@ -32,20 +66,13 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
     })(),
 
     // fechas sobre ot.fecha_inicio
-    fecha_from:
-      typeof q.fecha_from === "string" && q.fecha_from.trim()
-        ? `${q.fecha_from.trim()} 00:00:00`
-        : undefined,
-    fecha_to:
-      typeof q.fecha_to === "string" && q.fecha_to.trim()
-        ? `${q.fecha_to.trim()} 23:59:59`
-        : undefined,
+    fecha_from: typeof q.fecha_from === "string" && q.fecha_from.trim()
+      ? `${q.fecha_from.trim()} 00:00:00` : undefined,
+    fecha_to: typeof q.fecha_to === "string" && q.fecha_to.trim()
+      ? `${q.fecha_to.trim()} 23:59:59` : undefined,
 
     // id_venta → p.number (LIKE CI)
     id_venta: typeof q.id_venta === "string" ? q.id_venta.trim() : undefined,
-
-    // origen → p.flex
-    origen: Number.isFinite(Number(q.origen)) ? Number(q.origen) : undefined,
   };
 
   const { page, pageSize, offset } = makePagination(qp, {
@@ -56,36 +83,35 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
     maxPageSize: 100,
   });
 
+  // ordenar por: did_cliente, fecha, id_venta, estado, origen y asignado (asignado_a)
   const sortMap = {
     did_cliente: "p.did_cliente",
     fecha: "ot.fecha_inicio",
     id_venta: "p.number",
     estado: "ot.estado",
     origen: "p.flex",
-    asignado: "ot.asignado",
+    asignado_a: "ot.asignado", // alias solicitado
+    asignado: "ot.asignado",   // por compat
+    did: "ot.did",             // opcional
+    fecha_inicio: "ot.fecha_inicio",
+    fecha_fin: "ot.fecha_fin",
   };
-  const { orderSql } = makeSort(qp, sortMap, { defaultKey: "did", byKey: "sort_by", dirKey: "sort_dir" });
+  const { orderSql } = makeSort(qp, sortMap, { defaultKey: "fecha", byKey: "sort_by", dirKey: "sort_dir" });
 
   const where = new SqlWhere()
     .add("ot.elim = 0")
     .add("ot.superado = 0")
-    // 🔒 evitamos pedidos huérfanos
     .add("p.did_cliente IS NOT NULL");
 
-  // did_cliente por query
-  if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
-
-  // estado de OT
-  if (filtros.estado !== undefined) {
-    where.eq("ot.estado", filtros.estado);
-  }
-
-  if (filtros.asignado !== undefined) where.eq("ot.asignado", filtros.asignado);
+  // multi-valor
+  if (filtros.did_cliente?.length) where.in("p.did_cliente", filtros.did_cliente);
+  if (filtros.estado?.length) where.in("ot.estado", filtros.estado);
+  if (filtros.asignado?.length) where.in("ot.asignado", filtros.asignado);
+  if (filtros.origen?.length) where.in("p.flex", filtros.origen);
 
   // alertada tri-state
   if (filtros.alertada === 1) where.eq("ot.alertada", 1);
   else if (filtros.alertada === 0) where.eq("ot.alertada", 0);
-  // undefined => no filtra (vienen ambas)
 
   // fechas
   if (filtros.fecha_from) where.add("ot.fecha_inicio >= ?", filtros.fecha_from);
@@ -93,9 +119,6 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
 
   // id_venta (p.number) LIKE CI
   if (filtros.id_venta) where.likeCI("p.number", filtros.id_venta);
-
-  // origen (p.flex)
-  if (filtros.origen !== undefined) where.eq("p.flex", filtros.origen);
 
   const { whereSql, params } = where.finalize();
 
@@ -144,7 +167,7 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
       ON otp.did_pedido = p.id
     ${whereSql}
     GROUP BY ot.did
-    ${orderSql}
+    ${orderSql}, ot.did ASC
     LIMIT ? OFFSET ?;
   `;
 
@@ -167,14 +190,14 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
   }));
 
   const filtersForMeta = pickNonEmpty({
-    ...(filtros.did_cliente !== undefined ? { did_cliente: filtros.did_cliente } : {}),
-    ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
-    ...(filtros.asignado !== undefined ? { asignado: filtros.asignado } : {}),
+    ...(filtros.did_cliente?.length ? { did_cliente: filtros.did_cliente } : {}),
+    ...(filtros.estado?.length ? { estado: filtros.estado } : {}),
+    ...(filtros.asignado?.length ? { asignado: filtros.asignado } : {}),
+    ...(filtros.origen?.length ? { origen: filtros.origen } : {}),
     ...(filtros.alertada !== undefined ? { alertada: filtros.alertada } : {}),
     ...(q.fecha_from ? { fecha_from: q.fecha_from } : {}),
     ...(q.fecha_to ? { fecha_to: q.fecha_to } : {}),
     ...(filtros.id_venta ? { id_venta: filtros.id_venta } : {}),
-    ...(filtros.origen !== undefined ? { origen: filtros.origen } : {}),
   });
 
   return {
