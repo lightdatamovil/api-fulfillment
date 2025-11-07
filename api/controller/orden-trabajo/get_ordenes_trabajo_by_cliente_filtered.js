@@ -57,10 +57,12 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
   });
 
   const sortMap = {
-    did: "ot.did",
+    did_cliente: "p.did_cliente",
+    fecha: "ot.fecha_inicio",
+    id_venta: "p.number",
     estado: "ot.estado",
-    fecha_inicio: "ot.fecha_inicio",
-    fecha_fin: "ot.fecha_fin",
+    origen: "p.flex",
+    asignado: "ot.asignado",
   };
   const { orderSql } = makeSort(qp, sortMap, { defaultKey: "did", byKey: "sort_by", dirKey: "sort_dir" });
 
