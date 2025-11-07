@@ -24,23 +24,6 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
     return undefined;
   };
 
-  const parseCsvBools01 = (v) => {
-    if (typeof v === "string") {
-      const out = [];
-      for (const raw of v.split(",")) {
-        const s = String(raw).trim();
-        if (!s) continue;                           // evita vacío
-        if (/^(null|undefined)$/i.test(s)) continue;
-        const b = toBool01(s, undefined);           // -> 0 | 1 | undefined
-        if (b === 0 || b === 1) out.push(b);
-      }
-      return out.length ? Array.from(new Set(out)) : undefined;
-    }
-    const b = toBool01(v, undefined);
-    return b === 0 || b === 1 ? [b] : undefined;
-  };
-
-
   const qp = {
     ...q,
     page: q.page ?? q.pagina,
@@ -53,7 +36,7 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
   const filtros = {
     did_cliente: parseCsvNums(q.did_cliente),   // p.did_cliente IN (...)
     estado: parseCsvNums(q.estado),        // ot.estado IN (...)
-    asignado: parseCsvBools01(q.asignado),   // ot.asignado IN (0,1)
+    asignado: parseCsvNums(q.asignado),   // ot.asignado IN (0,1)
     origen: parseCsvNums(q.origen),        // p.flex IN (...)
 
     // alertada tri-state (0 | 1 | undefined) — mantiene lógica anterior
@@ -83,18 +66,14 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
     maxPageSize: 100,
   });
 
-  // ordenar por: did_cliente, fecha, id_venta, estado, origen y asignado (asignado_a)
+  // ordenar por: did_cliente, fecha, id_venta, estado, origen y asignado
   const sortMap = {
     did_cliente: "p.did_cliente",
     fecha: "ot.fecha_inicio",
     id_venta: "p.number",
     estado: "ot.estado",
     origen: "p.flex",
-    asignado_a: "ot.asignado", // alias solicitado
-    asignado: "ot.asignado",   // por compat
-    did: "ot.did",             // opcional
-    fecha_inicio: "ot.fecha_inicio",
-    fecha_fin: "ot.fecha_fin",
+    asignado: "ot.asignado",
   };
   const { orderSql } = makeSort(qp, sortMap, { defaultKey: "fecha", byKey: "sort_by", dirKey: "sort_dir" });
 
