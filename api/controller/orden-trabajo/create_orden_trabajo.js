@@ -27,7 +27,6 @@ export async function createOrdenTrabajo({ db, req }) {
             did_orden_trabajo: did_ot,
             did_pedido,
             flex: (typeof item === "object" ? item.flex : 0) ?? 0,
-            estado: (typeof item === "object" ? item.estado : "pendiente") ?? "pendiente",
         };
     });
 
@@ -41,19 +40,12 @@ export async function createOrdenTrabajo({ db, req }) {
     await LightdataORM.update({
         db,
         table: "pedidos",
-        data: { trabajado: 1, did_ot: did_ot },
-        where: { did: did_pedidos },
-        quien: userId,
-    });
-
-    await LightdataORM.update({
-        db,
-        table: "pedidos",
         data: {
-            trabajada: 1
+            trabajado: 1,
+            did_ot: did_ot
         },
         where: { did: did_pedidos },
-        quien: userId
+        quien: userId,
     });
 
     return {
