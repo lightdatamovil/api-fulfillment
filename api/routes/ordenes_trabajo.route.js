@@ -3,9 +3,9 @@ import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { createOrdenTrabajo } from "../controller/orden-trabajo/create_orden_trabajo.js";
 import { editOrdenTrabajo } from "../controller/orden-trabajo/edit_orden_trabajo.js";
 import { deleteOrdenTrabajo } from "../controller/orden-trabajo/delete_orden_trabajo.js";
-import { getFilteredOrdenesTrabajo } from "../controller/orden-trabajo/get_filtered_ordenes_trabajo.js";
 import { changeEstadoAOrdenDeTrabajo } from "../controller/orden-trabajo/change_estado_a_orden_de_trabajo.js";
 import { getFilteredOrdenesTrabajoByClienteFiltered } from "../controller/orden-trabajo/get_ordenes_trabajo_by_cliente_filtered.js";
+import { getFilteredOrdenesTrabajoByDid } from "../controller/orden-trabajo/get_orden_trabajo_by_id.js";
 
 const ordenes = Router();
 
@@ -59,9 +59,10 @@ ordenes.get(
 );
 
 ordenes.get(
-    "/",
+    "/:did",
     buildHandlerWrapper({
-        controller: ({ db, req }) => getFilteredOrdenesTrabajo({ db, req }),
+        requiredParams: ["did"],
+        controller: ({ db, req }) => getFilteredOrdenesTrabajoByDid({ db, req }),
     })
 );
 
