@@ -227,6 +227,7 @@ export async function preloader({ db }) {
     estadosOtMap.set(estado.did, {
       did: estado.did,
       nombre: estado.nombre,
+      color: estado.color
     });
 
 
