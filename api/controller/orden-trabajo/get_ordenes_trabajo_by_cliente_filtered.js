@@ -127,6 +127,7 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
                     'codigo', pp2.codigo,
                     'ml_id', pp2.ml_id,
                     'cantidad', pp2.cantidad,
+                    'variation_attributes', pp2.variation_attributes,
                     'seller_sku', pp2.seller_sku
                   )
                 ),
