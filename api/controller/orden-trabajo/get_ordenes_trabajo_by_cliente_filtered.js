@@ -116,26 +116,7 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
             'flex', p.flex,
             'estado', p.status,
             'did_cliente', p.did_cliente,
-            'id_venta', p.number,
-            'productos', (
-              SELECT COALESCE(
-                JSON_ARRAYAGG(
-                  JSON_OBJECT(
-                    'did', pp2.did,
-                    'did_producto', pp2.did_producto,
-                    'descripcion', pp2.descripcion,
-                    'codigo', pp2.codigo,
-                    'ml_id', pp2.ml_id,
-                    'cantidad', pp2.cantidad,
-                    'variation_attributes', pp2.variation_attributes,
-                    'seller_sku', pp2.seller_sku
-                  )
-                ),
-                JSON_ARRAY()
-              )
-              FROM pedidos_productos AS pp2
-              WHERE pp2.did_pedido = p.id
-            )
+            'id_venta', p.number
           )
         ),
         JSON_ARRAY()
