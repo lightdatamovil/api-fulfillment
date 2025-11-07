@@ -15,11 +15,11 @@ export async function preloader({ db }) {
   `;
   const rows = await executeQuery({ db, query: q });
 
-  // Armamos productos con valores (y preparamos campo insumos = [])
+  // productos base (valores + placeholder de insumos)
   const productos = Object.values(
     rows.reduce((acc, row) => {
       if (!acc[row.did]) {
-        acc[row.did] = { ...row, valores: [], insumos: [] }; // <-- insumos aquí
+        acc[row.did] = { ...row, valores: [], insumos: [] };
       }
       if (row.did_productos_variantes_valores) {
         acc[row.did].valores.push({
@@ -33,33 +33,38 @@ export async function preloader({ db }) {
     }, {})
   );
 
-  // =========================
-  // Agregar dids de insumos por producto
-  // =========================
+  // ====== NUEVO: insumos con cantidad por producto ======
   if (productos.length) {
     const productoIds = productos.map(p => p.did);
     const marks = productoIds.map(() => "?").join(",");
     const qInsumos = `
-      SELECT did_producto, did_insumo
+      SELECT did_producto, did_insumo, cantidad
       FROM productos_insumos
       WHERE superado = 0 AND elim = 0
         AND did_producto IN (${marks})
     `;
     const rowsPI = await executeQuery({ db, query: qInsumos, values: productoIds });
 
-    // Map de producto -> Set de did_insumo (unique)
-    const byProd = rowsPI.reduce((map, r) => {
-      if (!map.has(r.did_producto)) map.set(r.did_producto, new Set());
-      if (r.did_insumo != null) map.get(r.did_producto).add(r.did_insumo);
-      return map;
-    }, new Map());
+    // product -> (insumo -> cantidad acumulada)
+    const byProd = new Map();
+    for (const r of rowsPI) {
+      if (!byProd.has(r.did_producto)) byProd.set(r.did_producto, new Map());
+      const m = byProd.get(r.did_producto);
+      const prev = m.get(r.did_insumo) ?? 0;
+      m.set(r.did_insumo, prev + Number(r.cantidad ?? 0));
+    }
 
     // pegar al array productos
     for (const p of productos) {
-      const set = byProd.get(p.did);
-      p.insumos = set ? Array.from(set) : []; // sólo los dids, como pediste
+      const m = byProd.get(p.did);
+      p.insumos = m
+        ? Array.from(m.entries())
+          .map(([did_insumo, cantidad]) => ({ did_insumo, cantidad }))
+          .sort((a, b) => a.did_insumo - b.did_insumo)
+        : [];
     }
   }
+  // ====== /insumos ======
 
   // ===== variantes =====
   const queryVariantes = `
@@ -77,7 +82,6 @@ export async function preloader({ db }) {
       vcv.did        AS valor_did,
       vcv.codigo     AS valor_codigo,
       vcv.nombre     AS valor_nombre
-
     FROM variantes v
     LEFT JOIN variantes_categorias vc
       ON vc.did_variante = v.did
@@ -130,7 +134,6 @@ export async function preloader({ db }) {
 
       vcv.did    AS valor_did,
       vcv.nombre AS valor_nombre
-
     FROM curvas cu
     LEFT JOIN variantes_curvas vcu
       ON vcu.did_curva = cu.did
@@ -170,7 +173,7 @@ export async function preloader({ db }) {
   }
   const curvas = Array.from(curvasMap.values());
 
-  // ===== usuarios =====
+  // ===== usuarios / insumos / clientes / estados =====
   const selectUsuario = await LightdataORM.select({ db, table: "usuarios" });
   const usuarios = selectUsuario.map(u => ({
     did: u.did,
@@ -186,10 +189,8 @@ export async function preloader({ db }) {
     email: u.email,
   }));
 
-  // ===== insumos =====
   const insumos = await LightdataORM.select({ db, table: "insumos" });
 
-  // ===== clientes + cuentas =====
   const queryClientes = `
     SELECT 
       c.did AS cliente_did,
@@ -207,7 +208,6 @@ export async function preloader({ db }) {
     ORDER BY c.did DESC
   `;
   const rowsClientes = await executeQuery({ db, query: queryClientes });
-
   const clientesMap = new Map();
   for (const row of rowsClientes) {
     if (!clientesMap.has(row.cliente_did)) {
@@ -229,7 +229,6 @@ export async function preloader({ db }) {
   }
   const clientes = Array.from(clientesMap.values());
 
-  // ===== estados OT =====
   const estadosOtQuery = `
     SELECT * 
     FROM estados_ordenes_trabajo 
@@ -237,11 +236,7 @@ export async function preloader({ db }) {
     ORDER BY id ASC;
   `;
   const estadosOt = await executeQuery({ db, query: estadosOtQuery });
-  const estadosOtMap = new Map();
-  for (const estado of estadosOt) {
-    estadosOtMap.set(estado.did, { did: estado.did, nombre: estado.nombre, color: estado.color });
-  }
-  const estados_ot = Array.from(estadosOtMap.values());
+  const estados_ot = estadosOt.map(e => ({ did: e.did, nombre: e.nombre, color: e.color }));
 
   return {
     success: true,
