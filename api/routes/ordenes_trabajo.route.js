@@ -3,9 +3,9 @@ import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { createOrdenTrabajo } from "../controller/orden-trabajo/create_orden_trabajo.js";
 import { editOrdenTrabajo } from "../controller/orden-trabajo/edit_orden_trabajo.js";
 import { deleteOrdenTrabajo } from "../controller/orden-trabajo/delete_orden_trabajo.js";
-import { getFilteredOrdenesTrabajo } from "../controller/orden-trabajo/get_filtered_ordenes_trabajo.js";
-import { getFilteredOrdenesTrabajoByCliente } from "../controller/orden-trabajo/get_ordenes_trabajo_by_cliente.js";
 import { changeEstadoAOrdenDeTrabajo } from "../controller/orden-trabajo/change_estado_a_orden_de_trabajo.js";
+import { getFilteredOrdenesTrabajoByClienteFiltered } from "../controller/orden-trabajo/get_ordenes_trabajo_by_cliente_filtered.js";
+import { getFilteredOrdenesTrabajoByDid } from "../controller/orden-trabajo/get_orden_trabajo_by_id.js";
 
 const ordenes = Router();
 
@@ -43,18 +43,26 @@ ordenes.delete(
 );
 
 // GET /ordenes-trabajo/:did // LOCAMBIO A ORDEN DE TRABAJO BY CIENTE
-ordenes.get(
-    "/:did_cliente",
-    buildHandlerWrapper({
-        requiredParams: ["did"],
-        controller: async ({ db, req }) => getFilteredOrdenesTrabajoByCliente({ db, req }),
-    })
-);
+// ordenes.get(
+//     "/:did_cliente",
+//     buildHandlerWrapper({
+//         requiredParams: ["did"],
+//         controller: async ({ db, req }) => getFilteredOrdenesTrabajoByCliente({ db, req }),
+//     })
+// );
 
 ordenes.get(
     "/",
     buildHandlerWrapper({
-        controller: ({ db, req }) => getFilteredOrdenesTrabajo({ db, req }),
+        controller: async ({ db, req }) => getFilteredOrdenesTrabajoByClienteFiltered({ db, req }),
+    })
+);
+
+ordenes.get(
+    "/:did",
+    buildHandlerWrapper({
+        requiredParams: ["did"],
+        controller: ({ db, req }) => getFilteredOrdenesTrabajoByDid({ db, req }),
     })
 );
 
