@@ -57,8 +57,13 @@ export async function getFilteredPedidos({ db, req }) {
 
     if (filtros.did_cliente !== undefined) where.in("p.did_cliente", filtros.did_cliente);
 
-    if (filtros.fecha_from) where.add("p.fecha_venta >= ?", [filtros.fecha_from]);
-    if (filtros.fecha_to) where.add("p.fecha_venta <= ?", [filtros.fecha_to]);
+    if (filtros.fecha_from) {
+        where.add("p.fecha_venta >= ?", `${filtros.fecha_from} 00:00:00`);
+    }
+    if (filtros.fecha_to) {
+        where.add("p.fecha_venta <= ?", `${filtros.fecha_to} 23:59:59`);
+    }
+
 
     if (filtros.id_venta) where.likeEscaped("p.number", filtros.id_venta, { caseInsensitive: true });
     if (filtros.comprador) where.likeEscaped("p.buyer_name", filtros.comprador, { caseInsensitive: true });
