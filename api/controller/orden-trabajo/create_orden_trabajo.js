@@ -26,7 +26,6 @@ export async function createOrdenTrabajo({ db, req }) {
         return {
             did_orden_trabajo: did_ot,
             did_pedido,
-            flex: (typeof item === "object" ? item.flex : 0) ?? 0,
         };
     });
 
