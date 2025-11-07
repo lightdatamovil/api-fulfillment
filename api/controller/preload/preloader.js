@@ -15,23 +15,53 @@ export async function preloader({ db }) {
   `;
   const rows = await executeQuery({ db, query: q });
 
-  const productos = Object.values(rows.reduce((acc, row) => {
-    if (!acc[row.did]) {
-      acc[row.did] = { ...row, valores: [] };
-    }
-    if (row.did_productos_variantes_valores) {
-      acc[row.did].valores.push({
-        did_productos_variantes_valores: row.did_productos_variantes_valores,
-        valores: row.valores_raw
-          ? row.valores_raw.split(",").map(v => Number(v.trim()))
-          : []
-      });
-    }
-    delete acc[row.did].did_productos_variantes_valores;
-    delete acc[row.did].valores_raw;
-    return acc;
-  }, {}));
+  // Armamos productos con valores (y preparamos campo insumos = [])
+  const productos = Object.values(
+    rows.reduce((acc, row) => {
+      if (!acc[row.did]) {
+        acc[row.did] = { ...row, valores: [], insumos: [] }; // <-- insumos aquí
+      }
+      if (row.did_productos_variantes_valores) {
+        acc[row.did].valores.push({
+          did_productos_variantes_valores: row.did_productos_variantes_valores,
+          valores: row.valores_raw ? row.valores_raw.split(",").map(v => Number(v.trim())) : [],
+        });
+      }
+      delete acc[row.did].did_productos_variantes_valores;
+      delete acc[row.did].valores_raw;
+      return acc;
+    }, {})
+  );
 
+  // =========================
+  // Agregar dids de insumos por producto
+  // =========================
+  if (productos.length) {
+    const productoIds = productos.map(p => p.did);
+    const marks = productoIds.map(() => "?").join(",");
+    const qInsumos = `
+      SELECT did_producto, did_insumo
+      FROM productos_insumos
+      WHERE superado = 0 AND elim = 0
+        AND did_producto IN (${marks})
+    `;
+    const rowsPI = await executeQuery({ db, query: qInsumos, values: productoIds });
+
+    // Map de producto -> Set de did_insumo (unique)
+    const byProd = rowsPI.reduce((map, r) => {
+      if (!map.has(r.did_producto)) map.set(r.did_producto, new Set());
+      if (r.did_insumo != null) map.get(r.did_producto).add(r.did_insumo);
+      return map;
+    }, new Map());
+
+    // pegar al array productos
+    for (const p of productos) {
+      const set = byProd.get(p.did);
+      p.insumos = set ? Array.from(set) : []; // sólo los dids, como pediste
+    }
+  }
+
+  // ===== variantes =====
   const queryVariantes = `
     SELECT
       v.did          AS variante_did,
@@ -61,7 +91,6 @@ export async function preloader({ db }) {
   const rowsVariantes = await executeQuery({ db, query: queryVariantes });
 
   const variantesMap = new Map();
-
   for (const r of rowsVariantes) {
     if (!variantesMap.has(r.variante_did)) {
       variantesMap.set(r.variante_did, {
@@ -75,24 +104,20 @@ export async function preloader({ db }) {
       });
     }
     const variante = variantesMap.get(r.variante_did);
-
     if (r.categoria_did) {
-      let cat = variante.categorias.find((c) => c.did === r.categoria_did);
+      let cat = variante.categorias.find(c => c.did === r.categoria_did);
       if (!cat) {
         cat = { did: r.categoria_did, nombre: r.categoria_nombre, valores: [] };
         variante.categorias.push(cat);
       }
       if (r.valor_did) {
-        cat.valores.push({
-          did: r.valor_did,
-          codigo: r.valor_codigo,
-          nombre: r.valor_nombre
-        });
+        cat.valores.push({ did: r.valor_did, codigo: r.valor_codigo, nombre: r.valor_nombre });
       }
     }
   }
   const variantes = Array.from(variantesMap.values());
 
+  // ===== curvas =====
   const queryCurvas = `
     SELECT
       cu.did     AS curva_did,
@@ -122,7 +147,6 @@ export async function preloader({ db }) {
   const rowsCurvas = await executeQuery({ db, query: queryCurvas });
 
   const curvasMap = new Map();
-
   for (const r of rowsCurvas) {
     if (!curvasMap.has(r.curva_did)) {
       curvasMap.set(r.curva_did, {
@@ -133,9 +157,8 @@ export async function preloader({ db }) {
       });
     }
     const curva = curvasMap.get(r.curva_did);
-
     if (r.categoria_did) {
-      let cat = curva.categorias.find((c) => c.did === r.categoria_did);
+      let cat = curva.categorias.find(c => c.did === r.categoria_did);
       if (!cat) {
         cat = { did: r.categoria_did, nombre: r.categoria_nombre, did_variante: r.variante_did, valores: [] };
         curva.categorias.push(cat);
@@ -145,14 +168,11 @@ export async function preloader({ db }) {
       }
     }
   }
-
   const curvas = Array.from(curvasMap.values());
-  const selectUsuario = await LightdataORM.select({
-    db,
-    table: "usuarios",
-  });
 
-  const usuarios = selectUsuario.map((u) => ({
+  // ===== usuarios =====
+  const selectUsuario = await LightdataORM.select({ db, table: "usuarios" });
+  const usuarios = selectUsuario.map(u => ({
     did: u.did,
     nombre: u.nombre,
     apellido: u.apellido,
@@ -166,11 +186,10 @@ export async function preloader({ db }) {
     email: u.email,
   }));
 
-  const insumos = await LightdataORM.select({
-    db,
-    table: "insumos",
-  });
+  // ===== insumos =====
+  const insumos = await LightdataORM.select({ db, table: "insumos" });
 
+  // ===== clientes + cuentas =====
   const queryClientes = `
     SELECT 
       c.did AS cliente_did,
@@ -187,11 +206,9 @@ export async function preloader({ db }) {
     WHERE c.elim = 0 AND c.superado = 0
     ORDER BY c.did DESC
   `;
-
   const rowsClientes = await executeQuery({ db, query: queryClientes });
 
   const clientesMap = new Map();
-
   for (const row of rowsClientes) {
     if (!clientesMap.has(row.cliente_did)) {
       clientesMap.set(row.cliente_did, {
@@ -210,10 +227,9 @@ export async function preloader({ db }) {
       });
     }
   }
-
   const clientes = Array.from(clientesMap.values());
 
-
+  // ===== estados OT =====
   const estadosOtQuery = `
     SELECT * 
     FROM estados_ordenes_trabajo 
@@ -221,20 +237,11 @@ export async function preloader({ db }) {
     ORDER BY id ASC;
   `;
   const estadosOt = await executeQuery({ db, query: estadosOtQuery });
-
   const estadosOtMap = new Map();
   for (const estado of estadosOt) {
-    estadosOtMap.set(estado.did, {
-      did: estado.did,
-      nombre: estado.nombre,
-      color: estado.color
-    });
-
-
+    estadosOtMap.set(estado.did, { did: estado.did, nombre: estado.nombre, color: estado.color });
   }
-
   const estados_ot = Array.from(estadosOtMap.values());
-
 
   return {
     success: true,
