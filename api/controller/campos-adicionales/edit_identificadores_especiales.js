@@ -5,7 +5,7 @@ export async function editIdentificadoresEspeciales({ db, req }) {
 
     const { userId } = req.user;
     const { identificador_especial_did } = req.params;
-    const { nombre, config } = req.body ?? {};
+    const { nombre, tipo } = req.body ?? {};
     console.log(userId, "sdfadasd");
 
 
@@ -28,7 +28,7 @@ export async function editIdentificadoresEspeciales({ db, req }) {
         quien: userId,
         data: {
             nombre: nombre,
-            config: config
+            config: tipo
         },
     });
 
