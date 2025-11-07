@@ -52,9 +52,8 @@ ordenes.delete(
 // );
 
 ordenes.get(
-    "/:did_cliente",
+    "/",
     buildHandlerWrapper({
-        requiredParams: ["did"],
         controller: async ({ db, req }) => getFilteredOrdenesTrabajoByClienteFiltered({ db, req }),
     })
 );

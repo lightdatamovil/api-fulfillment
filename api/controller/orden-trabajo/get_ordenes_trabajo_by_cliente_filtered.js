@@ -2,17 +2,7 @@ import { toBool01, pickNonEmpty, executeQuery } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, buildMeta } from "../../src/functions/query_utils.js";
 
 export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
-    console.log("params", req.params);
-    console.log("req.query", req.query);
-
-    const { did_cliente: didClienteParamRaw } = req.params;
     const q = req.query || {};
-
-    // normalizamos did_cliente param
-    const didClienteParam =
-        didClienteParamRaw === undefined || didClienteParamRaw === null
-            ? undefined
-            : String(didClienteParamRaw).trim().toLowerCase();
 
     const qp = {
         ...q,
@@ -24,11 +14,38 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
 
     // ---- filtros ----
     const filtros = {
-        estado: Number.isFinite(Number(q.estado)) ? Number(q.estado) : undefined,
+        // ahora did_cliente viene de query
+        did_cliente: q.did_cliente ? Number(q.did_cliente) : undefined,
+
+        // estado de la OT
+        estado: q.estado ? Number(q.estado) : undefined,
+
         asignado: toBool01(q.asignado, undefined),
-        // ahora usamos la columna ot.alertada (0|1)
-        alertada: toBool01(q.alertada, undefined),   // 0 | 1 | undefined
-        pendiente: toBool01(q.pendiente, undefined), // si =1 -> queremos alertada=0
+
+        // alertada tri-state (0 | 1 | undefined)
+        alertada: (() => {
+            const v = q.alertada;
+            if (v === undefined || v === null || v === "") return undefined;
+            if (v === true || v === "true" || v === 1 || v === "1") return 1;
+            if (v === false || v === "false" || v === 0 || v === "0") return 0;
+            return toBool01(v, undefined);
+        })(),
+
+        // fechas sobre ot.fecha_inicio
+        fecha_from:
+            typeof q.fecha_from === "string" && q.fecha_from.trim()
+                ? `${q.fecha_from.trim()} 00:00:00`
+                : undefined,
+        fecha_to:
+            typeof q.fecha_to === "string" && q.fecha_to.trim()
+                ? `${q.fecha_to.trim()} 23:59:59`
+                : undefined,
+
+        // id_venta → p.number (LIKE CI)
+        id_venta: typeof q.id_venta === "string" ? q.id_venta.trim() : undefined,
+
+        // origen → p.flex
+        origen: Number.isFinite(Number(q.origen)) ? Number(q.origen) : undefined,
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
@@ -49,45 +66,34 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
 
     const where = new SqlWhere()
         .add("ot.elim = 0")
-        .add("ot.superado = 0");
+        .add("ot.superado = 0")
+        // 🔒 evitamos pedidos huérfanos
+        .add("p.did_cliente IS NOT NULL");
 
-    // 🔒 siempre excluimos pedidos con did_cliente NULL
-    where.add("p.did_cliente IS NOT NULL");
+    // did_cliente por query
+    if (filtros.did_cliente !== undefined) where.eq("p.did_cliente", filtros.did_cliente);
 
-    // si viene un did_cliente válido, filtramos por ese cliente
-    const didClienteNum = Number(didClienteParam);
-    if (
-        didClienteParam !== undefined &&
-        didClienteParam !== "" &&
-        didClienteParam !== "null" &&
-        Number.isFinite(didClienteNum)
-    ) {
-        where.eq("p.did_cliente", didClienteNum);
+    // estado de OT
+    if (filtros.estado !== undefined) {
+        where.eq("ot.estado", filtros.estado);
     }
 
-    if (filtros.estado !== undefined) where.eq("ot.estado", filtros.estado);
     if (filtros.asignado !== undefined) where.eq("ot.asignado", filtros.asignado);
 
-    // ---- NUEVO: filtrar por columna ot.alertada ----
-    // Prioridad: si viene alertada (0/1) lo usamos tal cual.
-    // --- parsing tri-state de alertada ---
-    const alertadaTri = (() => {
-        const v = q.alertada;
-        if (v === undefined || v === null || v === "") return undefined; // no filtro
-        if (v === true || v === "true" || v === 1 || v === "1") return 1;   // alertadas
-        if (v === false || v === "false" || v === 0 || v === "0") return 0; // no alertadas
-        return toBool01(v, undefined); // fallback
-    })();
+    // alertada tri-state
+    if (filtros.alertada === 1) where.eq("ot.alertada", 1);
+    else if (filtros.alertada === 0) where.eq("ot.alertada", 0);
+    // undefined => no filtra (vienen ambas)
 
-    // --- aplicar filtro ---
-    if (alertadaTri === 1) {
-        where.eq("ot.alertada", 1);
-    } else if (alertadaTri === 0) {
-        where.eq("ot.alertada", 0);
-    }
-    // si es undefined, no agregamos condición y vienen ambas
+    // fechas
+    if (filtros.fecha_from) where.add("ot.fecha_inicio >= ?", filtros.fecha_from);
+    if (filtros.fecha_to) where.add("ot.fecha_inicio <= ?", filtros.fecha_to);
 
-    // Si no viene ni alertada ni pendiente, no limitamos por esa columna.
+    // id_venta (p.number) LIKE CI
+    if (filtros.id_venta) where.likeCI("p.number", filtros.id_venta);
+
+    // origen (p.flex)
+    if (filtros.origen !== undefined) where.eq("p.flex", filtros.origen);
 
     const { whereSql, params } = where.finalize();
 
@@ -150,7 +156,7 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
   `;
 
     const rows = await executeQuery({ db, query: dataSql, values: [...params, pageSize, offset] });
-    const [{ total }] = await executeQuery({ db, query: countSql, values: params });
+    const [{ total = 0 } = {}] = await executeQuery({ db, query: countSql, values: params });
 
     const parsedRows = rows.map(r => ({
         ...r,
@@ -158,11 +164,14 @@ export async function getFilteredOrdenesTrabajoByClienteFiltered({ db, req }) {
     }));
 
     const filtersForMeta = pickNonEmpty({
-        ...(Number.isFinite(didClienteNum) ? { did_cliente: didClienteNum } : {}),
+        ...(filtros.did_cliente !== undefined ? { did_cliente: filtros.did_cliente } : {}),
         ...(filtros.estado !== undefined ? { estado: filtros.estado } : {}),
         ...(filtros.asignado !== undefined ? { asignado: filtros.asignado } : {}),
         ...(filtros.alertada !== undefined ? { alertada: filtros.alertada } : {}),
-        ...(filtros.alertada === undefined && filtros.pendiente === 1 ? { pendiente: 1 } : {}),
+        ...(q.fecha_from ? { fecha_from: q.fecha_from } : {}),
+        ...(q.fecha_to ? { fecha_to: q.fecha_to } : {}),
+        ...(filtros.id_venta ? { id_venta: filtros.id_venta } : {}),
+        ...(filtros.origen !== undefined ? { origen: filtros.origen } : {}),
     });
 
     return {
