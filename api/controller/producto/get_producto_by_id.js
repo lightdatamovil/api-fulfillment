@@ -84,7 +84,7 @@ export async function getProductoById({ db, req }) {
     //agregar did
     did: c.did,
     valores: c.valores,
-    ecommerce: grupos.filter(g => g.did_producto_variante_valor === c.did),
+    tiendas: grupos.filter(g => g.did_producto_variante_valor === c.did),
   }));
 
   //sacar de grupos el campo did_producto_variante_valor ya que no es parte del response
