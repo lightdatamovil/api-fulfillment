@@ -32,6 +32,7 @@ export async function getPedidoById({ db, req }) {
         subtotal: pp.subtotal,
         descripcion: pp.descripcion,
         variante_descripcion: pp.variation_attributes,
+        sku: pp.seller_sku,
     }));
 
     const comprador = {

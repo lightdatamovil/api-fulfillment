@@ -2,12 +2,12 @@ import { Router } from "express";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { getStockActualbyProducto } from "../controller/stock/get_stock_actual.js";
 
-const productos = Router();
+const stock = Router();
 
-productos.get(
-  "/:did_producto",
+stock.get(
+  "/productos/:did_producto/variante-valor/:did_variante_valor",
   buildHandlerWrapper({
-    requiredParams: ["did_producto"],
+    requiredParams: ["did_producto", "did_variante_valor"],
     controller: ({ db, req }) => getStockActualbyProducto({ db, req }),
   })
 );
@@ -48,4 +48,4 @@ productos.get(
 
 */
 
-export default productos;
+export default stock;
