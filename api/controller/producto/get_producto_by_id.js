@@ -67,16 +67,16 @@ export async function getProductoById({ db, req }) {
   // 1) AGRUPACIONES (desde productos_variantes_valores)
   const agrupaciones = (vvRows ?? []).map(r => ({
     did: Number(r.did),                         // DID de la agrupación
-    variantes_valores: parseCSVToNums(r.valores) // array de números
+    valores: parseCSVToNums(r.valores),
+    ean: r.ean ?? ""// array de números
   }));
+  // console.log('AGRUPACIONES:', agrupaciones);
 
   const grupos = (ecRows ?? []).map(r => ({       // PARA AGRUPAR
     did: Number(r.did),
     did_producto_variante_valor: Number(r.did_producto_variante_valor), // dato opcional
     didCuenta: Number(r.did_cuenta),
     sku: r.sku ?? "",
-    ean: r.ean ?? "",
-    url: r.url ?? "",
     sync: Number(r.sync),
   }));
 
@@ -84,8 +84,9 @@ export async function getProductoById({ db, req }) {
   const ecommerce = agrupaciones.map(c => ({
     //agregar did
     did: c.did,
-    variantes_valores: c.variantes_valores,
-    grupos: grupos.filter(g => g.did_producto_variante_valor === c.did),
+    valores: c.valores,
+    ean: c.ean,
+    tiendas: grupos.filter(g => g.did_producto_variante_valor === c.did),
   }));
 
   //sacar de grupos el campo did_producto_variante_valor ya que no es parte del response
@@ -100,7 +101,7 @@ export async function getProductoById({ db, req }) {
     cantidad: Number(r.cantidad),
   }));
 
-  const combos = (comboRows ?? []).map((r) => ({
+  const productos_hijos = (comboRows ?? []).map((r) => ({
     did: Number(r.did),
     didProducto: Number(r.did_producto),
     cantidad: Number(r.cantidad),
@@ -131,7 +132,7 @@ export async function getProductoById({ db, req }) {
     did_curva: p.did_curva != null ? Number(p.did_curva) : null,
     ecommerce,
     insumos,
-    combos,
+    productos_hijos,
   };
 
   return {
