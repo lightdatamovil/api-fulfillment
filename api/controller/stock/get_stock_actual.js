@@ -49,7 +49,7 @@ export async function getStockActualbyProducto({ db, req }) {
     // 🩵 Caso SIN IE → agrupar por depósito y combinación
     if (!tieneIE) {
         const agrupadoPorDeposito = stockProductos.reduce((acc, item) => {
-            const key = item.did_deposito ? `deposito_${item.did_deposito}` : "sin_deposito";
+            const key = item.did_deposito ? String(item.did_deposito) : "sin_deposito";
             if (!acc[key]) acc[key] = [];
 
             const existente = acc[key].find(
@@ -90,9 +90,9 @@ export async function getStockActualbyProducto({ db, req }) {
             db,
             table: "stock_producto_detalle",
             where: {
-                did_producto: item.did_producto, // mismo producto
-                did_producto_variante: item.did_producto_combinacion, // misma combinación
-                did_producto_variante_stock: item.did, // referencia al stock padre
+                did_producto: item.did_producto,
+                did_producto_variante: item.did_producto_combinacion,
+                did_producto_variante_stock: item.did,
                 elim: 0,
                 superado: 0,
             },
@@ -111,7 +111,6 @@ export async function getStockActualbyProducto({ db, req }) {
             continue;
         }
 
-        // Agrupar detalles por IE
         const detalleAgrupado = detalles.reduce((acc, det) => {
             let dataIE;
             try {
@@ -152,7 +151,7 @@ export async function getStockActualbyProducto({ db, req }) {
 
     // 🔹 Agrupar todo el resultado en arrays por depósito
     const agrupadoPorDeposito = resultado.reduce((acc, item) => {
-        const key = item.did_deposito ? `deposito_${item.did_deposito}` : "sin_deposito";
+        const key = item.did_deposito ? String(item.did_deposito) : "sin_deposito";
         if (!acc[key]) acc[key] = [];
 
         const existente = acc[key].find(
