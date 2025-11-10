@@ -1,4 +1,4 @@
-import { LightdataORM, CustomException } from "lightdata-tools";
+import { LightdataORM, CustomException, executeQuery } from "lightdata-tools";
 
 
 // Añade la cantodad de stock, al que ya existe, se cuenta de manera acumulativa
@@ -83,14 +83,44 @@ export async function addStock({ db, req }) {
 
 
         //  console.log('DATA IE a guardar:', data_ie);
-        await LightdataORM.update({
+        /* hasta refaccion de orm
+        await LightdataORM.upsert({
             db,
             table: "stock_producto_detalle",
-            versionKey: did_producto_combinacion,
+            versionKey: "did_producto_combinacion",
             where: { did_producto_combinacion: did_combinacion },
             quien: userId,
-            data: stock_detalle
+            data: stock_detalle,
+            log: true
         });
+    }
+
+*/
+        // inserto en stock_producto_detalle : 1 traigo la ultima fila e inserto una nueva y supero la enterior updatear did
+        const stockDetalleActual = await LightdataORM.select({
+            db,
+            table: "stock_producto_detalle",
+            where: { did_producto_combinacion: did_combinacion },
+        });
+
+        const query = `INSERT INTO stock_producto_detalle 
+        (did_producto_combinacion, did_producto, did_producto_variante_stock, stock, hash, data_ie, did_deposito) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        const insertId = await executeQuery({ db, query, values: [did_combinacion, did_producto, didUpdateResult, cantidad, JSON.stringify(data_ie), did_deposito] }, true);
+
+        await LightdataORM.insert({
+            db,
+            table: "stock_producto_detalle",
+            data: {
+                did_producto_combinacion: did_combinacion,
+                did_producto: did_producto,
+                did_producto_variante_stock: didUpdateResult,
+                stock: cantidad,
+                hash: JSON.stringify(data_ie),
+                did_deposito: did_deposito
+            }
+        });
+
     }
 
 
@@ -101,3 +131,6 @@ export async function addStock({ db, req }) {
         meta: { timestamp: new Date().toISOString() },
     };
 }
+
+
+
