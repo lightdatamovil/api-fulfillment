@@ -44,7 +44,7 @@ export async function getStockActualbyProducto({ db, req }) {
     }
 
     // Detectar si alguno tiene identificadores especiales (IE)
-    const tieneIE = stockProductos.some((s) => s.tiene_ie === 1);
+    const tieneIE = stockProductos.some((s) => s.tiene_ie == 1);
 
     // 🩵 Caso SIN IE → agrupar por combinación
     if (!tieneIE) {
@@ -78,21 +78,32 @@ export async function getStockActualbyProducto({ db, req }) {
     const resultado = [];
 
     for (const item of stockProductos) {
+        console.log(stockProductos);
+
         const detalles = await LightdataORM.select({
             db,
             table: "stock_producto_detalle",
             where: {
-                did_producto: item.did_producto,                  // mismo producto
+                did_producto: item.did_producto, // mismo producto
                 did_producto_variante: item.did_producto_combinacion, // misma combinación
-                did_producto_variante_stock: item.did,            // apunta al did del stock principal
+                did_producto_variante_stock: item.did, // referencia correcta al stock padre
                 elim: 0,
                 superado: 0,
             },
-            select: ["id", "data_ie", "cant"],
+            select: ["id", "data_ie", "stock"],
+
         });
+        console.log("didProducto", item.did_producto);
+        console.log("did_producto_combinacion", item.did_producto_combinacion);
+        console.log("did_producto_variante_stock", item.did);
+
+
 
         // Fallback si no hay detalles
         if (!detalles.length) {
+
+
+
             resultado.push({
                 did_producto: item.did_producto,
                 did_producto_combinacion: item.did_producto_combinacion,
@@ -102,15 +113,22 @@ export async function getStockActualbyProducto({ db, req }) {
             continue;
         }
 
-        // Agrupar detalles por IE
+        console.log(detalles);
+
         const detalleAgrupado = detalles.reduce((acc, det) => {
             let dataIE;
             try {
-                dataIE = JSON.parse(det.data_ie);
+                // Repara el formato si viene sin comillas (ej: {1:22} → {"1":22})
+                const fixed = det.data_ie.replace(/(\w+):/g, '"$1":');
+                dataIE = JSON.parse(fixed);
             } catch {
+                console.warn("Error parseando data_ie:", det.data_ie);
                 dataIE = {};
             }
 
+
+
+            console.log(dataIE);
             const dataIEReadable = {};
             for (const [k, v] of Object.entries(dataIE)) {
                 const nombre = mapaIE[k] || `Identificador ${k}`;
@@ -130,7 +148,7 @@ export async function getStockActualbyProducto({ db, req }) {
                 };
             }
 
-            acc[claveIE].cantidad += det.cant ?? 0;
+            acc[claveIE].cantidad += det.stock ?? 0;
             return acc;
         }, {});
 
