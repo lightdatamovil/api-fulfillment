@@ -238,10 +238,21 @@ export async function preloader({ db }) {
   const estadosOt = await executeQuery({ db, query: estadosOtQuery });
   const estados_ot = estadosOt.map(e => ({ did: e.did, nombre: e.nombre, color: e.color }));
 
+
+  const identificadores_especiales = ' SELECT nombre, tipo, did FROM identificadores_especiales WHERE elim = 0 AND superado = 0 ';
+
+  const rowsIdentificadoresEspeciales = await executeQuery({ db, query: identificadores_especiales });
+  const identificadores_especiales_map = new Map();
+  for (const r of rowsIdentificadoresEspeciales) {
+    identificadores_especiales_map.set(r.did, { did: r.did, nombre: r.nombre, tipo: r.tipo });
+  }
+  const identificadores_especiales_array = Array.from(identificadores_especiales_map.values());
+
+
   return {
     success: true,
     message: "Datos pre-cargados correctamente",
-    data: { productos, variantes, curvas, insumos, clientes, usuarios, estados_ot },
+    data: { productos, variantes, curvas, insumos, clientes, usuarios, estados_ot, identificadores_especiales: identificadores_especiales_array },
     meta: { timestamp: new Date().toISOString() },
   };
 }
