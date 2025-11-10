@@ -85,6 +85,7 @@ export async function getProductoById({ db, req }) {
     //agregar did
     did: c.did,
     valores: c.valores,
+    ean: c.ean,
     tiendas: grupos.filter(g => g.did_producto_variante_valor === c.did),
   }));
 
