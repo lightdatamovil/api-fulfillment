@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CustomException, Status, isNonEmpty, isDefined, number01, LightdataORM } from "lightdata-tools";
+import { CustomException, Status, isNonEmpty, number01, LightdataORM } from "lightdata-tools";
 import { urlSubidaImagenes } from "../../db.js";
 
 export async function createProducto({ db, req }) {
@@ -48,7 +48,7 @@ export async function createProducto({ db, req }) {
     if (Array.isArray(identificadores_especiales) && identificadores_especiales.length) {
         tiene_ie = 1;
         dids_ie = setKey(identificadores_especiales);
-        console.log('DIDS IE obtenidos:', dids_ie);
+        //   console.log('DIDS IE obtenidos:', dids_ie);
 
     }
     //  Inserción del producto principal
