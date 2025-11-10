@@ -5,9 +5,9 @@ import { getStockActualbyProducto } from "../controller/stock/get_stock_actual.j
 const stock = Router();
 
 stock.get(
-  "/productos/:did_producto/variante-valor/:did_variante_valor",
+  "/productos/:did_producto",
   buildHandlerWrapper({
-    requiredParams: ["did_producto", "did_variante_valor"],
+    requiredParams: ["did_producto"],
     controller: ({ db, req }) => getStockActualbyProducto({ db, req }),
   })
 );

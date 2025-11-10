@@ -1,44 +1,55 @@
 import { LightdataORM } from "lightdata-tools";
 import { buildMeta } from "../../src/functions/query_utils.js";
 
-export async function getStockActualbyProducto({ db, req }) {
-    const { did_producto, did_variante_valor } = req.params;
-    const didProducto = Number(did_producto);
-    const didVarianteValor = did_variante_valor ? Number(did_variante_valor) : null;
+// 🧩 Obtener mapa de identificadores especiales (did → nombre)
+async function getIdentificadoresMap(db) {
+    const ies = await LightdataORM.select({
+        db,
+        table: "identificadores_especiales",
+        where: { elim: 0, superado: 0 },
+        select: ["did", "nombre"],
+    });
 
-    // 1️⃣ Obtener todos los registros de stock del producto
-    const stockBase = await LightdataORM.select({
+    const mapa = {};
+    for (const ie of ies) {
+        mapa[ie.did] = ie.nombre;
+    }
+    return mapa;
+}
+
+// 📦 Función principal
+export async function getStockActualbyProducto({ db, req }) {
+    const didProductoParam = req.params?.did_producto;
+    const didProducto = Number(didProductoParam);
+
+    // 🔒 Validación
+    if (!didProducto || Number.isNaN(didProducto)) {
+        throw new Error("Parámetro 'did_producto' inválido o ausente");
+    }
+
+    // 📦 Buscar registros de stock del producto
+    const stockProductos = await LightdataORM.select({
         db,
         table: "stock_producto",
         where: { did_producto: didProducto, elim: 0, superado: 0 },
     });
 
-    if (!stockBase.length) {
-        throw new Error("No se encontró stock para el producto indicado");
-    }
-
-    // Si vino una combinación, filtramos por ella
-    const stockFiltrado = didVarianteValor
-        ? stockBase.filter((x) => x.did_producto_combinacion === didVarianteValor)
-        : stockBase;
-
-    // Si no hay registros filtrados
-    if (!stockFiltrado.length) {
+    if (!stockProductos.length) {
         return {
             success: true,
-            message: "No hay stock para la combinación solicitada",
+            message: "No se encontró stock para el producto indicado",
             data: [],
             meta: buildMeta({ totalItems: 0 }),
         };
     }
 
-    // 2️⃣ Verificar si el producto usa identificadores especiales (IE)
-    const tieneIE = stockFiltrado[0].tiene_ie === 1;
+    // Detectar si alguno tiene identificadores especiales (IE)
+    const tieneIE = stockProductos.some((s) => s.tiene_ie === 1);
 
+    // 🩵 Caso SIN IE → agrupar por combinación
     if (!tieneIE) {
-        // Agrupar stock por combinación
         const grouped = Object.values(
-            stockFiltrado.reduce((acc, item) => {
+            stockProductos.reduce((acc, item) => {
                 const key = item.did_producto_combinacion;
                 if (!acc[key]) {
                     acc[key] = {
@@ -51,52 +62,88 @@ export async function getStockActualbyProducto({ db, req }) {
             }, {})
         );
 
+        const totalGeneral = grouped.reduce((sum, i) => sum + i.cantidad, 0);
+
         return {
             success: true,
             message: "Stock agrupado por combinación",
             data: grouped,
+            total: totalGeneral,
             meta: buildMeta({ totalItems: grouped.length }),
         };
     }
 
-    // 3️⃣ Si tiene IE, traemos detalles por cada combinación
-    const detalles = [];
-    for (const item of stockFiltrado) {
-        const detalle = await LightdataORM.select({
+    // 💛 Caso CON IE → buscar detalles
+    const mapaIE = await getIdentificadoresMap(db);
+    const resultado = [];
+
+    for (const item of stockProductos) {
+        const detalles = await LightdataORM.select({
             db,
             table: "stock_producto_detalle",
             where: {
-                did_producto_variante_stock: item.id,
+                did_producto: item.did_producto,                  // mismo producto
+                did_producto_variante: item.did_producto_combinacion, // misma combinación
+                did_producto_variante_stock: item.did,            // apunta al did del stock principal
                 elim: 0,
                 superado: 0,
             },
             select: ["id", "data_ie", "cant"],
         });
 
-        // Parseamos data_ie (puede venir como string)
-        const detallesParseados = detalle.map((d) => {
+        // Fallback si no hay detalles
+        if (!detalles.length) {
+            resultado.push({
+                did_producto: item.did_producto,
+                did_producto_combinacion: item.did_producto_combinacion,
+                identificadores: {},
+                cantidad: item.stock ?? 0,
+            });
+            continue;
+        }
+
+        // Agrupar detalles por IE
+        const detalleAgrupado = detalles.reduce((acc, det) => {
             let dataIE;
             try {
-                dataIE = JSON.parse(d.data_ie);
+                dataIE = JSON.parse(det.data_ie);
             } catch {
                 dataIE = {};
             }
-            return {
-                id: d.id,
-                data_ie: dataIE,
-                cantidad: d.cant,
-                did_producto_variante_stock: item.id,
-                did_producto_combinacion: item.did_producto_combinacion,
-            };
-        });
 
-        detalles.push(...detallesParseados);
+            const dataIEReadable = {};
+            for (const [k, v] of Object.entries(dataIE)) {
+                const nombre = mapaIE[k] || `Identificador ${k}`;
+                dataIEReadable[nombre] = v;
+            }
+
+            const claveIE = Object.entries(dataIEReadable)
+                .map(([k, v]) => `${k}:${v}`)
+                .join("|");
+
+            if (!acc[claveIE]) {
+                acc[claveIE] = {
+                    did_producto: item.did_producto,
+                    did_producto_combinacion: item.did_producto_combinacion,
+                    identificadores: dataIEReadable,
+                    cantidad: 0,
+                };
+            }
+
+            acc[claveIE].cantidad += det.cant ?? 0;
+            return acc;
+        }, {});
+
+        resultado.push(...Object.values(detalleAgrupado));
     }
+
+    const totalGeneral = resultado.reduce((sum, i) => sum + i.cantidad, 0);
 
     return {
         success: true,
-        message: "Stock detallado por ítem individual (IE)",
-        data: detalles,
-        meta: buildMeta({ totalItems: detalles.length }),
+        message: "Stock detallado por combinación e identificador especial (IE)",
+        data: resultado,
+        total: totalGeneral,
+        meta: buildMeta({ totalItems: resultado.length }),
     };
 }
