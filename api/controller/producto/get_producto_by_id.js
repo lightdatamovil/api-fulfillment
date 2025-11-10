@@ -70,6 +70,7 @@ export async function getProductoById({ db, req }) {
     valores: parseCSVToNums(r.valores),
     ean: r.ean ?? ""// array de números
   }));
+  // console.log('AGRUPACIONES:', agrupaciones);
 
   const grupos = (ecRows ?? []).map(r => ({       // PARA AGRUPAR
     did: Number(r.did),
