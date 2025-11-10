@@ -3,7 +3,8 @@ import { LightdataORM, CustomException } from "lightdata-tools";
 
 // Añade la cantodad de stock, al que ya existe, se cuenta de manera acumulativa
 export async function addStock({ db, req }) {
-    const { did_combinacion,
+    const {
+        did_combinacion,
         cantidad,
         did_producto,
         identificadores_especiales,
@@ -12,9 +13,7 @@ export async function addStock({ db, req }) {
 
     const userId = Number(req.user.userId);
 
-
-    // verificar si el producto tiene variante
-
+    // verificar si el producto tiene variantes
     const productoVerificacion = await LightdataORM.select({
         db,
         table: "productos",
@@ -22,8 +21,38 @@ export async function addStock({ db, req }) {
     });
 
     console.log('Producto verificacion:', productoVerificacion);
-    //VERIFICAR SI tiene_ie es 1
-    //   const ie = productoVerificacion[0].data_ie;
+
+    //verifico cuanto hay en la ultima fila de stock
+    const stockActual = await LightdataORM.select({
+        db,
+        table: "stock_producto",
+        where: { did_producto_combinacion: did_combinacion },
+    });
+
+    console.log('Ultimo stock encontrado:', stockActual[0].stock);
+
+    //sumo cantidad con la nueva cantidad
+    const nuevaCantidad = (stockActual[0]?.stock || 0) + Number(cantidad);
+
+    console.log('Nueva cantidad calculada:', nuevaCantidad);
+
+    // actualizo la tabla stock_productos con la nueva cantidad
+    const [didUpdateResult] = await LightdataORM.update({
+        db,
+        table: "stock_producto",
+        quien: userId,
+        data: {
+            stock: nuevaCantidad
+        },
+        where: {
+            did: stockActual[0]?.did
+        }
+    });
+
+    console.log('Resultado de la actualización del stock:', didUpdateResult);
+
+    // VERIFICAR SI tiene_ie es 1
+    // const ie = productoVerificacion[0].data_ie;
     if (productoVerificacion[0].tiene_ie == 1) {
         console.log('El producto requiere identificadores especiales.');
         if (!Array.isArray(identificadores_especiales) || identificadores_especiales.length === 0) {
@@ -41,77 +70,27 @@ export async function addStock({ db, req }) {
             return acc;
         }, {});
 
+
+        //armo para insertar
+        const stock_detalle =
+        {
+            stock: cantidad,
+            data_ie: data_ie,
+            did_producto_variante_stock: didUpdateResult
+
+        };
+        console.log('Detalle de stock a insertar:', stock_detalle);
+
+
         //  console.log('DATA IE a guardar:', data_ie);
-    }
-
-    //verifico cuanto hay en la ultima fila de stock
-
-    const sqlUltimoStock = await LightdataORM.select({
-        db,
-        table: "stock_productos",
-        where: {
-            did_combinacion: did_combinacion,
-            did_producto: did_producto
-        },
-    });
-
-    console.log('Ultimo stock encontrado:', sqlUltimoStock);
-
-    //sumo cantidad con la nuea cantidad
-    const nuevaCantidad = (sqlUltimoStock[0]?.cantidad || 0) + Number(cantidad);
-
-    // actualizo la tabla stock_productos con la nueva cantidad
-    await LightdataORM.update({
-        db,
-        table: "stock_productos",
-        quien: userId,
-        data: {
-            cantidad: nuevaCantidad
-        },
-        where: {
-            did: sqlUltimoStock[0]?.did
-        }
-    });
-
-
-    // si hay valores especiales los agrego a la tabla stock_detalle
-    if (productoVerificacion[0].tiene_ie == 1) {
-        for (const idEspec of identificadores_especiales) {
-            const { did, valor } = idEspec;
-
-
-        }
-
-
-    }
-
-
-
-
-
-
-    //  agrego stock en la tabla stock
-    const [newStockId] = await LightdataORM.insert({
-        db,
-        table: "stock",
-        quien: userId,
-        data: {
-            did_producto,
-            did_variante,
-            cantidad,
-            data_ie
-        }
-    });
-
-
-
-    if (productoVerificacion.data_ie == 1) {
-        // marcar los identificadores especiales como usados en la tabla identificadores_especiales
-        for (const idEspec of identificadores_especiales) {
-            const [key, value] = idEspec.split(":");
-
-        }
-
+        await LightdataORM.update({
+            db,
+            table: "stock_producto_detalle",
+            versionKey: did_producto_combinacion,
+            where: { did_producto_combinacion: did_combinacion },
+            quien: userId,
+            data: stock_detalle
+        });
     }
 
 
