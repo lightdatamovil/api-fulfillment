@@ -25,6 +25,7 @@ export async function getFilteredPedidos({ db, req }) {
         total_to: q.total_to != null && q.total_to !== "" ? Number(q.total_to) : undefined,
         armado: toBool01(q.armado, undefined),
         descargado: toBool01(q.descargado, undefined),
+        did_logistica: toIntList(q.did_logistica),
     };
 
     const { page, pageSize, offset } = makePagination(qp, {
@@ -56,6 +57,7 @@ export async function getFilteredPedidos({ db, req }) {
     const where = new SqlWhere().add("p.elim = 0 AND p.superado = 0");
 
     if (filtros.did_cliente !== undefined) where.in("p.did_cliente", filtros.did_cliente);
+    if (filtros.did_logistica !== undefined) where.in("p.did_logistica", filtros.did_logistica);
 
     if (filtros.fecha_from) {
         where.add("p.fecha_venta >= ?", `${filtros.fecha_from} 00:00:00`);
@@ -84,6 +86,7 @@ export async function getFilteredPedidos({ db, req }) {
         select: `
       p.did,
       p.did_cliente,
+      p.did_logistica,
  
       p.fecha_venta      AS fecha,
       p.status           AS estado,
@@ -106,6 +109,7 @@ export async function getFilteredPedidos({ db, req }) {
 
     const filtersForMeta = pickNonEmpty({
         did_cliente: filtros.did_cliente,
+        did_logistica: filtros.did_logistica,
         fecha_from: filtros.fecha_from,
         fecha_to: filtros.fecha_to,
 
