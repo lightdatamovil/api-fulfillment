@@ -20,6 +20,8 @@ export async function updateProducto({ db, req }) {
     insumos,
     combinaciones,
     productos_hijos,
+    identificadores_especiales,
+    tiene_ie
   } = req.body;
 
   const { did } = req.params;
@@ -64,6 +66,17 @@ export async function updateProducto({ db, req }) {
     filesInsert = urlResponse.data.file.url;
   }
 
+  // identificadores especiales
+  // lo que venga lo reemplazo 
+
+  // let tiene_ie = 0;
+  let dids_ie = null;
+
+  if (Array.isArray(identificadores_especiales) && identificadores_especiales.length) {
+    dids_ie = setKey(identificadores_especiales);
+    //   console.log('DIDS IE obtenidos:', dids_ie);
+  }
+
   //insertar producto de nuevo todo de nuevo
   const newData = {
     did_cliente,
@@ -79,6 +92,8 @@ export async function updateProducto({ db, req }) {
     sku,
     ean,
     did_curva,
+    tiene_ie,
+    dids_ie
   };
 
   await LightdataORM.update({
@@ -113,8 +128,36 @@ export async function updateProducto({ db, req }) {
     let dataUpdateCombinaciones = [];
 
     const didCuentaUpdate = [];
+    const didVarianteUpdate = [];
 
     for (const combinacion of hayCombinaciones.update) {
+      const ean = isNonEmpty(combinacion.ean) ? String(combinacion.ean).trim() : null;
+      const sync = isDefined(combinacion.sync) ? number01(combinacion.sync) : 0;
+
+      //añadir a la variante
+      didVarianteUpdate.push({
+        did: combinacion.did,
+        ean: ean,
+        sync: sync
+      });
+
+
+
+      /*
+      await LightdataORM.update({
+        db,
+        table: "productos_variantes_valores",
+        where: {
+          did: combinacion.did
+        },
+        data: {
+          ean,
+          actualizar: 0,
+          sync
+        }
+      });
+      */
+
       for (const ecommerce of combinacion.ecommerce) {
         didCuentaUpdate.push(ecommerce.did);
         dataUpdateCombinaciones.push({
@@ -126,6 +169,10 @@ export async function updateProducto({ db, req }) {
         });
       }
     }
+
+    // console.log('Actualizando combinacion:', didVarianteUpdate);
+
+
 
     await LightdataORM.update({
       db,
@@ -149,6 +196,7 @@ export async function updateProducto({ db, req }) {
       did_producto: didProducto,
       ean: isNonEmpty(e.ean) ? String(e.ean).trim() : null,
       valores: setKey(e.variantes_valores),
+      sync: e.sync,
     }));
 
     const insertedPvvs = await LightdataORM.insert({
@@ -171,7 +219,7 @@ export async function updateProducto({ db, req }) {
           did_producto_variante_valor: did_pvv,
           sku: isNonEmpty(e.sku) ? String(e.sku).trim() : null,
           actualizar: 0,
-          sync: isDefined(e.sync) ? number01(e.sync) : 0,
+          //   sync: isDefined(e.sync) ? number01(e.sync) : 0,
         });
       }
     }
@@ -307,3 +355,8 @@ function getUpdateOpsState(updateArray) {
 }
 
 const toArray = (v) => Array.isArray(v) ? v : [];
+
+const setKey = (arr) =>
+  Array.from(new Set((Array.isArray(arr) ? arr : []).filter(Number.isInteger)))
+    .sort((a, b) => a - b)
+    .join(","); // juntar por ,

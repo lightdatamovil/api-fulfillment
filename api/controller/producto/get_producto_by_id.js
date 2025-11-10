@@ -132,6 +132,8 @@ export async function getProductoById({ db, req }) {
     sku: p.sku ?? "",
     ean: p.ean ?? "",
     did_curva: p.did_curva != null ? Number(p.did_curva) : null,
+    tiene_ie: p.tiene_ie,
+    dids_ie: p.dids_ie ? parseCSVToNums(p.dids_ie) : [],
     ecommerce,
     insumos,
     productos_hijos,

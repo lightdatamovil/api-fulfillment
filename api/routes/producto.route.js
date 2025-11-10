@@ -22,7 +22,7 @@ productos.put(
   "/:did",
   buildHandlerWrapper({
     requiredParams: ["did"],
-    optional: ["did_cliente", "titulo", "descripcion", "habilitado", "es_combo", "posicion", "cm3", "alto", "ancho", "profundo", "files", "sku", "ean", "did_curva", "insumos", "combinaciones", "productos_hijos"],
+    optional: ["did_cliente", "titulo", "descripcion", "habilitado", "es_combo", "posicion", "cm3", "alto", "ancho", "profundo", "files", "sku", "ean", "did_curva", "insumos", "combinaciones", "productos_hijos", "identificadores_especiales"],
     controller: ({ db, req }) => updateProducto({ db, req }),
   })
 );
