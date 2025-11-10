@@ -70,6 +70,7 @@ export async function getPedidoById({ db, req }) {
         direccion: direccion_pedido,
         productos,
         insumos: pedido.insumos ? JSON.parse(pedido.insumos) : [],
+        did_logistica: pedido.did_logistica
     };
 
     return {
