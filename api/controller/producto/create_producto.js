@@ -225,4 +225,4 @@ export async function createProducto({ db, req }) {
 const setKey = (arr) =>
     Array.from(new Set((Array.isArray(arr) ? arr : []).filter(Number.isInteger)))
         .sort((a, b) => a - b)
-        .join(","); // juntar por ,
+        .join(","); 

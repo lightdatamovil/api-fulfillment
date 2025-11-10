@@ -1,148 +1,124 @@
-import { isNonEmpty, number01, LightdataORM, executeQuery } from "lightdata-tools";
+import { LightdataORM, CustomException } from "lightdata-tools";
 
+
+// Añade la cantodad de stock, al que ya existe, se cuenta de manera acumulativa
 export async function addStock({ db, req }) {
-    const { codigo, nombre, descripcion, habilitado, orden, categorias } = req.body;
+    const { did_combinacion,
+        cantidad,
+        did_producto,
+        identificadores_especiales,
+        did_deposito
+    } = req.body;
+
     const userId = Number(req.user.userId);
 
-    const codigoTrim = String(codigo).trim();
-    const nombreTrim = String(nombre).trim();
-    const descTrim = isNonEmpty(descripcion) ? String(descripcion).trim() : null;
-    const habValue = number01(habilitado, 1);
-    const ordenValue = Number.isFinite(Number(orden)) ? Number(orden) : 0;
 
-    await LightdataORM.select({
-        db,
-        table: "variantes",
-        where: { codigo: codigoTrim },
-        select: ["id"],
-        throwIfExists: true,
-    })
+    // verificar si el producto tiene variante
 
-    const [idVariante] = await LightdataORM.insert({
+    const productoVerificacion = await LightdataORM.select({
         db,
-        table: "variantes",
-        quien: userId,
-        data: {
-            codigo: codigoTrim,
-            nombre: nombreTrim,
-            descripcion: descTrim,
-            orden: ordenValue,
-            habilitado: habValue,
+        table: "productos",
+        where: { did: did_producto },
+    });
+
+    console.log('Producto verificacion:', productoVerificacion);
+    //VERIFICAR SI tiene_ie es 1
+    //   const ie = productoVerificacion[0].data_ie;
+    if (productoVerificacion[0].tiene_ie == 1) {
+        console.log('El producto requiere identificadores especiales.');
+        if (!Array.isArray(identificadores_especiales) || identificadores_especiales.length === 0) {
+            throw new CustomException({
+                title: "Identificadores especiales requeridos",
+                message: "El producto requiere identificadores especiales para agregar stock.",
+            });
+        }
+
+        // los tengo que agrupar en un json para guardar en data_ie asi {1:148, 2:2025/10/6} que esta en el array [] como objetos {did:1, valor:asjda} identificadores especiales
+
+        const data_ie = identificadores_especiales.reduce((acc, item, i) => {
+            const { did, valor } = item;
+            acc[did] = valor;
+            return acc;
+        }, {});
+
+        //  console.log('DATA IE a guardar:', data_ie);
+    }
+
+    //verifico cuanto hay en la ultima fila de stock
+
+    const sqlUltimoStock = await LightdataORM.select({
+        db,
+        table: "stock_productos",
+        where: {
+            did_combinacion: did_combinacion,
+            did_producto: did_producto
         },
     });
 
-    const cats = Array.isArray(categorias)
-        ? categorias.filter((c) => isNonEmpty(c?.nombre))
-        : [];
+    console.log('Ultimo stock encontrado:', sqlUltimoStock);
 
-    let idCats = [];
-    if (cats.length > 0) {
-        const catRows = cats.map((cat) => ({
-            did_variante: idVariante,
-            nombre: String(cat.nombre ?? "").trim(),
-        }));
+    //sumo cantidad con la nuea cantidad
+    const nuevaCantidad = (sqlUltimoStock[0]?.cantidad || 0) + Number(cantidad);
 
-        idCats = await LightdataORM.insert({
-            db,
-            table: "variantes_categorias",
-            quien: userId,
-            data: catRows,
-        });
-
-        const valoresRows = cats.flatMap((cat, idx) => {
-            const didCategoria = idCats[idx];
-            const valores = Array.isArray(cat.valores)
-                ? cat.valores.filter((v) => isNonEmpty(v?.nombre))
-                : [];
-            return valores.map((v) => ({
-                did_categoria: didCategoria,
-                codigo: isNonEmpty(v?.codigo) ? String(v.codigo).trim() : null,
-                nombre: String(v.nombre ?? "").trim(),
-            }));
-        });
-
-        if (valoresRows.length > 0) {
-            await LightdataORM.insert({
-                db,
-                table: "variantes_categoria_valores",
-                quien: userId,
-                data: valoresRows,
-            });
+    // actualizo la tabla stock_productos con la nueva cantidad
+    await LightdataORM.update({
+        db,
+        table: "stock_productos",
+        quien: userId,
+        data: {
+            cantidad: nuevaCantidad
+        },
+        where: {
+            did: sqlUltimoStock[0]?.did
         }
-    }
+    });
 
-    const sql = `
-        SELECT 
-            v.id AS variante_id,
-            v.did AS variante_did,
-            v.codigo AS variante_codigo,
-            v.nombre AS variante_nombre,
-            v.descripcion AS variante_descripcion,
-            v.habilitado AS variante_habilitado,
-            v.orden AS variante_orden,
-            vc.id AS categoria_id,
-            vc.did AS categoria_did,
-            vc.nombre AS categoria_nombre,
-            vcv.id AS valor_id,
-            vcv.did AS valor_did,
-            vcv.codigo AS valor_codigo,
-            vcv.nombre AS valor_nombre
-        FROM variantes v
-        LEFT JOIN variantes_categorias vc 
-            ON vc.did_variante = v.did AND vc.superado = 0 AND vc.elim = 0
-        LEFT JOIN variantes_categoria_valores vcv 
-            ON vcv.did_categoria = vc.did AND vcv.superado = 0 AND vcv.elim = 0
-        WHERE v.id = ?
-          AND v.superado = 0 
-          AND v.elim = 0;
-    `;
 
-    const rows = await executeQuery({ db, query: sql, values: [idVariante] });
+    // si hay valores especiales los agrego a la tabla stock_detalle
+    if (productoVerificacion[0].tiene_ie == 1) {
+        for (const idEspec of identificadores_especiales) {
+            const { did, valor } = idEspec;
 
-    if (!rows.length) {
-        throw new Error("Error al obtener la variante creada.");
-    }
 
-    const variante = {
-        did: rows[0].variante_did,
-        codigo: rows[0].variante_codigo,
-        nombre: rows[0].variante_nombre,
-        descripcion: rows[0].variante_descripcion,
-        habilitado: rows[0].variante_habilitado,
-        orden: rows[0].variante_orden,
-        categorias: [],
-    };
-
-    const categoriasMap = new Map();
-
-    for (const r of rows) {
-        if (!r.categoria_id) continue;
-
-        if (!categoriasMap.has(r.categoria_did)) {
-            categoriasMap.set(r.categoria_did, {
-                did: r.categoria_did,
-                nombre: r.categoria_nombre,
-                valores: [],
-            });
         }
 
-        const cat = categoriasMap.get(r.categoria_did);
 
-        if (r.valor_id) {
-            cat.valores.push({
-                did: r.valor_did,
-                codigo: r.valor_codigo,
-                nombre: r.valor_nombre,
-            });
-        }
     }
 
-    variante.categorias = Array.from(categoriasMap.values());
+
+
+
+
+
+    //  agrego stock en la tabla stock
+    const [newStockId] = await LightdataORM.insert({
+        db,
+        table: "stock",
+        quien: userId,
+        data: {
+            did_producto,
+            did_variante,
+            cantidad,
+            data_ie
+        }
+    });
+
+
+
+    if (productoVerificacion.data_ie == 1) {
+        // marcar los identificadores especiales como usados en la tabla identificadores_especiales
+        for (const idEspec of identificadores_especiales) {
+            const [key, value] = idEspec.split(":");
+
+        }
+
+    }
+
 
     return {
         success: true,
         message: "Variante creada correctamente",
-        data: variante,
+        data: productoVerificacion,
         meta: { timestamp: new Date().toISOString() },
     };
 }
