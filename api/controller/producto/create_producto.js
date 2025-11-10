@@ -20,6 +20,7 @@ export async function createProducto({ db, req }) {
         combinaciones,
         insumos,
         productos_hijos,
+        identificadores_especiales
     } = req.body;
 
     const { userId, companyId } = req.user;
@@ -40,6 +41,16 @@ export async function createProducto({ db, req }) {
         throwIfNotExists: true,
     });
 
+    // IIDENTIFICADORES ESPECIALES
+    let tiene_ie = 0;
+    let dids_ie = null;
+
+    if (Array.isArray(identificadores_especiales) && identificadores_especiales.length) {
+        tiene_ie = 1;
+        dids_ie = setKey(identificadores_especiales);
+        console.log('DIDS IE obtenidos:', dids_ie);
+
+    }
     //  Inserción del producto principal
     const [didProducto] = await LightdataORM.insert({
         db,
@@ -60,6 +71,9 @@ export async function createProducto({ db, req }) {
             did_curva,
             sku,
             ean,
+            tiene_ie,
+            dids_ie: dids_ie
+
         },
     });
     // =========================
@@ -68,15 +82,13 @@ export async function createProducto({ db, req }) {
 
     if (Array.isArray(combinaciones) && combinaciones.length) {
         // 1) Normalizar cada conjunto y preparar las filas de PVV (una por bloque)
-        const setKey = (arr) =>
-            Array.from(new Set((Array.isArray(arr) ? arr : []).filter(Number.isInteger)))
-                .sort((a, b) => a - b)
-                .join(","); // juntar por ,
+
 
         const combinacioneMapeadas = combinaciones.map(combinacion => ({
             did_producto: didProducto,
             valores: setKey(combinacion.valores),
-            ean: combinacion.ean // juntar valores de combinacion
+            ean: combinacion.ean, // juntar valores de combinacion
+            sync: combinacion.sync ?? 0,
         }));
 
         // 2) Insert masivo de PVV (uno por bloque). Orden de IDs = orden de combinacioneMapeadas
@@ -101,7 +113,7 @@ export async function createProducto({ db, req }) {
                     did_producto_variante_valor: did_combinacion,
                     sku: isNonEmpty(t.sku) ? String(t.sku).trim() : null,
                     actualizar: 0,
-                    sync: isDefined(t.sync) ? number01(t.sync) : 0,
+                    //   sync: isDefined(t.sync) ? number01(t.sync) : 0,
                 });
             }
         }
@@ -202,9 +214,15 @@ export async function createProducto({ db, req }) {
         }
     }
 
+
     return {
         success: true,
         message: "Producto creado correctamente",
         data: { idProducto: didProducto, files: urlReturn },
     };
 }
+
+const setKey = (arr) =>
+    Array.from(new Set((Array.isArray(arr) ? arr : []).filter(Number.isInteger)))
+        .sort((a, b) => a - b)
+        .join(","); // juntar por ,

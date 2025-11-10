@@ -122,7 +122,7 @@ export async function updateProducto({ db, req }) {
           did_cuenta: ecommerce.didCuenta,
           sku: ecommerce.sku,
           actualizar: 0,
-          sync: ecommerce.sync,
+          //   sync: ecommerce.sync,
         });
       }
     }

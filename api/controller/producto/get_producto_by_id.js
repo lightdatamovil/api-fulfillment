@@ -68,7 +68,8 @@ export async function getProductoById({ db, req }) {
   const agrupaciones = (vvRows ?? []).map(r => ({
     did: Number(r.did),                         // DID de la agrupación
     valores: parseCSVToNums(r.valores),
-    ean: r.ean ?? ""// array de números
+    ean: r.ean ?? "", // array de números
+    sync: Number(r.sync),
   }));
   // console.log('AGRUPACIONES:', agrupaciones);
 
@@ -77,7 +78,7 @@ export async function getProductoById({ db, req }) {
     did_producto_variante_valor: Number(r.did_producto_variante_valor), // dato opcional
     didCuenta: Number(r.did_cuenta),
     sku: r.sku ?? "",
-    sync: Number(r.sync),
+    //   sync: Number(r.sync),
   }));
 
   // 3) ECOMMERCE: un bloque por agrupación, filtrando por DID
@@ -86,6 +87,7 @@ export async function getProductoById({ db, req }) {
     did: c.did,
     valores: c.valores,
     ean: c.ean,
+    sync: c.sync,
     tiendas: grupos.filter(g => g.did_producto_variante_valor === c.did),
   }));
 
