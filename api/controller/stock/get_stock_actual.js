@@ -38,7 +38,7 @@ export async function getStockActualbyProducto({ db, req }) {
         return {
             success: true,
             message: "No se encontró stock para el producto indicado",
-            data: [],
+            data: {},
             meta: buildMeta({ totalItems: 0 }),
         };
     }
@@ -46,30 +46,38 @@ export async function getStockActualbyProducto({ db, req }) {
     // Detectar si alguno tiene identificadores especiales (IE)
     const tieneIE = stockProductos.some((s) => s.tiene_ie == 1);
 
-    // 🩵 Caso SIN IE → agrupar por combinación
+    // 🩵 Caso SIN IE → agrupar por depósito y combinación
     if (!tieneIE) {
-        const grouped = Object.values(
-            stockProductos.reduce((acc, item) => {
-                const key = item.did_producto_combinacion;
-                if (!acc[key]) {
-                    acc[key] = {
-                        did_producto_combinacion: key,
-                        cantidad: 0,
-                    };
-                }
-                acc[key].cantidad += item.stock ?? 0;
-                return acc;
-            }, {})
-        );
+        const agrupadoPorDeposito = stockProductos.reduce((acc, item) => {
+            const key = item.did_deposito ? `deposito_${item.did_deposito}` : "sin_deposito";
+            if (!acc[key]) acc[key] = [];
 
-        const totalGeneral = grouped.reduce((sum, i) => sum + i.cantidad, 0);
+            const existente = acc[key].find(
+                (c) => c.did_producto_combinacion === item.did_producto_combinacion
+            );
+
+            if (existente) {
+                existente.cantidad += item.stock ?? 0;
+            } else {
+                acc[key].push({
+                    did_producto_combinacion: item.did_producto_combinacion,
+                    cantidad: item.stock ?? 0,
+                });
+            }
+
+            return acc;
+        }, {});
+
+        const totalGeneral = Object.values(agrupadoPorDeposito)
+            .flat()
+            .reduce((sum, i) => sum + i.cantidad, 0);
 
         return {
             success: true,
-            message: "Stock agrupado por combinación",
-            data: grouped,
+            message: "Stock agrupado por depósito y combinación",
+            data: agrupadoPorDeposito,
             total: totalGeneral,
-            meta: buildMeta({ totalItems: grouped.length }),
+            meta: buildMeta({ totalItems: Object.keys(agrupadoPorDeposito).length }),
         };
     }
 
@@ -78,33 +86,23 @@ export async function getStockActualbyProducto({ db, req }) {
     const resultado = [];
 
     for (const item of stockProductos) {
-        console.log(stockProductos);
-
         const detalles = await LightdataORM.select({
             db,
             table: "stock_producto_detalle",
             where: {
                 did_producto: item.did_producto, // mismo producto
                 did_producto_variante: item.did_producto_combinacion, // misma combinación
-                did_producto_variante_stock: item.did, // referencia correcta al stock padre
+                did_producto_variante_stock: item.did, // referencia al stock padre
                 elim: 0,
                 superado: 0,
             },
             select: ["id", "data_ie", "stock"],
-
         });
-        console.log("didProducto", item.did_producto);
-        console.log("did_producto_combinacion", item.did_producto_combinacion);
-        console.log("did_producto_variante_stock", item.did);
-
-
 
         // Fallback si no hay detalles
         if (!detalles.length) {
-
-
-
             resultado.push({
+                did_deposito: item.did_deposito,
                 did_producto: item.did_producto,
                 did_producto_combinacion: item.did_producto_combinacion,
                 identificadores: {},
@@ -113,8 +111,7 @@ export async function getStockActualbyProducto({ db, req }) {
             continue;
         }
 
-        console.log(detalles);
-
+        // Agrupar detalles por IE
         const detalleAgrupado = detalles.reduce((acc, det) => {
             let dataIE;
             try {
@@ -126,9 +123,6 @@ export async function getStockActualbyProducto({ db, req }) {
                 dataIE = {};
             }
 
-
-
-            console.log(dataIE);
             const dataIEReadable = {};
             for (const [k, v] of Object.entries(dataIE)) {
                 const nombre = mapaIE[k] || `Identificador ${k}`;
@@ -141,6 +135,7 @@ export async function getStockActualbyProducto({ db, req }) {
 
             if (!acc[claveIE]) {
                 acc[claveIE] = {
+                    did_deposito: item.did_deposito,
                     did_producto: item.did_producto,
                     did_producto_combinacion: item.did_producto_combinacion,
                     identificadores: dataIEReadable,
@@ -155,13 +150,37 @@ export async function getStockActualbyProducto({ db, req }) {
         resultado.push(...Object.values(detalleAgrupado));
     }
 
-    const totalGeneral = resultado.reduce((sum, i) => sum + i.cantidad, 0);
+    // 🔹 Agrupar todo el resultado en arrays por depósito
+    const agrupadoPorDeposito = resultado.reduce((acc, item) => {
+        const key = item.did_deposito ? `deposito_${item.did_deposito}` : "sin_deposito";
+        if (!acc[key]) acc[key] = [];
+
+        const existente = acc[key].find(
+            (c) => c.did_producto_combinacion === item.did_producto_combinacion
+        );
+
+        if (existente) {
+            existente.cantidad += item.cantidad ?? 0;
+        } else {
+            acc[key].push({
+                did_producto_combinacion: item.did_producto_combinacion,
+                identificadores: item.identificadores,
+                cantidad: item.cantidad ?? 0,
+            });
+        }
+
+        return acc;
+    }, {});
+
+    const totalGeneral = Object.values(agrupadoPorDeposito)
+        .flat()
+        .reduce((sum, i) => sum + i.cantidad, 0);
 
     return {
         success: true,
-        message: "Stock detallado por combinación e identificador especial (IE)",
-        data: resultado,
+        message: "Stock detallado agrupado por depósito e identificador especial (IE)",
+        data: agrupadoPorDeposito,
         total: totalGeneral,
-        meta: buildMeta({ totalItems: resultado.length }),
+        meta: buildMeta({ totalItems: Object.keys(agrupadoPorDeposito).length }),
     };
 }
