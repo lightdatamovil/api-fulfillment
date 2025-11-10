@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { getStockActualbyProducto } from "../controller/stock/get_stock_actual.js";
+import { addStock } from "../controller/stock/add_stock.js";
 
 const stock = Router();
 
@@ -12,16 +13,17 @@ stock.get(
   })
 );
 
-/*
-productos.put(
-  "/:did",
+
+stock.post(
+  "/",
   buildHandlerWrapper({
     requiredParams: ["did"],
-    optional: ["did_cliente", "titulo", "descripcion", "habilitado", "es_combo", "posicion", "cm3", "alto", "ancho", "profundo", "combos", "files", "sku", "ean", "did_curva", "insumos", "ecommerce"],
-    controller: ({ db, req }) => updateProducto({ db, req }),
+    optional: ["did_producto", "cantidad", "did_combinacion", "identificadores_especiales", "did_deposito"],
+    controller: ({ db, req }) => addStock({ db, req }),
   })
 );
 
+/*
 productos.delete(
   "/:did",
   buildHandlerWrapper({
