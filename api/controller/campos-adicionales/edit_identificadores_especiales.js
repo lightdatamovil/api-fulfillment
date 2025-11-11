@@ -28,7 +28,7 @@ export async function editIdentificadoresEspeciales({ db, req }) {
         quien: userId,
         data: {
             nombre: nombre,
-            config: tipo
+            tipo: tipo
         },
     });
 
