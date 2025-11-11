@@ -5,6 +5,7 @@ import { LightdataORM, CustomException } from "lightdata-tools";
 // did_cliente obs fecha 
 // carga masiva de stock por remito
 // stock es por cliente
+//  todo agregar stoock = 0 a stock producto
 
 
 // pegarle al micro de crear remito 

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { getStockActualbyProducto } from "../controller/stock/get_stock_actual.js";
-import { addStock } from "../controller/stock/add_stock.js";
+import { addStock } from "../controller/stock/ingreso_stock.js";
+
 
 const stock = Router();
 
