@@ -93,35 +93,13 @@ export async function addStock({ db, req }) {
         console.log('DATA IE a guardar:', data_ie);
 
         // inserto en stock_producto_detalle : 1 traigo la ultima fila e inserto una nueva y supero la enterior updatear did
-        const stockDetalleActual = await LightdataORM.select({
+
+        await LightdataORM.insert({
             db,
             table: "stock_producto_detalle",
-            where: { did_producto_combinacion: did_combinacion },
+            quien: userId,
+            data: stock_detalle,
         });
-
-        console.log('select:', stockDetalleActual);
-
-        if (stockDetalleActual.length > 0) {
-            await LightdataORM.update({
-                db,
-                table: "stock_producto_detalle",
-                quien: userId,
-                data: stock_detalle,
-                where: {
-                    did: stockDetalleActual[0].did
-                }
-            });
-            console.log('update,');
-        } else {
-            await LightdataORM.insert({
-                db,
-                table: "stock_producto_detalle",
-                quien: userId,
-                data: stock_detalle,
-                log: true
-            });
-            console.log('insert,');
-        }
 
 
 
