@@ -3,7 +3,7 @@ import { LightdataORM, CustomException } from "lightdata-tools";
 
 
 // Añade la cantodad de stock, al que ya existe, se cuenta de manera acumulativa
-export async function addStock({ db, req }) {
+export async function restarStock({ db, req }) {
     const {
         did_combinacion,
         cantidad,
@@ -21,7 +21,6 @@ export async function addStock({ db, req }) {
         where: { did: did_producto },
     });
 
-    console.log('Producto verificacion:', productoVerificacion);
 
     //verifico cuanto hay en la ultima fila de stock
     const stockActual = await LightdataORM.select({
@@ -30,12 +29,10 @@ export async function addStock({ db, req }) {
         where: { did_producto_combinacion: did_combinacion },
     });
 
-    console.log('Ultimo stock encontrado:', stockActual[0].stock);
 
     //sumo cantidad con la nueva cantidad
-    const nuevaCantidad = (stockActual[0]?.stock || 0) + Number(cantidad);
+    const nuevaCantidad = (stockActual[0]?.stock || 0) - Number(cantidad);
 
-    console.log('Nueva cantidad calculada:', nuevaCantidad);
 
     // actualizo la tabla stock_productos con la nueva cantidad
     const [didUpdateResult] = await LightdataORM.update({
@@ -51,12 +48,12 @@ export async function addStock({ db, req }) {
         }
     });
 
-    console.log('Resultado de la actualización del stock:', didUpdateResult);
+
 
     // VERIFICAR SI tiene_ie es 1
     // const ie = productoVerificacion[0].data_ie;
     if (productoVerificacion[0].tiene_ie == 1) {
-        console.log('El producto requiere identificadores especiales.');
+
         if (!Array.isArray(identificadores_especiales) || identificadores_especiales.length === 0) {
             throw new CustomException({
                 title: "Identificadores especiales requeridos",
@@ -66,7 +63,7 @@ export async function addStock({ db, req }) {
 
         // los tengo que agrupar en un json para guardar en data_ie asi {1:148, 2:2025/10/6} que esta en el array [] como objetos {did:1, valor:asjda} identificadores especiales
 
-        const data_ie = identificadores_especiales.reduce((acc, item, i) => {
+        const data_ie = identificadores_especiales.reduce((acc, item) => {
             const { did, valor } = item;
             acc[did] = valor;
             return acc;
@@ -75,8 +72,10 @@ export async function addStock({ db, req }) {
 
         // hashear json data_ie y guardar en hash 256
         const hash = createHash('sha256').update(JSON.stringify(data_ie)).digest('hex');
-        console.log('Hash generado:', hash);
 
+        // matechear con el hash existente para verificar que se esta restando el stock correcto
+
+        // recalcular stock por lote 
 
         //armo para insertar
         const stock_detalle =
@@ -88,50 +87,26 @@ export async function addStock({ db, req }) {
             did_producto_variante_stock: didUpdateResult,
             hash: hash
         };
-        console.log('Detalle de stock a insertar:', stock_detalle);
 
-        console.log('DATA IE a guardar:', data_ie);
 
         // inserto en stock_producto_detalle : 1 traigo la ultima fila e inserto una nueva y supero la enterior updatear did
-        const stockDetalleActual = await LightdataORM.select({
+
+        await LightdataORM.insert({
             db,
             table: "stock_producto_detalle",
-            where: { did_producto_combinacion: did_combinacion },
+            quien: userId,
+            data: stock_detalle,
         });
 
-        console.log('select:', stockDetalleActual);
-
-        if (stockDetalleActual.length > 0) {
-            await LightdataORM.update({
-                db,
-                table: "stock_producto_detalle",
-                quien: userId,
-                data: stock_detalle,
-                where: {
-                    did: stockDetalleActual[0].did
-                }
-            });
-            console.log('update,');
-        } else {
-            await LightdataORM.insert({
-                db,
-                table: "stock_producto_detalle",
-                quien: userId,
-                data: stock_detalle,
-                log: true
-            });
-            console.log('insert,');
-        }
-
-
-
-        return {
-            success: true,
-            message: "Variante creada correctamente",
-            data: productoVerificacion,
-            meta: { timestamp: new Date().toISOString() },
-        };
     }
+
+    return {
+        success: true,
+        message: "Variante creada correctamente",
+        data: productoVerificacion,
+        meta: { timestamp: new Date().toISOString() },
+    };
+
 
 }
 
