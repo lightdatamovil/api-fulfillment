@@ -41,7 +41,11 @@ export async function editIdentificadoresEspeciales({ db, req }) {
     return {
         success: true,
         message: "Identificador especial actualizado correctamente",
-        data: {},
+        data: {
+            did: identificador_especial_did,
+            nombre,
+            tipo
+        },
         meta: { timestamp: new Date().toISOString() },
     };
 }
