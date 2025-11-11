@@ -20,19 +20,24 @@ export async function createRemito({ db, req }) {
         data: { did_cliente, observacion, accion, fecha },
         quien: userId,
     });
-
     if (remitosItemsA.length > 0) {
-        const data = remitosItemsA.map(remitosDids => ({
-            did_insumo: newId,
-            did_cliente: remitosDids
+        const data = remitosItemsA.map(item => ({
+            did: newId,
+            did_producto: item.did_producto || item,
+            did_combinacion: item.did_combinacion || null,
+            cantidad: item.cantidad || "1",
+            data: JSON.stringify(item.data || {}),
+            quien: userId,
         }));
+
         await LightdataORM.insert({
             db,
             table: "remitos_items",
             quien: userId,
-            data
+            data,
         });
     }
+
 
     return {
         success: true,
