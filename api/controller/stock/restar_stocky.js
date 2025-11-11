@@ -3,7 +3,7 @@ import { LightdataORM, CustomException } from "lightdata-tools";
 
 
 // Añade la cantodad de stock, al que ya existe, se cuenta de manera acumulativa
-export async function addStock({ db, req }) {
+export async function restarStock({ db, req }) {
     const {
         did_combinacion,
         cantidad,
@@ -22,7 +22,6 @@ export async function addStock({ db, req }) {
     });
 
 
-
     //verifico cuanto hay en la ultima fila de stock
     const stockActual = await LightdataORM.select({
         db,
@@ -31,10 +30,8 @@ export async function addStock({ db, req }) {
     });
 
 
-
     //sumo cantidad con la nueva cantidad
-    const nuevaCantidad = (stockActual[0]?.stock || 0) + Number(cantidad);
-
+    const nuevaCantidad = (stockActual[0]?.stock || 0) - Number(cantidad);
 
 
     // actualizo la tabla stock_productos con la nueva cantidad
@@ -76,7 +73,9 @@ export async function addStock({ db, req }) {
         // hashear json data_ie y guardar en hash 256
         const hash = createHash('sha256').update(JSON.stringify(data_ie)).digest('hex');
 
+        // matechear con el hash existente para verificar que se esta restando el stock correcto
 
+        // recalcular stock por lote 
 
         //armo para insertar
         const stock_detalle =
@@ -99,19 +98,15 @@ export async function addStock({ db, req }) {
             data: stock_detalle,
         });
 
-        const response = {
-            did_combinacion: did_combinacion,
-            cantidad_agregada: cantidad,
-            stock_actual: nuevaCantidad
-        };
-
-        return {
-            success: true,
-            message: "Stock añadido correctamente",
-            data: response,
-            meta: { timestamp: new Date().toISOString() },
-        };
     }
+
+    return {
+        success: true,
+        message: "Variante creada correctamente",
+        data: productoVerificacion,
+        meta: { timestamp: new Date().toISOString() },
+    };
+
 
 }
 
