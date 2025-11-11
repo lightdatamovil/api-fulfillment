@@ -1,4 +1,5 @@
-import { LightdataORM, CustomException, executeQuery } from "lightdata-tools";
+import { createHash } from "crypto";
+import { LightdataORM, CustomException } from "lightdata-tools";
 
 
 // Añade la cantodad de stock, al que ya existe, se cuenta de manera acumulativa
@@ -42,7 +43,8 @@ export async function addStock({ db, req }) {
         table: "stock_producto",
         quien: userId,
         data: {
-            stock: nuevaCantidad
+            stock: nuevaCantidad,
+            did_deposito: did_deposito
         },
         where: {
             did: stockActual[0]?.did
@@ -71,31 +73,25 @@ export async function addStock({ db, req }) {
         }, {});
 
 
+        // hashear json data_ie y guardar en hash 256
+        const hash = createHash('sha256').update(JSON.stringify(data_ie)).digest('hex');
+        console.log('Hash generado:', hash);
+
+
         //armo para insertar
         const stock_detalle =
         {
+            did_producto: did_producto,
+            did_producto_combinacion: did_combinacion,
             stock: cantidad,
-            data_ie: data_ie,
-            did_producto_variante_stock: didUpdateResult
-
+            data_ie: JSON.stringify(data_ie),
+            did_producto_variante_stock: didUpdateResult,
+            hash: hash
         };
         console.log('Detalle de stock a insertar:', stock_detalle);
 
+        console.log('DATA IE a guardar:', data_ie);
 
-        //  console.log('DATA IE a guardar:', data_ie);
-        /* hasta refaccion de orm
-        await LightdataORM.upsert({
-            db,
-            table: "stock_producto_detalle",
-            versionKey: "did_producto_combinacion",
-            where: { did_producto_combinacion: did_combinacion },
-            quien: userId,
-            data: stock_detalle,
-            log: true
-        });
-    }
-
-*/
         // inserto en stock_producto_detalle : 1 traigo la ultima fila e inserto una nueva y supero la enterior updatear did
         const stockDetalleActual = await LightdataORM.select({
             db,
@@ -103,34 +99,39 @@ export async function addStock({ db, req }) {
             where: { did_producto_combinacion: did_combinacion },
         });
 
-        const query = `INSERT INTO stock_producto_detalle 
-        (did_producto_combinacion, did_producto, did_producto_variante_stock, stock, hash, data_ie, did_deposito) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        const insertId = await executeQuery({ db, query, values: [did_combinacion, did_producto, didUpdateResult, cantidad, JSON.stringify(data_ie), did_deposito] }, true);
+        console.log('select:', stockDetalleActual);
 
-        await LightdataORM.insert({
-            db,
-            table: "stock_producto_detalle",
-            data: {
-                did_producto_combinacion: did_combinacion,
-                did_producto: did_producto,
-                did_producto_variante_stock: didUpdateResult,
-                stock: cantidad,
-                hash: JSON.stringify(data_ie),
-                did_deposito: did_deposito
-            }
-        });
+        if (stockDetalleActual.length > 0) {
+            await LightdataORM.update({
+                db,
+                table: "stock_producto_detalle",
+                quien: userId,
+                data: stock_detalle,
+                where: {
+                    did: stockDetalleActual[0].did
+                }
+            });
+            console.log('update,');
+        } else {
+            await LightdataORM.insert({
+                db,
+                table: "stock_producto_detalle",
+                quien: userId,
+                data: stock_detalle,
+                log: true
+            });
+            console.log('insert,');
+        }
 
+
+
+        return {
+            success: true,
+            message: "Variante creada correctamente",
+            data: productoVerificacion,
+            meta: { timestamp: new Date().toISOString() },
+        };
     }
 
-
-    return {
-        success: true,
-        message: "Variante creada correctamente",
-        data: productoVerificacion,
-        meta: { timestamp: new Date().toISOString() },
-    };
 }
-
-
 
