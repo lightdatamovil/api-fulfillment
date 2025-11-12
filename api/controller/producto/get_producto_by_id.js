@@ -82,7 +82,7 @@ export async function getProductoById({ db, req }) {
   }));
 
   // 3) ECOMMERCE: un bloque por agrupación, filtrando por DID
-  const ecommerce = agrupaciones.map(c => ({
+  const combinaciones = agrupaciones.map(c => ({
     //agregar did
     did: c.did,
     valores: c.valores,
@@ -134,7 +134,7 @@ export async function getProductoById({ db, req }) {
     did_curva: p.did_curva != null ? Number(p.did_curva) : null,
     tiene_ie: p.tiene_ie,
     dids_ie: p.dids_ie ? parseCSVToNums(p.dids_ie) : [],
-    ecommerce,
+    combinaciones: combinaciones,
     insumos,
     productos_hijos,
   };

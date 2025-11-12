@@ -117,11 +117,21 @@ async function procesarStock({
 
     if (stockActual.length === 0) {
 
-        // romper
+        throw new CustomException({
+            title: "Stock insuficiente",
+            message: `No hay stock suficiente para el producto ${did_producto} con la combinación ${did_combinacion}.`,
+        });
 
     } else {
 
-        nuevaCantidadCombinacion = (stockActual[0]?.stock_combinacion || 0) + Number(cantidad);
+        nuevaCantidadCombinacion = (stockActual[0]?.stock_combinacion || 0) - Number(cantidad);
+
+        if (nuevaCantidadCombinacion < 0) {
+            throw new CustomException({
+                title: "Stock insuficiente",
+                message: `No hay stock suficiente para el producto ${did_producto} con la combinación ${did_combinacion}.`,
+            });
+        }
         // Buscar el stock total actual del producto (no de la combinación)
         const stockProductoActual = await LightdataORM.select({
             db,
@@ -132,12 +142,11 @@ async function procesarStock({
         // Sumar todos los stock_producto de las combinaciones del mismo producto
         const stockAnteriorProducto = stockProductoActual.reduce(
             (acc, row) => acc + Number(row.stock_combinacion || 0),
-
+            0
         );
 
         // Ahora sumamos la nueva cantidad a ese acumulado total
-        nuevaCantidadProducto = stockAnteriorProducto + Number(cantidad);
-
+        nuevaCantidadProducto = stockAnteriorProducto - Number(cantidad);
 
         [didUpdateResult] = await LightdataORM.update({
             db,
