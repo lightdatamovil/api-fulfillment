@@ -10,7 +10,7 @@ const remitos = Router();
 remitos.post(
     '/',
     buildHandlerWrapper({
-        optional: ['did_cliente', 'observacion', 'accion', 'remito_dids'],
+        optional: ['did_cliente', 'observaciones', 'accion', 'remito_dids'],
         controller: ({ db, req }) => createRemito({ db, req }),
     })
 );

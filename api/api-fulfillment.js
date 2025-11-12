@@ -47,7 +47,7 @@ app.use("/api/configuracion", configuracion);
 app.use("/api/stock", stock);
 app.use("/api/depositos", depositos);
 app.use("/api/identificadores-especiales", identificadoresEspeciales);
-app.use("api/remitos", remitos);
+app.use("/api/remitos", remitos);
 
 
 (async () => {

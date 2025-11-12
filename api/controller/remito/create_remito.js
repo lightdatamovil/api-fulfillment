@@ -1,10 +1,11 @@
 import { LightdataORM } from "lightdata-tools";
 
 export async function createRemito({ db, req }) {
-    const { did_cliente, observacion, accion, remito_dids } = req.body;
+    const { did_cliente, observaciones, accion, remito_dids } = req.body;
     const { userId } = req.user;
 
-    const remitosItemsA = Array.from(new Set(remito_dids.map(n => Number(n))));
+    const remitosItemsA = Array.isArray(remito_dids) ? remito_dids : [];
+
     const fecha = new Date();
 
     /* await LightdataORM.select({
@@ -17,13 +18,13 @@ export async function createRemito({ db, req }) {
     const [newId] = await LightdataORM.insert({
         db,
         table: "remitos",
-        data: { did_cliente, observacion, accion, fecha },
+        data: { did_cliente, observaciones, accion, fecha },
         quien: userId,
     });
     if (remitosItemsA.length > 0) {
         const data = remitosItemsA.map(item => ({
             did: newId,
-            did_producto: item.did_producto || item,
+            did_producto: item.did_producto,
             did_combinacion: item.did_combinacion || null,
             cantidad: item.cantidad || "1",
             data: JSON.stringify(item.data || {}),
@@ -39,13 +40,14 @@ export async function createRemito({ db, req }) {
     }
 
 
+
     return {
         success: true,
         message: "Remito creado correctamente",
         data: {
             did: newId,
             did_cliente,
-            observacion,
+            observaciones,
             accion,
             remitoItems: Array.from(remitosItemsA)
         },
