@@ -2,40 +2,73 @@ import { executeQuery, LightdataORM } from "lightdata-tools";
 
 export async function preloader({ db }) {
   const q = `
-    SELECT 
-      p.*, 
-      pvv.did AS did_productos_variantes_valores,
-      pvv.valores AS valores_raw
-    FROM productos AS p
-    LEFT JOIN productos_variantes_valores AS pvv
-      ON p.did = pvv.did_producto
-    WHERE p.elim = 0
-      AND p.superado = 0
-    ORDER BY p.did DESC;
-  `;
-  const rows = await executeQuery({ db, query: q });
+  SELECT 
+    p.*, 
+    pvv.did AS did_productos_variantes_valores,
+    pvv.valores AS valores_raw,
+    (
+      SELECT s1.stock_combinacion
+      FROM stock_producto AS s1
+      WHERE s1.did_producto_combinacion = pvv.did
+      ORDER BY s1.autofecha DESC
+      LIMIT 1
+    ) AS stock_combinacion,
+    (
+      SELECT s2.stock_producto
+      FROM stock_producto AS s2
+      WHERE s2.did_producto = p.did
+      ORDER BY s2.autofecha DESC
+      LIMIT 1
+    ) AS stock_producto_total
+  FROM productos AS p
+  LEFT JOIN productos_variantes_valores AS pvv
+    ON p.did = pvv.did_producto
+  WHERE p.elim = 0
+    AND p.superado = 0
+  ORDER BY p.did DESC;
+`;
 
-  // productos base (valores + placeholder de insumos)
+  const rows = await executeQuery({ db, query: q, log: true });
+
   const productos = Object.values(
     rows.reduce((acc, row) => {
       if (!acc[row.did]) {
-        acc[row.did] = { ...row, valores: [], insumos: [] };
+        acc[row.did] = {
+          ...row,
+          valores: [],
+          insumos: [],
+          stock_producto: Number(row.stock_producto_total) || 0,
+        };
       }
+
       if (row.did_productos_variantes_valores) {
         acc[row.did].valores.push({
           did_productos_variantes_valores: row.did_productos_variantes_valores,
-          valores: row.valores_raw ? row.valores_raw.split(",").map(v => Number(v.trim())) : [],
+          valores: row.valores_raw
+            ? row.valores_raw.split(",").map(v => Number(v.trim()))
+            : [],
+          stock_combinacion: Number(row.stock_combinacion) || 0,
         });
       }
+
       delete acc[row.did].did_productos_variantes_valores;
       delete acc[row.did].valores_raw;
+      delete acc[row.did].stock_combinacion;
+      delete acc[row.did].stock_producto_total;
+
       return acc;
     }, {})
   );
+
   productos.map(p => {
-    p.dids_ie == null || p.dids_ie === "" ? p.dids_ie = [] : p.dids_ie = p.dids_ie.split(",").map(did => Number(did.trim()));
+    p.dids_ie =
+      p.dids_ie == null || p.dids_ie === ""
+        ? []
+        : p.dids_ie.split(",").map(did => Number(did.trim()));
     return p;
   });
+
+
 
   // ====== NUEVO: insumos con cantidad por producto ======
   if (productos.length) {

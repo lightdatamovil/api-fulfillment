@@ -2,7 +2,8 @@ import { Router } from "express";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { getStockActualbyProducto } from "../controller/stock/get_stock_actual.js";
 import { addStock } from "../controller/stock/ingreso_stock.js";
-import { ingresoStock } from "../controller/stock/ingreso_stock2.js";
+import { ingresoStock } from "../controller/stock/ingreso_stock_masivo.js";
+
 
 
 
@@ -21,7 +22,7 @@ stock.post(
   "/",
   buildHandlerWrapper({
     requiredParams: ["did"],
-    optional: ["did_cliente", "productos", "did_combinacion", "identificadores_especiales", "did_deposito"],
+    optional: ["did_cliente", "productos", "fecha", "observacion", "did_deposito"],
     controller: ({ db, req }) => ingresoStock({ db, req }),
   })
 );

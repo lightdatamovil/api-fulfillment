@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { CustomException, LightdataORM } from "lightdata-tools";
-// import fetch from "node-fetch"; // o axios, según tu stack
+import { createRemito } from "../remito/create_remito.js";
+
 
 export async function ingresoStock({ db, req }) {
     const { did_cliente, productos, did_deposito, observacion, fecha } = req.body;
@@ -51,35 +52,18 @@ export async function ingresoStock({ db, req }) {
         }
     }
 
-    // 👉 luego de terminar el loop, enviar al microservicio de remitos
-    try {
-        const remitoBody = {
-            did_cliente,
-            observaciones: observacion,
-            accion: 1,
-            remito_dids,
-            fecha
-        };
+    const remitoBody = {
+        userId,
+        did_cliente,
+        observaciones: observacion,
+        accion: "ENTREGA",
+        remito_dids,
+        fecha
+    };
 
-        console.log("📦 Enviando remito a microservicio:", remitoBody);
+    await createRemito({ db, ...remitoBody });
 
-        const response = await fetch("http://remito", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(remitoBody)
-        });
 
-        if (!response.ok) {
-            throw new Error(`Error al enviar remito: ${response.statusText}`);
-        }
-
-        const remitoResponse = await response.json();
-        console.log("✅ Remito generado:", remitoResponse);
-
-    } catch (error) {
-        console.error("❌ Error enviando remito:", error.message);
-        // opcional: podrías registrar el fallo sin romper el flujo
-    }
 
     return {
         success: true,
@@ -134,7 +118,7 @@ async function procesarStock({
     let nuevaCantidadProducto;
 
     if (stockActual.length === 0) {
-        console.log(" primera vez que se agrega producto");
+
         // Si no existe registro previo de stock para esa combinación
         const cantProducto = await LightdataORM.select({
             db,
@@ -144,9 +128,6 @@ async function procesarStock({
 
         nuevaCantidadCombinacion = Number(cantidad);
         nuevaCantidadProducto = (cantProducto[0]?.stock_producto || 0) + Number(cantidad);
-
-        console.log("cantidad", cantidad);
-        console.log("nuevaCantidadProducto", nuevaCantidadProducto);
 
 
         [didUpdateResult] = await LightdataORM.insert({
@@ -164,9 +145,7 @@ async function procesarStock({
             quien: userId,
         });
     } else {
-        console.log("no es la primera vez que se agrega ese producto");
-        // Ya existe stock: se acumula
-        console.log("stockActual", stockActual);
+
         nuevaCantidadCombinacion = (stockActual[0]?.stock_combinacion || 0) + Number(cantidad);
         // Buscar el stock total actual del producto (no de la combinación)
         const stockProductoActual = await LightdataORM.select({
@@ -184,10 +163,6 @@ async function procesarStock({
         // Ahora sumamos la nueva cantidad a ese acumulado total
         nuevaCantidadProducto = stockAnteriorProducto + Number(cantidad);
 
-
-        console.log("cantidad", cantidad);
-        console.log("nuevaCantidadProducto", nuevaCantidadProducto);
-        console.log("nuevaCantidadCombinacion", nuevaCantidadCombinacion);
 
         [didUpdateResult] = await LightdataORM.update({
             db,

@@ -8,11 +8,11 @@ import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 const remitos = Router();
 
 remitos.post(
-    '/',
-    buildHandlerWrapper({
-        optional: ['did_cliente', 'observaciones', 'accion', 'remito_dids'],
-        controller: ({ db, req }) => createRemito({ db, req }),
-    })
+  '/',
+  buildHandlerWrapper({
+    optional: ['did_cliente', 'observaciones', 'accion', 'remito_dids', 'userId', "fecha"],
+    controller: ({ db, req }) => createRemito({ db, req }),
+  })
 );
 /*
 remitos.put(
