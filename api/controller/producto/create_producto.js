@@ -20,7 +20,7 @@ export async function createProducto({ db, req }) {
         combinaciones,
         insumos,
         productos_hijos,
-        identificadores_especiales
+        dids_ie
     } = req.body;
 
     const { userId, companyId } = req.user;
@@ -43,11 +43,11 @@ export async function createProducto({ db, req }) {
 
     // IIDENTIFICADORES ESPECIALES
     let tiene_ie = 0;
-    let dids_ie = null;
+    let dids_ie_insert = null;
 
-    if (Array.isArray(identificadores_especiales) && identificadores_especiales.length) {
+    if (Array.isArray(dids_ie) && dids_ie.length) {
         tiene_ie = 1;
-        dids_ie = setKey(identificadores_especiales);
+        dids_ie_insert = setKey(dids_ie);
         //   console.log('DIDS IE obtenidos:', dids_ie);
 
     }
@@ -72,7 +72,7 @@ export async function createProducto({ db, req }) {
             sku,
             ean,
             tiene_ie,
-            dids_ie: dids_ie
+            dids_ie: dids_ie_insert
 
         },
     });

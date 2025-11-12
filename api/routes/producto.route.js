@@ -12,7 +12,7 @@ productos.post(
   "/",
   buildHandlerWrapper({
     requiredParams: ["userId"],
-    optional: ["titulo", "posicion", "productos_hijos", "did_curva", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "files", "habilitado", "insumos", "combinaciones", "did_cliente", "sku", "ean", "identificadores_especiales"], // el resto es opcional (did_cliente, imagen, es_combo, depositos, insumos, variantesValores, ecommerce, combo, etc.)
+    optional: ["titulo", "posicion", "productos_hijos", "did_curva", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "files", "habilitado", "insumos", "combinaciones", "did_cliente", "sku", "ean", "dids_ie"], // el resto es opcional (did_cliente, imagen, es_combo, depositos, insumos, variantesValores, ecommerce, combo, etc.)
 
     controller: ({ db, req }) => createProducto({ db, req }),
   })
@@ -22,7 +22,7 @@ productos.put(
   "/:did",
   buildHandlerWrapper({
     requiredParams: ["did"],
-    optional: ["did_cliente", "titulo", "descripcion", "habilitado", "es_combo", "posicion", "cm3", "alto", "ancho", "profundo", "files", "sku", "ean", "did_curva", "insumos", "combinaciones", "productos_hijos", "identificadores_especiales"],
+    optional: ["did_cliente", "titulo", "descripcion", "habilitado", "es_combo", "posicion", "cm3", "alto", "ancho", "profundo", "files", "sku", "ean", "did_curva", "insumos", "combinaciones", "productos_hijos", "dids_ie"],
     controller: ({ db, req }) => updateProducto({ db, req }),
   })
 );
