@@ -20,7 +20,7 @@ export async function updateProducto({ db, req }) {
     insumos,
     combinaciones,
     productos_hijos,
-    identificadores_especiales,
+    dids_ie,
     tiene_ie
   } = req.body;
 
@@ -70,10 +70,10 @@ export async function updateProducto({ db, req }) {
   // lo que venga lo reemplazo 
 
   // let tiene_ie = 0;
-  let dids_ie = null;
+  let dids_ie_insert = null;
 
-  if (Array.isArray(identificadores_especiales) && identificadores_especiales.length) {
-    dids_ie = setKey(identificadores_especiales);
+  if (Array.isArray(dids_ie) && dids_ie.length) {
+    dids_ie_insert = setKey(dids_ie);
     //   console.log('DIDS IE obtenidos:', dids_ie);
   }
 
@@ -93,7 +93,7 @@ export async function updateProducto({ db, req }) {
     ean,
     did_curva,
     tiene_ie,
-    dids_ie
+    dids_ie: dids_ie_insert
   };
 
   await LightdataORM.update({
