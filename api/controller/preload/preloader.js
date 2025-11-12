@@ -32,6 +32,10 @@ export async function preloader({ db }) {
       return acc;
     }, {})
   );
+  productos.map(p => {
+    p.dids_ie == null || p.dids_ie === "" ? p.dids_ie = [] : p.dids_ie = p.dids_ie.split(",").map(did => Number(did.trim()));
+    return p;
+  });
 
   // ====== NUEVO: insumos con cantidad por producto ======
   if (productos.length) {
