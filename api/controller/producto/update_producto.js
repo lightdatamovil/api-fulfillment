@@ -158,14 +158,13 @@ export async function updateProducto({ db, req }) {
       });
       */
 
-      for (const ecommerce of combinacion.ecommerce) {
-        didCuentaUpdate.push(ecommerce.did);
+      for (const tienda of combinacion.tiendas) {
+        didCuentaUpdate.push(tienda.did);
         dataUpdateCombinaciones.push({
           did_producto: didProducto,
-          did_cuenta: ecommerce.didCuenta,
-          sku: ecommerce.sku,
+          did_cuenta: tienda.didCuenta,
+          sku: tienda.sku,
           actualizar: 0,
-          //   sync: ecommerce.sync,
         });
       }
     }
@@ -210,14 +209,14 @@ export async function updateProducto({ db, req }) {
     for (let i = 0; i < combinaciones.add.length; i++) {
       const e = combinaciones.add[i];
       const did_pvv = insertedPvvs[i];
-      const ecommerce = Array.isArray(e.ecommerce) ? e.ecommerce : [];
+      const tienda = Array.isArray(e.tiendas) ? e.tiendas : [];
 
-      for (const e of ecommerce) {
+      for (const t of tienda) {
         combinacionesRows.push({
           did_producto: didProducto,
-          did_cuenta: isNonEmpty(e.didCuenta) ? e.didCuenta : null,
+          did_cuenta: isNonEmpty(t.didCuenta) ? t.didCuenta : null,
           did_producto_variante_valor: did_pvv,
-          sku: isNonEmpty(e.sku) ? String(e.sku).trim() : null,
+          sku: isNonEmpty(t.sku) ? String(t.sku).trim() : null,
           actualizar: 0,
           //   sync: isDefined(e.sync) ? number01(e.sync) : 0,
         });
