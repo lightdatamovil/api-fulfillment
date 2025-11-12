@@ -10,33 +10,44 @@ import { LightdataORM, CustomException } from "lightdata-tools";
 
 // pegarle al micro de crear remito 
 
-/*
+/* body nuevo
 {
-did_cliente:1,
-
-    productos: [
+    "did_cliente": 1,
+    "productos": [
         {
-            did_producto:1,
-            did_combinacion:1,
-            cantidad:10,
-            "identificadores_especiales": [
-        {
-            "did": 1,
-            "valor": "kdgaoig"
-        },
-        {
-            "did": 2,
-            "valor": "kdgYAH"
-        }
-    ],
-        },
-        {
-            did_producto:1,
-            did_combinacion:1,
-            cantidad:10
+            "did_producto": 1,
+            "combinaciones": [
+                {
+                    "did_combinacion": 1,
+                    "cantidad": 10,
+                    "identificadores_especiales": [
+                        {
+                            "did": 1,
+                            "valor": "kdgaoig"
+                        },
+                        {
+                            "did": 2,
+                            "valor": "kdgYAH"
+                        }
+                    ]
+                },
+                {
+                    "did_combinacion": 1,
+                    "cantidad": 10,
+                    "identificadores_especiales": [
+                        {
+                            "did": 1,
+                            "valor": "kdgaoig"
+                        },
+                        {
+                            "did": 2,
+                            "valor": "kdgYAH"
+                        }
+                    ]
+                }
+            ]
         }
     ]
-
 }
  
 */
@@ -52,6 +63,10 @@ export async function addStock({ db, req }) {
     } = req.body;
 
     const userId = Number(req.user.userId);
+
+
+    //hacer un for dentreo de otro for para agregar varios productos a la vez 
+
 
     // verificar si el producto tiene variantes
     const productoVerificacion = await LightdataORM.select({
@@ -72,6 +87,8 @@ export async function addStock({ db, req }) {
     let nuevaCantidadProducto
     // si es la primera vez que se agrega ese producto 
     if (stockActual.length === 0) {
+        console.log(" primera vez que se agrega producto");
+        console.log("cantidad", cantidad);
         //insertar la cantidad
 
         //verifico si el producto tiene stock para actualizar
@@ -86,6 +103,8 @@ export async function addStock({ db, req }) {
         nuevaCantidadCombinacion = Number(cantidad);
         nuevaCantidadProducto = (cantProducto[0]?.stock_producto || 0) + Number(cantidad);
 
+        console.log("nuevaCantidadProducto", nuevaCantidadProducto);
+
         [didUpdateResult] = await LightdataORM.insert({
             db,
             table: "stock_producto",
@@ -98,10 +117,14 @@ export async function addStock({ db, req }) {
         });
 
     } else {
+
+        console.log("no es la primera vez que se agrega ese producto");
+        console.log("stockActual", stockActual);
         //sumo cantidad con la nueva cantidad de combinacion
         nuevaCantidadCombinacion = (stockActual[0]?.stock_combinacion || 0) + Number(cantidad);
         nuevaCantidadProducto = (stockActual[0]?.stock_producto || 0) + Number(cantidad);
 
+        console.log("nuevaCantidadProducto", nuevaCantidadProducto);
 
         // actualizo la tabla stock_productos con la nueva cantidad
         [didUpdateResult] = await LightdataORM.update({
