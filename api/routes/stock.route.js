@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { getStockActualbyProducto } from "../controller/stock/get_stock_actual.js";
-import { addStock } from "../controller/stock/ingreso_stock.js";
 import { ingresoStock } from "../controller/stock/ingreso_stock_masivo.js";
-
+import { ajusteStock } from "../controller/stock/ajuste_stock.js";
+import { egresoStock } from "../controller/stock/egreso_stock.js";
 
 
 
@@ -19,22 +19,34 @@ stock.get(
 
 
 stock.post(
-  "/",
+  "/productos/ingreso",
   buildHandlerWrapper({
-    requiredParams: ["did"],
     optional: ["did_cliente", "productos", "fecha", "observacion", "did_deposito"],
     controller: ({ db, req }) => ingresoStock({ db, req }),
   })
 );
 
-/*
-productos.delete(
-  "/:did",
+
+stock.post(
+  "/productos/egreso",
   buildHandlerWrapper({
-    requiredParams: [],
-    controller: ({ db, req }) => deleteProducto({ db, req }),
+    requiredParams: ["did"],
+    optional: ["did_cliente", "productos", "fecha", "observacion", "did_deposito"],
+    controller: ({ db, req }) => egresoStock({ db, req }),
   })
 );
+
+stock.put(
+  "/productos/ajuste",
+  buildHandlerWrapper({
+    optional: ["did_cliente", "productos", "fecha", "observacion", "did_deposito"],
+    controller: ({ db, req }) => ajusteStock({ db, req }),
+  })
+);
+
+/*
+
+
 
 productos.get(
   "/:did",
