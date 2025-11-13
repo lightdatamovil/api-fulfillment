@@ -18,7 +18,7 @@ stock.get(
   })
 );
 stock.get(
-  "/productos/IE/:did_producto",
+  "/productos/stockIE/:did_producto",
   buildHandlerWrapper({
     requiredParams: ["did_producto"],
     controller: ({ db, req }) => getStockActualIE({ db, req }),
