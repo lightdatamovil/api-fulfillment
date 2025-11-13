@@ -104,7 +104,7 @@ export async function createProducto({ db, req }) {
         for (let i = 0; i < combinaciones.length; i++) {
             const e = combinaciones[i];
             const did_combinacion = insertedCombinaciones[i]; // DID del conjunto de ese bloque
-            const tiendas = Array.isArray(e.ecommerce) ? e.ecommerce : [];
+            const tiendas = Array.isArray(e.tiendas) ? e.tiendas : [];
 
             for (const t of tiendas) {
                 ecommerceRows.push({
