@@ -91,7 +91,6 @@ export async function getStockActualbyProducto({ db, req }) {
             table: "stock_producto_detalle",
             where: {
                 did_producto: item.did_producto,
-                did_producto_variante: item.did_producto_combinacion,
                 did_producto_variante_stock: item.did,
                 elim: 0,
                 superado: 0,
