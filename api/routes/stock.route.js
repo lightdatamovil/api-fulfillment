@@ -4,6 +4,7 @@ import { getStockActualbyProducto } from "../controller/stock/get_stock_actual.j
 import { ingresoStock } from "../controller/stock/ingreso_stock_masivo.js";
 import { ajusteStock } from "../controller/stock/ajuste_stock.js";
 import { egresoStock } from "../controller/stock/egreso_stock.js";
+import { getStockActualIE } from "../controller/stock/get_stock_egreso.js";
 
 
 
@@ -16,6 +17,14 @@ stock.get(
     controller: ({ db, req }) => getStockActualbyProducto({ db, req }),
   })
 );
+stock.get(
+  "/productos/IE/:did_producto",
+  buildHandlerWrapper({
+    requiredParams: ["did_producto"],
+    controller: ({ db, req }) => getStockActualIE({ db, req }),
+  })
+);
+
 
 
 stock.post(
