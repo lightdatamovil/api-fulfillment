@@ -5,6 +5,7 @@ import { ingresoStockMasivo } from "../controller/stock/ingreso_stock_masivo.js"
 import { getStockActualIE } from "../controller/stock/get_stock_egreso.js";
 import { egresoStockMasivo } from "../controller/stock/egreso_stock_masivo.js";
 import { ajusteStockMasivo } from "../controller/stock/ajuste_stock_masivo.js";
+import { informeStock } from "../controller/stock/informe_stock.js";
 
 const stock = Router();
 
@@ -46,6 +47,13 @@ stock.post(
   buildHandlerWrapper({
     optional: ["did_cliente", "productos", "fecha", "observacion", "did_deposito"],
     controller: ({ db, req }) => ajusteStockMasivo({ db, req }),
+  })
+);
+
+stock.get(
+  "/clientes/:did_cliente/informe",
+  buildHandlerWrapper({
+    controller: ({ db, req }) => informeStock({ db, req }),
   })
 );
 

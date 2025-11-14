@@ -13,12 +13,10 @@ export async function preloader({ db }) {
       FROM stock_producto_detalle AS spd
       JOIN stock_producto AS sp
         ON spd.did_producto_variante_stock = sp.did
+        AND spd.elim = 0 AND spd.superado = 0
       WHERE sp.did_producto_combinacion = pvv.did
         AND sp.elim = 0
         AND sp.superado = 0
-        -- Si stock_producto_detalle es versionado, descomentá:
-        -- AND spd.elim = 0
-        -- AND spd.superado = 0
     ) AS stock_combinacion
 
   FROM productos AS p
