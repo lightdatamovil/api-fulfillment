@@ -28,7 +28,7 @@ export async function preloader({ db }) {
   ORDER BY p.did DESC;
 `;
 
-  const rows = await executeQuery({ db, query: q, log: true });
+  const rows = await executeQuery({ db, query: q });
 
   const productos = Object.values(
     rows.reduce((acc, row) => {

@@ -15,6 +15,7 @@ export async function ingresoStock({ db, req }) {
 
     const resultados = [];
     const remito_dids = [];
+    const productos_no_procesados = [];
 
     for (const producto of productos) {
         const { did_producto, combinaciones } = producto;
@@ -25,7 +26,21 @@ export async function ingresoStock({ db, req }) {
                 message: `El producto ${did_producto} no tiene combinaciones para procesar.`
             });
         }
-
+        const [productRow] = await LightdataORM.select({
+            db,
+            table: "productos",
+            where: { did: did_producto },
+        });
+        for (const combinacion of combinaciones) {
+            if (productRow.tiene_ie && combinacion.identificadores_especiales == null || combinacion.identificadores_especiales.length === 0 || combinacion.identificadores_especiales == undefined) {
+                productos_no_procesados.push(did_producto);
+            }
+        }
+        console.log("Productos no procesados:", productos_no_procesados);
+        console.log("Producto actual:", producto.did_producto);
+        if (productos_no_procesados.includes(producto.did_producto)) {
+            continue;
+        }
         for (const combinacion of combinaciones) {
             const { did_combinacion, cantidad, identificadores_especiales } = combinacion;
             let nuevaCantidad = 0;
@@ -128,12 +143,12 @@ export async function ingresoStock({ db, req }) {
         };
 
         await createRemito({ db, ...remitoBody });
-
-        return {
-            success: true,
-            message: "Stock añadido correctamente y remito generado.",
-            data: resultados,
-            meta: { timestamp: new Date().toISOString() }
-        };
     }
+
+    return {
+        success: true,
+        message: "Stock añadido correctamente y remito generado.",
+        data: { resultados, productos_no_procesados },
+        meta: { timestamp: new Date().toISOString() }
+    };
 }
