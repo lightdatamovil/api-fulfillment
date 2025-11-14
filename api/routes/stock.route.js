@@ -1,12 +1,10 @@
 import { Router } from "express";
 import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { getStockActualbyProducto } from "../controller/stock/get_stock_actual.js";
-import { ingresoStock } from "../controller/stock/ingreso_stock_masivo.js";
-import { ajusteStock } from "../controller/stock/ajuste_stock.js";
-import { egresoStock } from "../controller/stock/egreso_stock.js";
+import { ingresoStockMasivo } from "../controller/stock/ingreso_stock_masivo.js";
 import { getStockActualIE } from "../controller/stock/get_stock_egreso.js";
-
-
+import { egresoStockMasivo } from "../controller/stock/egreso_stock_masivo.js";
+import { ajusteStockMasivo } from "../controller/stock/ajuste_stock_masivo.js";
 
 const stock = Router();
 
@@ -17,6 +15,7 @@ stock.get(
     controller: ({ db, req }) => getStockActualbyProducto({ db, req }),
   })
 );
+
 stock.get(
   "/productos/stockIE/:did_producto",
   buildHandlerWrapper({
@@ -25,54 +24,29 @@ stock.get(
   })
 );
 
-
-
 stock.post(
   "/productos/ingreso",
   buildHandlerWrapper({
     optional: ["did_cliente", "productos", "fecha", "observacion", "did_deposito"],
-    controller: ({ db, req }) => ingresoStock({ db, req }),
+    controller: ({ db, req }) => ingresoStockMasivo({ db, req }),
   })
 );
-
 
 stock.post(
   "/productos/egreso",
   buildHandlerWrapper({
     requiredParams: ["did"],
     optional: ["did_cliente", "productos", "fecha", "observacion", "did_deposito"],
-    controller: ({ db, req }) => egresoStock({ db, req }),
+    controller: ({ db, req }) => egresoStockMasivo({ db, req }),
   })
 );
 
-stock.put(
+stock.post(
   "/productos/ajuste",
   buildHandlerWrapper({
     optional: ["did_cliente", "productos", "fecha", "observacion", "did_deposito"],
-    controller: ({ db, req }) => ajusteStock({ db, req }),
+    controller: ({ db, req }) => ajusteStockMasivo({ db, req }),
   })
 );
-
-/*
-
-
-
-productos.get(
-  "/:did",
-  buildHandlerWrapper({
-    requiredParams: ["did"],
-    controller: ({ db, req }) => getProductoById({ db, req }),
-  })
-);
-
-productos.get(
-  "/",
-  buildHandlerWrapper({
-    controller: ({ db, req }) => getFilteredProductos({ db, req }),
-  })
-);
-
-
-*/
 
 export default stock;

@@ -1,7 +1,7 @@
 import { CustomException, LightdataORM } from "lightdata-tools";
 import { createRemito } from "../remito/create_remito.js";
 
-export async function egresoStockMasivo({ db, req }) {
+export async function ajusteStockMasivo({ db, req }) {
     const { did_cliente, productos, observacion, fecha } = req.body;
     const userId = Number(req.user.userId);
 
@@ -109,16 +109,13 @@ export async function egresoStockMasivo({ db, req }) {
                 continue;
             }
 
-            const cantidadAnterior = stockRow.stock_combinacion || 0;
-            const nuevaCantidad = cantidadAnterior - cantidad; // EGRESO
-
             // Update en stock_producto
             await LightdataORM.update({
                 db,
                 table: "stock_producto",
                 quien: userId,
                 where: { did: stockRow.did },
-                data: { stock_combinacion: nuevaCantidad }
+                data: { stock_combinacion: cantidad }
             });
 
             // ─────────────────────────────────────────
@@ -127,8 +124,7 @@ export async function egresoStockMasivo({ db, req }) {
             const detalleRow = stockDetallePorCombinacion.get(did_combinacion);
 
             if (detalleRow) {
-                const stockDetalleAnterior = detalleRow.stock || 0; // ajusta nombre de columna
-                const nuevoStockDetalle = stockDetalleAnterior - cantidad;  // EGRESO
+                const nuevoStockDetalle = cantidad;  // EGRESO
 
                 await LightdataORM.update({
                     db,
