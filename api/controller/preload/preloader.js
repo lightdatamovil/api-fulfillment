@@ -6,20 +6,21 @@ export async function preloader({ db }) {
     p.*, 
     pvv.did AS did_productos_variantes_valores,
     pvv.valores AS valores_raw,
+
+    -- 🔹 Stock de la combinación (sumado desde el detalle)
     (
-      SELECT s1.stock_combinacion
-      FROM stock_producto AS s1
-      WHERE s1.did_producto_combinacion = pvv.did
-      ORDER BY s1.autofecha DESC
-      LIMIT 1
-    ) AS stock_combinacion,
-    (
-      SELECT s2.stock_producto
-      FROM stock_producto AS s2
-      WHERE s2.did_producto = p.did
-      ORDER BY s2.autofecha DESC
-      LIMIT 1
-    ) AS stock_producto_total
+      SELECT COALESCE(SUM(spd.stock), 0)
+      FROM stock_producto_detalle AS spd
+      JOIN stock_producto AS sp
+        ON spd.did_producto_variante_stock = sp.did
+      WHERE sp.did_producto_combinacion = pvv.did
+        AND sp.elim = 0
+        AND sp.superado = 0
+        -- Si stock_producto_detalle es versionado, descomentá:
+        -- AND spd.elim = 0
+        -- AND spd.superado = 0
+    ) AS stock_combinacion
+
   FROM productos AS p
   LEFT JOIN productos_variantes_valores AS pvv
     ON p.did = pvv.did_producto
@@ -29,46 +30,49 @@ export async function preloader({ db }) {
 `;
 
   const rows = await executeQuery({ db, query: q });
+  const productosMap = rows.reduce((acc, row) => {
+    if (!acc[row.did]) {
+      acc[row.did] = {
+        ...row,
+        valores: [],
+        insumos: [],
+        stock_producto: 0, // lo calculamos después
+      };
+    }
 
-  const productos = Object.values(
-    rows.reduce((acc, row) => {
-      if (!acc[row.did]) {
-        acc[row.did] = {
-          ...row,
-          valores: [],
-          insumos: [],
-          stock_producto: Number(row.stock_producto_total) || 0,
-        };
-      }
+    if (row.did_productos_variantes_valores) {
+      acc[row.did].valores.push({
+        did_productos_variantes_valores: row.did_productos_variantes_valores,
+        valores: row.valores_raw
+          ? row.valores_raw.split(",").map(v => Number(v.trim()))
+          : [],
+        stock_combinacion: Number(row.stock_combinacion) || 0,
+      });
+    }
 
-      if (row.did_productos_variantes_valores) {
-        acc[row.did].valores.push({
-          did_productos_variantes_valores: row.did_productos_variantes_valores,
-          valores: row.valores_raw
-            ? row.valores_raw.split(",").map(v => Number(v.trim()))
-            : [],
-          stock_combinacion: Number(row.stock_combinacion) || 0,
-        });
-      }
+    // Limpio campos "internos" que ya procesamos
+    delete acc[row.did].did_productos_variantes_valores;
+    delete acc[row.did].valores_raw;
+    delete acc[row.did].stock_combinacion;
 
-      delete acc[row.did].did_productos_variantes_valores;
-      delete acc[row.did].valores_raw;
-      delete acc[row.did].stock_combinacion;
-      delete acc[row.did].stock_producto_total;
+    return acc;
+  }, {});
 
-      return acc;
-    }, {})
-  );
-
-  productos.map(p => {
+  const productos = Object.values(productosMap).map(p => {
+    // Normalizo dids_ie
     p.dids_ie =
       p.dids_ie == null || p.dids_ie === ""
         ? []
         : p.dids_ie.split(",").map(did => Number(did.trim()));
+
+    // 🔹 Stock total del producto = suma de stock_combinacion
+    p.stock_producto = p.valores.reduce(
+      (sum, v) => sum + (v.stock_combinacion || 0),
+      0
+    );
+
     return p;
   });
-
-
 
   // ====== NUEVO: insumos con cantidad por producto ======
   if (productos.length) {
