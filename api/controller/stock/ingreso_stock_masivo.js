@@ -31,13 +31,13 @@ export async function ingresoStock({ db, req }) {
             table: "productos",
             where: { did: did_producto },
         });
+
         for (const combinacion of combinaciones) {
             if (productRow.tiene_ie && combinacion.identificadores_especiales == null || combinacion.identificadores_especiales.length === 0 || combinacion.identificadores_especiales == undefined) {
                 productos_no_procesados.push(did_producto);
             }
         }
-        console.log("Productos no procesados:", productos_no_procesados);
-        console.log("Producto actual:", producto.did_producto);
+
         if (productos_no_procesados.includes(producto.did_producto)) {
             continue;
         }

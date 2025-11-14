@@ -1,9 +1,9 @@
-import { createHash } from "crypto";
 import { CustomException, LightdataORM } from "lightdata-tools";
-import { createRemito } from "../remito/create_remito.js";
+import { createRemito } from "../remito/create_remito";
 
-export async function egresoStock({ db, req }) {
-    const { did_cliente, productos, did_deposito, observacion, fecha } = req.body;
+export async function egresoStockMasivo({ db, req }) {
+
+    const { did_cliente, productos, observacion, fecha } = req.body;
     const userId = Number(req.user.userId);
 
     if (!productos || !Array.isArray(productos) || productos.length === 0) {
@@ -14,7 +14,8 @@ export async function egresoStock({ db, req }) {
     }
 
     const resultados = [];
-    const remito_dids = []; // acumularemos acá los datos para el micro de remitos
+    const remito_dids = [];
+    const productos_no_procesados = [];
 
     for (const producto of productos) {
         const { did_producto, combinaciones } = producto;
@@ -26,187 +27,52 @@ export async function egresoStock({ db, req }) {
             });
         }
 
+        const stockProductoRow = await LightdataORM.select({
+            db,
+            table: "stock_producto",
+            where: { did_producto_combinacion: combinaciones.map(c => c.did_combinacion) },
+        });
+
+        for (const combinacion of stockProductoRow) {
+            const { cantidad } = combinacion;
+            if (combinacion.stock < cantidad) productos_no_procesados.push(did_producto);
+        }
+        if (productos_no_procesados.includes(producto.did_producto)) {
+            continue;
+        }
         for (const combinacion of combinaciones) {
-            const { did_combinacion, cantidad, identificadores_especiales } = combinacion;
+            const { cantidad } = combinacion;
+            let nuevaCantidad = 0;
 
-            const resultado = await procesarStock({
+
+            const cantidadAnterior = stockProductoRow[0].stock_combinacion || 0;
+            nuevaCantidad = cantidadAnterior + cantidad;
+
+            await LightdataORM.update({
                 db,
-                userId,
-                did_producto,
-                did_combinacion,
-                cantidad,
-                identificadores_especiales,
-                did_deposito,
-                did_cliente
-            });
-
-            resultados.push(resultado.data);
-
-            // construir item de remito
-            remito_dids.push({
-                did_producto,
-                did_combinacion,
-                cantidad: cantidad.toString()
+                table: "stock_producto",
+                quien: userId,
+                where: { did: stockProductoRow[0].did },
+                data: { stock_combinacion: nuevaCantidad }
             });
         }
+
+        const remitoBody = {
+            userId,
+            did_cliente,
+            observaciones: observacion,
+            accion: "EGRESO",
+            remito_dids,
+            fecha
+        };
+
+        await createRemito({ db, ...remitoBody });
     }
-
-    const remitoBody = {
-        userId,
-        did_cliente,
-        observaciones: observacion,
-        accion: "SALIDA",
-        remito_dids,
-        fecha
-    };
-
-    await createRemito({ db, ...remitoBody });
-
-
 
     return {
         success: true,
         message: "Stock añadido correctamente y remito generado.",
-        data: resultados,
+        data: { resultados, productos_no_procesados },
         meta: { timestamp: new Date().toISOString() }
-    };
-}
-
-//revisar suma de did_producto
-//revisar did_deposito no se esta enviando bien
-
-
-// -------------------------------------------------------------
-// Lógica interna reutilizable
-// -------------------------------------------------------------
-async function procesarStock({
-    db,
-    userId,
-    did_producto,
-    did_combinacion,
-    cantidad,
-    identificadores_especiales,
-    did_deposito,
-    did_cliente
-}) {
-    // Verificar si el producto existe y tiene identificadores especiales
-    const [productoVerificacion] = await LightdataORM.select({
-        db,
-        table: "productos",
-        where: { did: did_producto },
-    });
-
-    if (!productoVerificacion) {
-        throw new CustomException({
-            title: "Producto no encontrado",
-            message: `El producto con ID ${did_producto} no existe.`,
-        });
-    }
-
-    // Verificar stock actual
-    const stockActual = await LightdataORM.select({
-        db,
-        table: "stock_producto",
-        where: { did_producto_combinacion: did_combinacion },
-    });
-
-    let didUpdateResult;
-    let nuevaCantidadCombinacion;
-    let nuevaCantidadProducto;
-
-    if (stockActual.length === 0) {
-
-        throw new CustomException({
-            title: "Stock insuficiente",
-            message: `No hay stock suficiente para el producto ${did_producto} con la combinación ${did_combinacion}.`,
-        });
-
-    } else {
-
-        nuevaCantidadCombinacion = (stockActual[0]?.stock_combinacion || 0) - Number(cantidad);
-
-        if (nuevaCantidadCombinacion < 0) {
-            throw new CustomException({
-                title: "Stock insuficiente",
-                message: `No hay stock suficiente para el producto ${did_producto} con la combinación ${did_combinacion}.`,
-            });
-        }
-        // Buscar el stock total actual del producto (no de la combinación)
-        const stockProductoActual = await LightdataORM.select({
-            db,
-            table: "stock_producto",
-            where: { did_producto: did_producto },
-        });
-
-        // Sumar todos los stock_producto de las combinaciones del mismo producto
-        const stockAnteriorProducto = stockProductoActual.reduce(
-            (acc, row) => acc + Number(row.stock_combinacion || 0),
-            0
-        );
-
-        // Ahora sumamos la nueva cantidad a ese acumulado total
-        nuevaCantidadProducto = stockAnteriorProducto - Number(cantidad);
-
-        [didUpdateResult] = await LightdataORM.update({
-            db,
-            table: "stock_producto",
-            quien: userId,
-            data: {
-                stock_combinacion: nuevaCantidadCombinacion,
-                stock_producto: nuevaCantidadProducto,
-                did_deposito: did_deposito
-            },
-            where: { did: stockActual[0].did },
-        });
-    }
-
-    // Si el producto tiene identificadores especiales (tiene_ie = 1)
-    if (productoVerificacion.tiene_ie == 1) {
-        if (!Array.isArray(identificadores_especiales) || identificadores_especiales.length === 0) {
-            throw new CustomException({
-                title: "Identificadores especiales requeridos",
-                message: `El producto ${did_producto} requiere identificadores especiales.`,
-            });
-        }
-
-        // Convertir array a JSON {did: valor}
-        const data_ie = identificadores_especiales.reduce((acc, item) => {
-            acc[item.did] = item.valor;
-            return acc;
-        }, {});
-
-        // Hash único de data_ie
-        const hash = createHash("sha256").update(JSON.stringify(data_ie)).digest("hex");
-
-        const stock_detalle = {
-            did_producto,
-            did_producto_combinacion: did_combinacion,
-            stock: cantidad,
-            data_ie: JSON.stringify(data_ie),
-            did_producto_variante_stock: didUpdateResult,
-            hash
-        };
-
-        await LightdataORM.insert({
-            db,
-            table: "stock_producto_detalle",
-            quien: userId,
-            data: stock_detalle,
-        });
-    }
-
-    const response = {
-        did_cliente,
-        did_producto,
-        did_combinacion,
-        cantidad_agregada: cantidad,
-        stock_actual_producto: nuevaCantidadProducto,
-        stock_actual_combinacion: nuevaCantidadCombinacion
-    };
-
-    return {
-        success: true,
-        message: "Stock añadido correctamente",
-        data: response,
     };
 }
