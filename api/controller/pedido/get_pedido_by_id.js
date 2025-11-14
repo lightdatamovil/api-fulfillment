@@ -11,11 +11,11 @@ export async function getPedidoById({ db, req }) {
         throwIfNotExists: true,
     });
 
-    console.log('PEDIDO:', pedido);
 
-    let asignado = null;
+
+    let asignado = [];
     if (pedido.trabajado == 1) {
-        console.log('Pedido trabajado, obteniendo asignado OT...');
+
         asignado = await LightdataORM.select({
             db,
             table: "ordenes_trabajo",
@@ -23,7 +23,7 @@ export async function getPedidoById({ db, req }) {
             select: "asignado"
         });
 
-        //    console.log('ASIGNADO:', asignado);
+
 
     }
 
@@ -33,11 +33,14 @@ export async function getPedidoById({ db, req }) {
         where: { did_pedido: did },
     });
 
+
     const [direccion] = await LightdataORM.select({
         db,
         table: "pedidos_ordenes_direcciones_destino",
         where: { did_pedido: did },
     });
+
+
 
     const productos = items.map(pp => ({
         did: pp.did,
@@ -69,12 +72,14 @@ export async function getPedidoById({ db, req }) {
         referencia: direccion?.destination_coments || "",
     };
 
+
     const data = {
         did: pedido.did,
         did_cliente: pedido.did_cliente,
         did_deposito: pedido.did_deposito,
         fecha_venta: pedido.fecha_venta,
-        asignado: asignado[0]?.asignado || null,
+        // si no hay asignado, poner null
+        asignado: asignado[0]?.asignado ?? null,
         flex: pedido.flex,
         estado: pedido.status,
         id_venta: pedido.number,
