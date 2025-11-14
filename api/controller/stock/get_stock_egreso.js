@@ -98,19 +98,20 @@ export async function getStockActualIE({ db, req }) {
                 dataIE = {};
             }
 
-            // 🔥 CAMBIO → devolver { did_ie: valor }
-            const identificadores = {};
-            for (const [did_ie, valor] of Object.entries(dataIE)) {
-                identificadores[did_ie] = valor;
-            }
+            // identificadores ahora es un array de objetos
+            const identificadores = Object.entries(dataIE).map(([did_ie, valor]) => ({
+                did: Number(did_ie),
+                valor,
+            }));
 
             resultado.push({
                 did_producto_combinacion: item.did_producto_combinacion,
-                did: det.did,                 // 🔥 CAMBIO: ahora es "did"
+                did: det.did,
                 identificadores,
                 cantidad: det.stock ?? 0,
             });
         }
+
     }
 
     const totalGeneral = resultado.reduce((sum, i) => sum + i.cantidad, 0);
