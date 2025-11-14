@@ -1,8 +1,7 @@
 import { CustomException, LightdataORM } from "lightdata-tools";
-import { createRemito } from "../remito/create_remito";
+import { createRemito } from "../remito/create_remito.js";
 
 export async function egresoStockMasivo({ db, req }) {
-
     const { did_cliente, productos, observacion, fecha } = req.body;
     const userId = Number(req.user.userId);
 
@@ -27,51 +26,147 @@ export async function egresoStockMasivo({ db, req }) {
             });
         }
 
+        const didsCombinaciones = combinaciones.map(c => c.did_combinacion);
+
+        // ─────────────────────────────────────────────
+        // 1) Traer stock de stock_producto
+        // ─────────────────────────────────────────────
         const stockProductoRow = await LightdataORM.select({
             db,
             table: "stock_producto",
-            where: { did_producto_combinacion: combinaciones.map(c => c.did_combinacion) },
+            where: { did_producto_combinacion: didsCombinaciones },
+            select: ["did", "did_producto_combinacion", "stock_combinacion"]
         });
 
-        for (const combinacion of stockProductoRow) {
-            const { cantidad } = combinacion;
-            if (combinacion.stock < cantidad) productos_no_procesados.push(did_producto);
+        const stockPorCombinacion = new Map(
+            stockProductoRow.map(row => [
+                row.did_producto_combinacion,
+                row
+            ])
+        );
+
+        // ─────────────────────────────────────────────
+        // 2) Traer stock de stock_producto_detalle
+        //    (ajusta columnas según tu tabla real)
+        // ─────────────────────────────────────────────
+        const stockProductoDetalleRow = await LightdataORM.select({
+            db,
+            table: "stock_producto_detalle",
+            where: { did_producto_combinacion: didsCombinaciones },
+            // ajusta los nombres de columnas según tu esquema:
+            select: ["did", "did_producto_combinacion", "stock"]
+            // por ejemplo: ["did", "did_producto_combinacion", "stock_combinacion_detalle"]
+        });
+
+        const stockDetallePorCombinacion = new Map(
+            stockProductoDetalleRow.map(row => [
+                row.did_producto_combinacion,
+                row
+            ])
+        );
+
+        // ─────────────────────────────────────────────
+        // 3) Validar que TODAS las combinaciones tengan stock suficiente
+        //    (usamos stock_producto como referencia principal)
+        // ─────────────────────────────────────────────
+        const combinacionesSinStock = [];
+
+        for (const { did_combinacion, cantidad } of combinaciones) {
+            const stockRow = stockPorCombinacion.get(did_combinacion);
+            const stockDisponible = stockRow ? stockRow.stock_combinacion || 0 : 0;
+
+            if (cantidad > stockDisponible) {
+                combinacionesSinStock.push({
+                    did_combinacion,
+                    requerido: cantidad,
+                    disponible: stockDisponible,
+                });
+            }
         }
-        if (productos_no_procesados.includes(producto.did_producto)) {
+
+        if (combinacionesSinStock.length > 0) {
+            productos_no_procesados.push({
+                did_producto,
+                combinaciones_sin_stock: combinacionesSinStock,
+            });
+            // No egresamos nada para este producto
             continue;
         }
-        for (const combinacion of combinaciones) {
-            const { cantidad } = combinacion;
-            let nuevaCantidad = 0;
 
+        // ─────────────────────────────────────────────
+        // 4) Egresar stock de ambas tablas
+        // ─────────────────────────────────────────────
+        for (const { did_combinacion, cantidad } of combinaciones) {
+            const stockRow = stockPorCombinacion.get(did_combinacion);
 
-            const cantidadAnterior = stockProductoRow[0].stock_combinacion || 0;
-            nuevaCantidad = cantidadAnterior + cantidad;
+            if (!stockRow) {
+                productos_no_procesados.push({
+                    did_producto,
+                    combinaciones_sin_stock: [
+                        { did_combinacion, requerido: cantidad, disponible: 0 },
+                    ],
+                });
+                continue;
+            }
 
+            const cantidadAnterior = stockRow.stock_combinacion || 0;
+            const nuevaCantidad = cantidadAnterior - cantidad; // EGRESO
+
+            // Update en stock_producto
             await LightdataORM.update({
                 db,
                 table: "stock_producto",
                 quien: userId,
-                where: { did: stockProductoRow[0].did },
+                where: { did: stockRow.did },
                 data: { stock_combinacion: nuevaCantidad }
             });
+
+            // ─────────────────────────────────────────
+            // Update en stock_producto_detalle
+            // ─────────────────────────────────────────
+            const detalleRow = stockDetallePorCombinacion.get(did_combinacion);
+
+            if (detalleRow) {
+                const stockDetalleAnterior = detalleRow.stock || 0; // ajusta nombre de columna
+                const nuevoStockDetalle = stockDetalleAnterior - cantidad;  // EGRESO
+
+                await LightdataORM.update({
+                    db,
+                    table: "stock_producto_detalle",
+                    quien: userId,
+                    where: { did: detalleRow.did },
+                    data: { stock: nuevoStockDetalle } // ajusta nombre
+                });
+            } else {
+                // Si no hay detalle, podés:
+                // - o bien crear uno
+                // - o loguear el caso
+                console.log(
+                    `⚠️ No se encontró stock_producto_detalle para combinación ${did_combinacion}`
+                );
+            }
+
+            resultados.push({
+                did_producto,
+                did_combinacion,
+            });
+
+            const remitoBody = {
+                userId,
+                did_cliente,
+                observaciones: observacion,
+                accion: "EGRESO",
+                remito_dids,
+                fecha
+            };
+
+            await createRemito({ db, ...remitoBody });
         }
-
-        const remitoBody = {
-            userId,
-            did_cliente,
-            observaciones: observacion,
-            accion: "EGRESO",
-            remito_dids,
-            fecha
-        };
-
-        await createRemito({ db, ...remitoBody });
     }
 
     return {
         success: true,
-        message: "Stock añadido correctamente y remito generado.",
+        message: "Stock egresado y remitos generados.",
         data: { resultados, productos_no_procesados },
         meta: { timestamp: new Date().toISOString() }
     };

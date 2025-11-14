@@ -3,10 +3,8 @@ import { buildHandlerWrapper } from "../src/functions/build_handler_wrapper.js";
 import { getStockActualbyProducto } from "../controller/stock/get_stock_actual.js";
 import { ingresoStock } from "../controller/stock/ingreso_stock_masivo.js";
 import { ajusteStock } from "../controller/stock/ajuste_stock.js";
-import { egresoStock } from "../controller/stock/egreso_stock.js";
 import { getStockActualIE } from "../controller/stock/get_stock_egreso.js";
-
-
+import { egresoStockMasivo } from "../controller/stock/egreso_stock_masivo.js";
 
 const stock = Router();
 
@@ -39,7 +37,7 @@ stock.post(
   buildHandlerWrapper({
     requiredParams: ["did"],
     optional: ["did_cliente", "productos", "fecha", "observacion", "did_deposito"],
-    controller: ({ db, req }) => egresoStock({ db, req }),
+    controller: ({ db, req }) => egresoStockMasivo({ db, req }),
   })
 );
 
