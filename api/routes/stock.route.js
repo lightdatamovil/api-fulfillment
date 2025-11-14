@@ -17,6 +17,7 @@ stock.get(
     controller: ({ db, req }) => getStockActualbyProducto({ db, req }),
   })
 );
+
 stock.get(
   "/productos/stockIE/:did_producto",
   buildHandlerWrapper({
@@ -25,8 +26,6 @@ stock.get(
   })
 );
 
-
-
 stock.post(
   "/productos/ingreso",
   buildHandlerWrapper({
@@ -34,7 +33,6 @@ stock.post(
     controller: ({ db, req }) => ingresoStock({ db, req }),
   })
 );
-
 
 stock.post(
   "/productos/egreso",

@@ -2,8 +2,7 @@ import { createHash } from "crypto";
 import { CustomException, LightdataORM } from "lightdata-tools";
 import { createRemito } from "../remito/create_remito.js";
 
-
-export async function ingresoStock({ db, req }) {
+export async function egresoStock({ db, req }) {
     const { did_cliente, productos, did_deposito, observacion, fecha } = req.body;
     const userId = Number(req.user.userId);
 
