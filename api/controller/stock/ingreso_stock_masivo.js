@@ -29,13 +29,14 @@ export async function ingresoStock({ db, req }) {
         for (const combinacion of combinaciones) {
             const { did_combinacion, cantidad, identificadores_especiales } = combinacion;
             let nuevaCantidad = 0;
-            const cantidadAnteriorRow = await LightdataORM.select({
+            const stockProductoRow = await LightdataORM.select({
                 db,
                 table: "stock_producto",
                 where: { did_producto_combinacion: did_combinacion },
             });
-            if (cantidadAnteriorRow.length === 0) {
-                await LightdataORM.insert({
+            let didInsertado;
+            if (stockProductoRow.length === 0) {
+                didInsertado = await LightdataORM.insert({
                     db,
                     table: "stock_producto",
                     quien: userId,
@@ -48,14 +49,14 @@ export async function ingresoStock({ db, req }) {
                     }
                 });
             } else {
-                const cantidadAnterior = cantidadAnteriorRow[0].stock_combinacion || 0;
+                const cantidadAnterior = stockProductoRow[0].stock_combinacion || 0;
                 nuevaCantidad = cantidadAnterior + cantidad;
+
                 await LightdataORM.update({
                     db,
                     table: "stock_producto",
                     quien: userId,
-                    where: { did_producto_combinacion: did_combinacion },
-                    versionKey: "did_producto_combinacion",
+                    where: { did: stockProductoRow[0].did },
                     data: { stock_combinacion: nuevaCantidad }
                 });
             }
@@ -67,6 +68,7 @@ export async function ingresoStock({ db, req }) {
 
                 const stock_detalle = {
                     did_producto,
+                    did_producto_variante_stock: didInsertado,
                     did_producto_combinacion: did_combinacion,
                     stock: cantidad,
                     data_ie: JSON.stringify(identificadores_especiales),
@@ -88,7 +90,7 @@ export async function ingresoStock({ db, req }) {
                         db,
                         table: "stock_producto_detalle",
                         quien: userId,
-                        where: { hash },
+                        where: { did: existingDetalleRow[0].did },
                         data: { stock: updatedStock }
                     });
                 } else {
