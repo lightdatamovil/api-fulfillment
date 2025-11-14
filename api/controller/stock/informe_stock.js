@@ -1,43 +1,52 @@
 import { executeQuery } from "lightdata-tools";
+import { SqlWhere } from "../../src/functions/query_utils.js";
 
 export async function informeStock({ db, req }) {
     const { did_cliente } = req.params;
-    const q = `
-    SELECT 
-      p.*, 
-      pvv.did AS did_productos_variantes_valores,
-      pvv.valores AS valores_raw,
-  
-      -- 🔹 Stock de la combinación (sumado desde el detalle)
-      (
-        SELECT COALESCE(SUM(spd.stock), 0)
-        FROM stock_producto_detalle AS spd
-        JOIN stock_producto AS sp
-          ON spd.did_producto_variante_stock = sp.did
-        WHERE sp.did_producto_combinacion = pvv.did
-          AND sp.elim = 0
-          AND sp.superado = 0
-          -- Si stock_producto_detalle es versionado, descomentá:
-          -- AND spd.elim = 0
-          -- AND spd.superado = 0
-      ) AS stock_combinacion
-  
-    FROM productos AS p
-    LEFT JOIN productos_variantes_valores AS pvv
-      ON p.did = pvv.did_producto
-    WHERE p.elim = 0
-      AND p.superado = 0 AND p.did_cliente = ?
-    ORDER BY p.did DESC;
-  `;
+    const { sku, ean, descripcion } = req.query || {};
 
-    const rows = await executeQuery({ db, query: q, values: [did_cliente] });
+    // 🔹 Armamos el WHERE dinámico
+    const where = new SqlWhere()
+        .eq("p.elim", 0)
+        .eq("p.superado", 0)
+        .eq("p.did_cliente", did_cliente)
+        .likeCI("p.sku", sku)              // filtro por SKU (contiene, case-insensitive)
+        .likeCI("p.ean", ean)              // filtro por EAN
+        .likeCI("p.descripcion", descripcion); // filtro por descripción
+
+    const { whereSql, params } = where.finalize();
+
+    const q = `
+      SELECT 
+        p.*, 
+        pvv.did AS did_productos_variantes_valores,
+        pvv.valores AS valores_raw,
+        (
+          SELECT COALESCE(SUM(spd.stock), 0)
+          FROM stock_producto_detalle AS spd
+          JOIN stock_producto AS sp
+            ON spd.did_producto_variante_stock = sp.did
+           AND spd.elim = 0 AND spd.superado = 0
+          WHERE sp.did_producto_combinacion = pvv.did
+            AND sp.elim = 0
+            AND sp.superado = 0
+        ) AS stock_combinacion
+      FROM productos AS p
+      LEFT JOIN productos_variantes_valores AS pvv
+        ON p.did = pvv.did_producto
+      ${whereSql}
+      ORDER BY p.did DESC;
+    `;
+
+    const rows = await executeQuery({ db, query: q, values: params });
+
     const productosMap = rows.reduce((acc, row) => {
         if (!acc[row.did]) {
             acc[row.did] = {
                 ...row,
                 valores: [],
                 insumos: [],
-                stock_producto: 0, // lo calculamos después
+                stock_producto: 0,
             };
         }
 
@@ -73,5 +82,6 @@ export async function informeStock({ db, req }) {
 
         return p;
     });
+
     return productos;
 }
