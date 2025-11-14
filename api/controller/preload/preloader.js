@@ -286,10 +286,27 @@ export async function preloader({ db }) {
   const identificadores_especiales_array = Array.from(identificadores_especiales_map.values());
 
 
+  //logisticas 
+  const logisticaSelect = await LightdataORM.select({
+    db,
+    table: "logisticas"
+  });
+  console.log('logisticaSelect', logisticaSelect);
+  const logisticas = logisticaSelect.map(l => ({
+    did: l.did,
+    nombre: l.nombre,
+    sync: l.sync,
+    codigo: l.codigo,
+    codigoSync: l.codigoSync
+  }));
+
+  console.log(logisticas);
+
+
   return {
     success: true,
     message: "Datos pre-cargados correctamente",
-    data: { productos, variantes, curvas, insumos, clientes, usuarios, estados_ot, identificadores_especiales: identificadores_especiales_array },
+    data: { productos, variantes, curvas, insumos, clientes, usuarios, estados_ot, identificadores_especiales: identificadores_especiales_array, logisticas },
     meta: { timestamp: new Date().toISOString() },
   };
 }
