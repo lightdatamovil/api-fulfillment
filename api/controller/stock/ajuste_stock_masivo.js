@@ -14,7 +14,6 @@ export async function ajusteStockMasivo({ db, req }) {
 
     const resultados = [];
     const remito_dids = [];
-    const productos_no_procesados = [];
 
     for (const producto of productos) {
         const { did_producto, combinaciones } = producto;
@@ -66,48 +65,10 @@ export async function ajusteStockMasivo({ db, req }) {
         );
 
         // ─────────────────────────────────────────────
-        // 3) Validar que TODAS las combinaciones tengan stock suficiente
-        //    (usamos stock_producto como referencia principal)
-        // ─────────────────────────────────────────────
-        const combinacionesSinStock = [];
-
-        for (const { did_combinacion, cantidad } of combinaciones) {
-            const stockRow = stockPorCombinacion.get(did_combinacion);
-            const stockDisponible = stockRow ? stockRow.stock_combinacion || 0 : 0;
-
-            if (cantidad > stockDisponible) {
-                combinacionesSinStock.push({
-                    did_combinacion,
-                    requerido: cantidad,
-                    disponible: stockDisponible,
-                });
-            }
-        }
-
-        if (combinacionesSinStock.length > 0) {
-            productos_no_procesados.push({
-                did_producto,
-                combinaciones_sin_stock: combinacionesSinStock,
-            });
-            // No egresamos nada para este producto
-            continue;
-        }
-
-        // ─────────────────────────────────────────────
         // 4) Egresar stock de ambas tablas
         // ─────────────────────────────────────────────
         for (const { did_combinacion, cantidad } of combinaciones) {
             const stockRow = stockPorCombinacion.get(did_combinacion);
-
-            if (!stockRow) {
-                productos_no_procesados.push({
-                    did_producto,
-                    combinaciones_sin_stock: [
-                        { did_combinacion, requerido: cantidad, disponible: 0 },
-                    ],
-                });
-                continue;
-            }
 
             // Update en stock_producto
             await LightdataORM.update({
@@ -163,7 +124,7 @@ export async function ajusteStockMasivo({ db, req }) {
     return {
         success: true,
         message: "Stock egresado y remitos generados.",
-        data: { resultados, productos_no_procesados },
+        data: { resultados },
         meta: { timestamp: new Date().toISOString() }
     };
 }
