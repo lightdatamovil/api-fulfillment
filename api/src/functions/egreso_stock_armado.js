@@ -4,8 +4,6 @@ import { CustomException, LightdataORM } from "lightdata-tools";
 
 export async function egresoStockMasivoArmado({ db, productos, userId }) {
 
-
-
     if (!productos || !Array.isArray(productos) || productos.length === 0) {
         throw new CustomException({
             title: "Datos incompletos",
@@ -14,7 +12,6 @@ export async function egresoStockMasivoArmado({ db, productos, userId }) {
     }
 
     const resultados = [];
-
     const productos_no_procesados = [];
 
     for (const producto of productos) {
@@ -29,9 +26,7 @@ export async function egresoStockMasivoArmado({ db, productos, userId }) {
 
         const didsCombinaciones = combinaciones.map(c => c.did_combinacion);
 
-        // ─────────────────────────────────────────────
-        // 1) Traer stock de stock_producto
-        // ─────────────────────────────────────────────
+        // STOCK PRODUCTO (general)
         const stockProductoRow = await LightdataORM.select({
             db,
             table: "stock_producto",
@@ -46,17 +41,12 @@ export async function egresoStockMasivoArmado({ db, productos, userId }) {
             ])
         );
 
-        // ─────────────────────────────────────────────
-        // 2) Traer stock de stock_producto_detalle
-        //    (ajusta columnas según tu tabla real)
-        // ─────────────────────────────────────────────
+        // STOCK DETALLE (si no viene en el body)
         const stockProductoDetalleRow = await LightdataORM.select({
             db,
             table: "stock_producto_detalle",
             where: { did_producto_combinacion: didsCombinaciones },
-            // ajusta los nombres de columnas según tu esquema:
             select: ["did", "did_producto_combinacion", "stock"]
-            // por ejemplo: ["did", "did_producto_combinacion", "stock_combinacion_detalle"]
         });
 
         const stockDetallePorCombinacion = new Map(
@@ -66,21 +56,18 @@ export async function egresoStockMasivoArmado({ db, productos, userId }) {
             ])
         );
 
-        // ─────────────────────────────────────────────
-        // 3) Validar que TODAS las combinaciones tengan stock suficiente
-        //    (usamos stock_producto como referencia principal)
-        // ─────────────────────────────────────────────
+        // VALIDACIÓN DE STOCK
         const combinacionesSinStock = [];
 
         for (const { did_combinacion, cantidad } of combinaciones) {
             const stockRow = stockPorCombinacion.get(did_combinacion);
-            const stockDisponible = stockRow ? stockRow.stock_combinacion || 0 : 0;
+            const stockDisponible = stockRow?.stock_combinacion ?? 0;
 
             if (cantidad > stockDisponible) {
                 combinacionesSinStock.push({
                     did_combinacion,
                     requerido: cantidad,
-                    disponible: stockDisponible,
+                    disponible: stockDisponible
                 });
             }
         }
@@ -88,32 +75,19 @@ export async function egresoStockMasivoArmado({ db, productos, userId }) {
         if (combinacionesSinStock.length > 0) {
             productos_no_procesados.push({
                 did_producto,
-                combinaciones_sin_stock: combinacionesSinStock,
+                combinaciones_sin_stock: combinacionesSinStock
             });
-            // No egresamos nada para este producto
             continue;
         }
 
-        // ─────────────────────────────────────────────
-        // 4) Egresar stock de ambas tablas
-        // ─────────────────────────────────────────────
-        for (const { did_combinacion, cantidad } of combinaciones) {
+        // EGRESAR STOCK
+        for (const { did_combinacion, cantidad, did_stock_producto_detalle } of combinaciones) {
+
             const stockRow = stockPorCombinacion.get(did_combinacion);
+            const cantidadAnterior = stockRow?.stock_combinacion ?? 0;
+            const nuevaCantidad = cantidadAnterior - cantidad;
 
-            if (!stockRow) {
-                productos_no_procesados.push({
-                    did_producto,
-                    combinaciones_sin_stock: [
-                        { did_combinacion, requerido: cantidad, disponible: 0 },
-                    ],
-                });
-                continue;
-            }
-
-            const cantidadAnterior = stockRow.stock_combinacion || 0;
-            const nuevaCantidad = cantidadAnterior - cantidad; // EGRESO
-
-            // Update en stock_producto
+            // stock_producto (siempre)
             await LightdataORM.update({
                 db,
                 table: "stock_producto",
@@ -122,36 +96,38 @@ export async function egresoStockMasivoArmado({ db, productos, userId }) {
                 data: { stock_combinacion: nuevaCantidad }
             });
 
-            // ─────────────────────────────────────────
-            // Update en stock_producto_detalle
-            // ─────────────────────────────────────────
-            const detalleRow = stockDetallePorCombinacion.get(did_combinacion);
+            // stock_producto_detalle
+            let detalleRow;
+
+            // 1) Preferir el pasado por body
+            if (did_stock_producto_detalle) {
+                detalleRow = { did: did_stock_producto_detalle };
+            } else {
+                // 2) fallback al que ya trae la DB
+                detalleRow = stockDetallePorCombinacion.get(did_combinacion);
+            }
 
             if (detalleRow) {
-                const stockDetalleAnterior = detalleRow.stock || 0; // ajusta nombre de columna
-                const nuevoStockDetalle = stockDetalleAnterior - cantidad;  // EGRESO
+                const stockDetalleAnterior = detalleRow.stock ?? 0;
+                const nuevoStockDetalle = stockDetalleAnterior - cantidad;
 
                 await LightdataORM.update({
                     db,
                     table: "stock_producto_detalle",
                     quien: userId,
                     where: { did: detalleRow.did },
-                    data: { stock: nuevoStockDetalle } // ajusta nombre
+                    data: { stock: nuevoStockDetalle }
                 });
+
             } else {
-                // Si no hay detalle, podés:
-                // - o bien crear uno
-                // - o loguear el caso
-                console.log(
-                    `⚠️ No se encontró stock_producto_detalle para combinación ${did_combinacion}`
-                );
+                console.log(`⚠️ No se encontró stock_producto_detalle para combinación ${did_combinacion}`);
             }
 
             resultados.push({
                 did_producto,
                 did_combinacion,
+                did_stock_producto_detalle: detalleRow?.did || null
             });
-
         }
     }
 
