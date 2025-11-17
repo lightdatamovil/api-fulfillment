@@ -56,10 +56,13 @@ export async function createPedido(db, payload, userId) {
     ];
 
     const ins = await executeQuery(
-        db,
-        `INSERT INTO pedidos (${cols.join(",")}) VALUES (${ph.join(",")})`,
-        vals,
-        true
+        {
+            db,
+
+            query: `INSERT INTO pedidos (${cols.join(",")}) VALUES (${ph.join(",")})`,
+            values: vals,
+
+        }
     );
     if (!ins?.insertId) throw new Error("No se pudo insertar pedido");
 
