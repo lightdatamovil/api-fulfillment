@@ -96,7 +96,12 @@ export async function createProducto({ db, req }) {
             db,
             table: "productos_variantes_valores",
             quien: userId,
-            data: combinacioneMapeadas,
+            data: combinacioneMapeadas.length ? combinacioneMapeadas : {
+                did_producto: didProducto,
+                valores: 0,
+                ean: ean,
+                sync: 0,
+            },
         });
 
         // 3) Con esos DID, armar todas las filas para productos_ecommerce

@@ -82,18 +82,31 @@ export async function ingresoStockMasivo({ db, req }) {
             let nuevaCantidad;
 
             if (stockProductoRow.length === 0) {
-                // No existe registro -> insert
+                let didcomb;
+                if (!did_combinacion) {
+                    didcomb = await LightdataORM.insert({
+                        db,
+                        table: "producto_variantes_valores",
+                        quien: userId,
+                        data: {
+                            did_producto,
+                        },
+                    });
+                } else {
+                    didcomb = did_combinacion;
+                }
+
                 didStockProducto = await LightdataORM.insert({
                     db,
                     table: "stock_producto",
                     quien: userId,
                     data: {
                         did_producto,
-                        did_producto_combinacion: did_combinacion,
+                        did_producto_combinacion: didcomb,
                         stock_combinacion: cantidad,
                         did_deposito: 1, // ajustar si corresponde
                         tiene_ie: identificadores_especiales != null ? 1 : 0,
-                        tipo: "INGRESO"
+                        tipo: "INGRES23O"
                     },
                 });
 
