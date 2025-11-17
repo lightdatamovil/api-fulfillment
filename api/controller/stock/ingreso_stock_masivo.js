@@ -93,6 +93,7 @@ export async function ingresoStockMasivo({ db, req }) {
                         stock_combinacion: cantidad,
                         did_deposito: 1, // ajustar si corresponde
                         tiene_ie: identificadores_especiales != null ? 1 : 0,
+                        tipo: "INGRESO"
                     },
                 });
 
@@ -108,7 +109,7 @@ export async function ingresoStockMasivo({ db, req }) {
                     db,
                     table: "stock_producto",
                     quien: userId,
-                    where: { did: didStockProducto },
+                    where: { did: didStockProducto, tipo: "INGRESO" },
                     data: { stock_combinacion: nuevaCantidad },
                 });
             }

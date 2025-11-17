@@ -75,7 +75,7 @@ export async function ajusteStockMasivo({ db, req }) {
                 db,
                 table: "stock_producto",
                 quien: userId,
-                where: { did: stockRow.did },
+                where: { did: stockRow.did, tipo: "AJUSTE" },
                 data: { stock_combinacion: cantidad }
             });
 
