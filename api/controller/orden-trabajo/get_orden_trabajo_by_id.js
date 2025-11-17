@@ -16,9 +16,9 @@ import { executeQuery } from "lightdata-tools";
  * }
  */
 export async function getFilteredOrdenesTrabajoByDid({ db, req }) {
-    const { did } = req.params || {};
+  const { did } = req.params || {};
 
-    const sql = `
+  const sql = `
     SELECT 
       ot.did,
       ot.estado,
@@ -41,6 +41,7 @@ export async function getFilteredOrdenesTrabajoByDid({ db, req }) {
                     'did', pp2.did,
                     'did_producto', pp2.did_producto,
                     'descripcion', pp2.descripcion,
+                    'did_producto_variante_valor',pp2.did_producto_variante_valor,
                     'codigo', pp2.codigo,
                     'ml_id', pp2.ml_id,
                     'cantidad', pp2.cantidad,
@@ -68,16 +69,16 @@ export async function getFilteredOrdenesTrabajoByDid({ db, req }) {
     LIMIT 1;
   `;
 
-    const rows = await executeQuery({ db, query: sql, values: [did] });
-    if (!rows?.length) {
-        return { success: false, message: "OT no encontrada", data: null };
-    }
+  const rows = await executeQuery({ db, query: sql, values: [did] });
+  if (!rows?.length) {
+    return { success: false, message: "OT no encontrada", data: null };
+  }
 
-    const row = rows[0];
-    const data = {
-        ...row,
-        pedidos: typeof row.pedidos === "string" ? JSON.parse(row.pedidos) : row.pedidos,
-    };
+  const row = rows[0];
+  const data = {
+    ...row,
+    pedidos: typeof row.pedidos === "string" ? JSON.parse(row.pedidos) : row.pedidos,
+  };
 
-    return { success: true, message: "OK", data };
+  return { success: true, message: "OK", data };
 }
