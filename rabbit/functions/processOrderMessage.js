@@ -90,12 +90,12 @@ export async function processOrderMessage(rawMsg) {
         console.log("Procesando orden ML:", sellerData.idempresa);
 
 
-        // Conexión (⚠️ no uses "const db" para no sombrear)
-        const cfg = getFFProductionDbConfig(
-            String(sellerData.idempresa),
-            hostFulFillement,
-            portFulFillement
-        );
+        const cfg = getFFProductionDbConfig({
+            host: hostFulFillement,
+            port: portFulFillement,
+            companyId: sellerData.idempresa
+        });
+
         db = await connectMySQL(cfg);
 
         // Traer orden ML
