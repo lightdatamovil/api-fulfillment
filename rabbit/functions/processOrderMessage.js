@@ -11,6 +11,7 @@ import { getTokenBySeller } from "./getTokenBySeller.js";
 import { getStatusVigente } from "./getStatusVigente.js";
 import { updatePedidoStatusWithHistory } from "./updatePedidoStatusWithHistory.js";
 import { obtenerClienteCuenta } from "./obtenerCliente.js";
+import { tryLockOrder } from "./redisDedupe.js";
 
 /* ============== Axios client para ML ============== */
 function mlClient(token) {
@@ -71,6 +72,16 @@ export async function processOrderMessage(rawMsg) {
 
         const seller_id = String(datain.sellerid);
         const resource = datain.resource;
+        const orderNumber = resource.split("/").pop();
+        const lockAcquired = await tryLockOrder(seller_id, orderNumber);
+
+        if (!lockAcquired) {
+            console.log("DUPLICADO DETECTADO. Ignorando:", seller_id, orderNumber);
+            return { ok: true, skipped: "duplicado" };
+        }
+
+        console.log("resource", resource);
+
 
         const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
         if (!sellersPermitidos.includes(seller_id)) {
