@@ -58,7 +58,7 @@ export async function createUsuario({ db, req }) {
         app_habilitada,
         telefono: emptyToNull(telefono),
         codigo_cliente: emptyToNull(codigo_cliente),
-        image: null,
+        imagen: null,
     };
 
     const userInsert = await LightdataORM.insert({
