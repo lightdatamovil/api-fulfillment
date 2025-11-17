@@ -1,4 +1,4 @@
-export function mapMlToPedidoPayload(ml, sellerData) {
+export function mapMlToPedidoPayload(ml, sellerData, didCliente) {
     const firstItem = ml?.order_items?.[0];
     const variation_attributes = firstItem?.item?.variation_attributes || null;
 
@@ -7,7 +7,8 @@ export function mapMlToPedidoPayload(ml, sellerData) {
     console.log(receiver_address, "receiver_address");
 
     return {
-        did_cuenta: sellerData?.idcuenta ?? 0,
+
+        didCliente: didCliente,
         status: ml?.status || "created",
         number: String(ml?.id || ""),
         fecha_venta: ml?.date_closed || new Date().toISOString(),

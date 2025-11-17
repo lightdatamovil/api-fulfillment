@@ -10,6 +10,7 @@ import { ESTADOS_CACHE, hostFulFillement, ORDENES_CACHE, portFulFillement } from
 import { getTokenBySeller } from "./getTokenBySeller.js";
 import { getStatusVigente } from "./getStatusVigente.js";
 import { updatePedidoStatusWithHistory } from "./updatePedidoStatusWithHistory.js";
+import { obtenerClienteCuenta } from "./obtenerCliente.js";
 
 /* ============== Axios client para ML ============== */
 function mlClient(token) {
@@ -86,8 +87,8 @@ export async function processOrderMessage(rawMsg) {
             return { ok: false, error: "seller-data-not-found" };
         }
 
-        console.log(sellerData);
-        console.log("Procesando orden ML:", sellerData.idempresa);
+
+
 
 
         const cfg = getFFProductionDbConfig({
@@ -97,6 +98,8 @@ export async function processOrderMessage(rawMsg) {
         });
 
         db = await connectMySQL(cfg);
+
+        const cuentas = await obtenerClienteCuenta(db, seller_id);
 
         // Traer orden ML
         const mlOrder = await obtenerDatosEnvioML(resource, token);
@@ -123,7 +126,7 @@ export async function processOrderMessage(rawMsg) {
         // Map a payload (incluye shipping.receiver_address si lo obtuvimos)
         const number = String(mlOrder.id);
         const keyCache = `${seller_id}_${number}`;
-        const payload = mapMlToPedidoPayload(mlOrder, sellerData);
+        const payload = mapMlToPedidoPayload(mlOrder, sellerData, cuentas.didCliente);
 
         // Alta / update
         let did =
