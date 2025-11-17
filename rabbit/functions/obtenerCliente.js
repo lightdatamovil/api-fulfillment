@@ -8,5 +8,5 @@ export async function obtenerClienteCuenta(db, ml_id_vendedor) {
         values: [ml_id_vendedor]
     });
 
-    return { didCliente: rows[0].didCliente, didCuenta: rows[0].didCuenta };
+    return { didCliente: rows[0].did_cliente, didCuenta: rows[0].did_cuenta };
 }
