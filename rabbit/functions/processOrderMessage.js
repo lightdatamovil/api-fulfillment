@@ -86,6 +86,10 @@ export async function processOrderMessage(rawMsg) {
             return { ok: false, error: "seller-data-not-found" };
         }
 
+        console.log(sellerData);
+        console.log("Procesando orden ML:", sellerData.idempresa);
+
+
         // Conexión (⚠️ no uses "const db" para no sombrear)
         const cfg = getFFProductionDbConfig(
             String(sellerData.idempresa),
