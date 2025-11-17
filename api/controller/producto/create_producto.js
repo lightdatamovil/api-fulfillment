@@ -134,7 +134,6 @@ export async function createProducto({ db, req }) {
             quien: userId,
             data: {
                 did_producto: didProducto,
-                valores: 0,
                 ean: ean,
                 sync: 0,
             },
