@@ -8,7 +8,7 @@ export function mapMlToPedidoPayload(ml, sellerData, didCliente) {
 
     return {
 
-        didCliente: didCliente,
+        did_cliente: didCliente,
         status: ml?.status || "created",
         number: String(ml?.id || ""),
         fecha_venta: ml?.date_closed || new Date().toISOString(),
