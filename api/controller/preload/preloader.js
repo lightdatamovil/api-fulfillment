@@ -25,30 +25,35 @@ export async function preloader({ db, req }) {
   let productos = [];
   if (wants("productos")) {
     const qProductos = `
-      SELECT 
-        p.*, 
-        pvv.did AS did_productos_variantes_valores,
-        pvv.valores AS valores_raw,
+  SELECT 
+    p.*, 
+    pvv.did AS did_productos_variantes_valores,
+    pvv.valores AS valores_raw,
 
-        -- 🔹 Stock de la combinación (sumado desde el detalle)
-        (
-          SELECT COALESCE(SUM(spd.stock), 0)
-          FROM stock_producto_detalle AS spd
-          JOIN stock_producto AS sp
-            ON spd.did_producto_variante_stock = sp.did
-            AND spd.elim = 0 AND spd.superado = 0
-          WHERE sp.did_producto_combinacion = pvv.did
-            AND sp.elim = 0
-            AND sp.superado = 0
-        ) AS stock_combinacion
+    -- 🔹 Stock de la combinación (desde stock_producto)
+    sp.stock_combinacion
 
-      FROM productos AS p
-      LEFT JOIN productos_variantes_valores AS pvv
-        ON p.did = pvv.did_producto
-      WHERE p.elim = 0
-        AND p.superado = 0
-      ORDER BY p.did DESC;
-    `;
+  FROM productos AS p
+  LEFT JOIN productos_variantes_valores AS pvv
+    ON p.did = pvv.did_producto
+
+  -- Subquery que resume stock por combinación
+  LEFT JOIN (
+    SELECT 
+      did_producto_combinacion,
+      SUM(stock_combinacion) AS stock_combinacion
+    FROM stock_producto
+    WHERE elim = 0
+      AND superado = 0
+    GROUP BY did_producto_combinacion
+  ) AS sp
+    ON sp.did_producto_combinacion = pvv.did
+
+  WHERE p.elim = 0
+    AND p.superado = 0
+  ORDER BY p.did DESC;
+`;
+
 
     const rows = await executeQuery({ db, query: qProductos, log: true });
 

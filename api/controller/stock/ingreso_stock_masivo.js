@@ -81,9 +81,9 @@ export async function ingresoStockMasivo({ db, req }) {
             let didStockProducto;
             let nuevaCantidad;
 
-            if (stockProductoRow.length === 0) {
+            if (stockProductoRow.length == 0) {
                 let didcomb;
-                if (!did_combinacion) {
+                if (!did_combinacion || did_combinacion == "default") {
                     didcomb = await LightdataORM.insert({
                         db,
                         table: "producto_variantes_valores",
