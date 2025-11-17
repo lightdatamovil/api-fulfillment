@@ -103,7 +103,7 @@ export async function createPedido(db, payload, userId) {
         await executeQuery({
             db,
             query: queryInsert,
-            value: ival,
+            values: ival,
         }
 
         );
@@ -176,7 +176,7 @@ export async function createPedido(db, payload, userId) {
         await executeQuery({
             db,
             query: `INSERT INTO pedidos_ordenes_direcciones_destino (${dirCols.join(",")}) VALUES (${dirPh})`,
-            value: dirVals,
+            values: dirVals,
         }
         );
     }
@@ -186,7 +186,7 @@ export async function createPedido(db, payload, userId) {
         {
             db,
             query: `INSERT INTO pedidos_historial (did_pedido, estado, quien, superado, elim) VALUES (?, ?, ?, 0, 0)`,
-            value: [did, payload.status || "created", Number(userId ?? 0)],
+            values: [did, payload.status || "created", Number(userId ?? 0)],
         }
     );
 

@@ -30,7 +30,7 @@ export
                 db,
 
                 query: `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph.join(",")})`,
-                value: ival,
+                values: ival,
             }
             );
         }
@@ -41,7 +41,7 @@ export
             db,
 
             query: `UPDATE pedidos_historial SET superado = 1 WHERE did_pedido = ? AND superado = 0 AND elim = 0`,
-            value: [did],
+            values: [did],
         }
 
     );
@@ -50,7 +50,7 @@ export
             db,
             query: "INSERT INTO pedidos_historial (did, did_pedido, estado, fecha, quien, superado, elim)",
 
-            value: [did, newStatus, fecha, userId ?? null],
+            values: [did, newStatus, fecha, userId ?? null],
         }
 
     );

@@ -8,7 +8,7 @@ export async function getStatusVigente(db, did) {
     const rows = await executeQuery({
         db,
         query: `SELECT status FROM pedidos WHERE did = ? AND superado = 0 AND elim = 0 LIMIT 1`,
-        value: [did]
+        values: [did]
     }
     );
     const s = rows?.length ? rows[0].status : null;
