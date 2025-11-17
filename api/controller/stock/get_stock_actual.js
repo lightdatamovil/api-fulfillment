@@ -34,6 +34,8 @@ export async function getStockActualbyProducto({ db, req }) {
         where: { did_producto: didProducto, elim: 0, superado: 0 },
     });
 
+    console.log('stockProductos', stockProductos);
+
     if (!stockProductos.length) {
         return {
             success: true,
@@ -45,10 +47,15 @@ export async function getStockActualbyProducto({ db, req }) {
 
     // Detectar si alguno tiene identificadores especiales (IE)
     const tieneIE = stockProductos.some((s) => s.tiene_ie == 1);
+    console.log('tieneIE', tieneIE);
 
     // 🩵 Caso SIN IE → agrupar por depósito y combinación
     if (!tieneIE) {
+
         const agrupadoPorDeposito = stockProductos.reduce((acc, item) => {
+            console.log('1');
+            console.log('acc', acc);
+            console.log('item', item);
             const key = item.did_deposito ? String(item.did_deposito) : "sin_deposito";
             if (!acc[key]) acc[key] = [];
 
@@ -57,11 +64,11 @@ export async function getStockActualbyProducto({ db, req }) {
             );
 
             if (existente) {
-                existente.cantidad += item.stock ?? 0;
+                existente.cantidad += item.stock_combinacion ?? 0;
             } else {
                 acc[key].push({
                     did_producto_combinacion: item.did_producto_combinacion,
-                    cantidad: item.stock ?? 0,
+                    cantidad: item.stock_combinacion ?? 0,
                 });
             }
 
@@ -131,13 +138,14 @@ export async function getStockActualbyProducto({ db, req }) {
                 .map(([k, v]) => `${k}:${v}`)
                 .join("|");
 
+
             if (!acc[claveIE]) {
                 acc[claveIE] = {
                     did_deposito: item.did_deposito,
                     did_producto: item.did_producto,
                     did_producto_combinacion: item.did_producto_combinacion,
                     identificadores: dataIEReadable,
-                    cantidad: 0,
+                    cantidad: item.stock_combinacion ?? 0,
                 };
             }
 
@@ -158,8 +166,11 @@ export async function getStockActualbyProducto({ db, req }) {
         );
 
         if (existente) {
+            console.log('10');
             existente.cantidad += item.cantidad ?? 0;
         } else {
+            console.log('11');
+            console.log('item', item);
             acc[key].push({
                 did_producto_combinacion: item.did_producto_combinacion,
                 identificadores: item.identificadores,
