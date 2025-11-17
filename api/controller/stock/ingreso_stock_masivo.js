@@ -91,8 +91,8 @@ export async function ingresoStockMasivo({ db, req }) {
                         did_producto,
                         did_producto_combinacion: did_combinacion,
                         stock_combinacion: cantidad,
-                        did_deposito: 1, // ajustar si corresponde
-                        tiene_ie: identificadores_especiales != null ? 1 : 0,
+                        did_deposito: 1,
+                        tiene_ie: identificadores_especiales != null || identificadores_especiales.length == 0 ? 1 : 0, //guarda 1 si identificadores_especiales != null
                         tipo: "INGRESO"
                     },
                 });
