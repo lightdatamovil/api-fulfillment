@@ -23,7 +23,7 @@ export async function createPedido(db, payload, userId) {
 
     // Insert encabezado
     const cols = [
-        "status", "flex", "trabajado", "number", "fecha_venta", "buyer_id", "buyer_nickname",
+        "status", "flex", "did_cliente", "trabajado", "number", "fecha_venta", "buyer_id", "buyer_nickname",
         "buyer_name", "buyer_last_name", "total_amount", "ml_shipment_id", "ml_id",
         "ml_pack_id", "observaciones", "armado", "descargado",
         "quien_armado", "reference_id", "billing", "quien", "superado", "elim"
@@ -33,6 +33,7 @@ export async function createPedido(db, payload, userId) {
 
         payload.status,
         1,
+        payload.did_cliente ?? 0,
         0,
         payload.number,
         payload.fecha_venta,

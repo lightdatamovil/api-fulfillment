@@ -126,7 +126,7 @@ export async function processOrderMessage(rawMsg) {
         // Map a payload (incluye shipping.receiver_address si lo obtuvimos)
         const number = String(mlOrder.id);
         const keyCache = `${seller_id}_${number}`;
-        const payload = mapMlToPedidoPayload(mlOrder, sellerData, cuentas.didCliente, cuentas.didCuenta);
+        const payload = mapMlToPedidoPayload(mlOrder, sellerData, cuentas.didCliente);
 
         // Alta / update
         let did =
