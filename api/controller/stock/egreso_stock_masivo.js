@@ -117,7 +117,7 @@ export async function egresoStockMasivo({ db, req }) {
                 db,
                 table: "stock_producto",
                 quien: userId,
-                where: { did: stockRow.did },
+                where: { did: stockRow.did, tipo: "EGRESO" },
                 data: { stock_combinacion: nuevaCantidad }
             });
 
