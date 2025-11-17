@@ -96,7 +96,7 @@ export async function createProducto({ db, req }) {
             db,
             table: "productos_variantes_valores",
             quien: userId,
-            data: combinacioneMapeadas.length ? combinacioneMapeadas : {
+            data: combinacioneMapeadas.length > 0 ? combinacioneMapeadas : {
                 did_producto: didProducto,
                 valores: 0,
                 ean: ean,
