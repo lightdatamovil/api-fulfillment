@@ -98,12 +98,14 @@ export async function createPedido(db, payload, userId) {
             0,
             0
         ];
+        const queryInsert = `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph})`;
 
-        await executeQuery(
+        await executeQuery({
             db,
-            `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph})`,
-            ival,
-            true
+            query: queryInsert,
+            value: ival,
+        }
+
         );
     }
 
@@ -171,20 +173,21 @@ export async function createPedido(db, payload, userId) {
         ];
         const dirPh = dirCols.map(() => "?").join(",");
 
-        await executeQuery(
+        await executeQuery({
             db,
-            `INSERT INTO pedidos_ordenes_direcciones_destino (${dirCols.join(",")}) VALUES (${dirPh})`,
-            dirVals,
-            true
+            query: `INSERT INTO pedidos_ordenes_direcciones_destino (${dirCols.join(",")}) VALUES (${dirPh})`,
+            value: dirVals,
+        }
         );
     }
 
     // Historial inicial
     await executeQuery(
-        db,
-        `INSERT INTO pedidos_historial (did_pedido, estado, quien, superado, elim) VALUES (?, ?, ?, 0, 0)`,
-        [did, payload.status || "created", Number(userId ?? 0)],
-        true
+        {
+            db,
+            query: `INSERT INTO pedidos_historial (did_pedido, estado, quien, superado, elim) VALUES (?, ?, ?, 0, 0)`,
+            value: [did, payload.status || "created", Number(userId ?? 0)],
+        }
     );
 
     return did;
