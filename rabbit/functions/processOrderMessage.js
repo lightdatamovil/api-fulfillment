@@ -86,12 +86,16 @@ export async function processOrderMessage(rawMsg) {
             return { ok: false, error: "seller-data-not-found" };
         }
 
-        // Conexión (⚠️ no uses "const db" para no sombrear)
-        const cfg = getFFProductionDbConfig(
-            String(sellerData.idempresa),
-            hostFulFillement,
-            portFulFillement
-        );
+        console.log(sellerData);
+        console.log("Procesando orden ML:", sellerData.idempresa);
+
+
+        const cfg = getFFProductionDbConfig({
+            host: hostFulFillement,
+            port: portFulFillement,
+            companyId: sellerData.idempresa
+        });
+
         db = await connectMySQL(cfg);
 
         // Traer orden ML

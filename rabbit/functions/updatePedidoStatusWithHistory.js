@@ -3,10 +3,11 @@ import { executeQuery } from "lightdata-tools";
 export
     async function updatePedidoStatusWithHistory(db, did, newStatus, userId, fecha = new Date(), alsoInsertItemsPayload = null) {
     await executeQuery(
-        db,
-        `UPDATE pedidos SET status = ?, quien = ? WHERE did = ? AND superado = 0 AND elim = 0`,
-        [newStatus, userId ?? null, did],
-        true
+        {
+            db,
+            query: `UPDATE pedidos SET status = ?, quien = ? WHERE did = ? AND superado = 0 AND elim = 0`,
+            value: [newStatus, userId ?? null, did],
+        }
     );
 
     if (alsoInsertItemsPayload && Array.isArray(alsoInsertItemsPayload.items)) {
@@ -25,27 +26,33 @@ export
                 it.variation_attributes ? JSON.stringify(it.variation_attributes) : null,
                 it.imagen ?? null, userId ?? null, 0, 0
             ];
-            await executeQuery(
+            await executeQuery({
                 db,
-                `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph.join(",")})`,
-                ival,
-                true
+
+                query: `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph.join(",")})`,
+                values: ival,
+            }
             );
         }
     }
 
     await executeQuery(
-        db,
-        `UPDATE pedidos_historial SET superado = 1 WHERE did_pedido = ? AND superado = 0 AND elim = 0`,
-        [did],
-        true
+        {
+            db,
+
+            query: `UPDATE pedidos_historial SET superado = 1 WHERE did_pedido = ? AND superado = 0 AND elim = 0`,
+            values: [did],
+        }
+
     );
     const insH = await executeQuery(
-        db,
-        `INSERT INTO pedidos_historial (did, did_pedido, estado, fecha, quien, superado, elim)
-       VALUES (0, ?, ?, ?, ?, 0, 0)`,
-        [did, newStatus, fecha, userId ?? null],
-        true
+        {
+            db,
+            query: "INSERT INTO pedidos_historial (did, did_pedido, estado, fecha, quien, superado, elim)",
+
+            values: [did, newStatus, fecha, userId ?? null],
+        }
+
     );
     const idh = insH?.insertId;
     if (idh) {

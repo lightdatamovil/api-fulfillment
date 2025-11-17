@@ -5,10 +5,11 @@ export async function getStatusVigente(db, did) {
     if (ESTADOS_CACHE[did]) {
         return ESTADOS_CACHE[did];
     }
-    const rows = await executeQuery(
+    const rows = await executeQuery({
         db,
-        `SELECT status FROM pedidos WHERE did = ? AND superado = 0 AND elim = 0 LIMIT 1`,
-        [did]
+        query: `SELECT status FROM pedidos WHERE did = ? AND superado = 0 AND elim = 0 LIMIT 1`,
+        values: [did]
+    }
     );
     const s = rows?.length ? rows[0].status : null;
     if (s != null) ESTADOS_CACHE[did] = s;

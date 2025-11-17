@@ -56,10 +56,13 @@ export async function createPedido(db, payload, userId) {
     ];
 
     const ins = await executeQuery(
-        db,
-        `INSERT INTO pedidos (${cols.join(",")}) VALUES (${ph.join(",")})`,
-        vals,
-        true
+        {
+            db,
+
+            query: `INSERT INTO pedidos (${cols.join(",")}) VALUES (${ph.join(",")})`,
+            values: vals,
+
+        }
     );
     if (!ins?.insertId) throw new Error("No se pudo insertar pedido");
 
@@ -98,12 +101,14 @@ export async function createPedido(db, payload, userId) {
             0,
             0
         ];
+        const queryInsert = `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph})`;
 
-        await executeQuery(
+        await executeQuery({
             db,
-            `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph})`,
-            ival,
-            true
+            query: queryInsert,
+            values: ival,
+        }
+
         );
     }
 
@@ -171,20 +176,21 @@ export async function createPedido(db, payload, userId) {
         ];
         const dirPh = dirCols.map(() => "?").join(",");
 
-        await executeQuery(
+        await executeQuery({
             db,
-            `INSERT INTO pedidos_ordenes_direcciones_destino (${dirCols.join(",")}) VALUES (${dirPh})`,
-            dirVals,
-            true
+            query: `INSERT INTO pedidos_ordenes_direcciones_destino (${dirCols.join(",")}) VALUES (${dirPh})`,
+            values: dirVals,
+        }
         );
     }
 
     // Historial inicial
     await executeQuery(
-        db,
-        `INSERT INTO pedidos_historial (did_pedido, estado, quien, superado, elim) VALUES (?, ?, ?, 0, 0)`,
-        [did, payload.status || "created", Number(userId ?? 0)],
-        true
+        {
+            db,
+            query: `INSERT INTO pedidos_historial (did_pedido, estado, quien, superado, elim) VALUES (?, ?, ?, 0, 0)`,
+            values: [did, payload.status || "created", Number(userId ?? 0)],
+        }
     );
 
     return did;
