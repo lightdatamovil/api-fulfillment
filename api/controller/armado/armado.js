@@ -1,7 +1,7 @@
 import { LightdataORM } from "lightdata-tools";
-import { egresoStockMasivo } from "../stock/egreso_stock_masivo";
+import { egresoStockMasivoArmado } from "../../src/functions/egreso_stock_armado.js";
 
-export async function armado(db, req) {
+export async function armado({ db, req }) {
     const { userId } = req.user;
 
     const { did_ot } = req.body ?? {};
@@ -31,7 +31,10 @@ export async function armado(db, req) {
 
 
 
-    const egreso = await egresoStockMasivo({ db, req });
+    const egreso = await egresoStockMasivoArmado({ db, productos: req.body.productos, userId });
+
+    console.log(egreso);
+
 
 
     return {

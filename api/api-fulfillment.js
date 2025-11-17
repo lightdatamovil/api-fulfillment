@@ -21,6 +21,7 @@ import stock from './routes/stock.route.js';
 import identificadoresEspeciales from './routes/identificadores_adicionales.route.js';
 import remitos from './routes/remitos.route.js';
 import sincronizacion from './routes/sincronizacion-envios.route.js';
+import armadoOt from './routes/armado.route.js';
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use("/api/depositos", depositos);
 app.use("/api/identificadores-especiales", identificadoresEspeciales);
 app.use("/api/remitos", remitos);
 app.use("/api/sincronizacion-envios", sincronizacion);
+app.use("/api/armado", armadoOt);
 
 
 (async () => {
