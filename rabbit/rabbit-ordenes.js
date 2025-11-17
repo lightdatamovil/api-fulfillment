@@ -67,6 +67,6 @@ setInterval(() => {
   } catch (e) {
     logRed(e);
   } finally {
-    await redisClient.disconnect();
+    // await redisClient.disconnect();
   }
 })();
