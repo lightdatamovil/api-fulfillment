@@ -203,13 +203,16 @@ export async function createProducto({ db, req }) {
                 },
                 { headers: { "Content-Type": "application/json" } }
             );
+            console.log('urlResponse', urlResponse.data);
 
             urlReturn.push(urlResponse.data.file.url);
             await LightdataORM.update({
                 db,
                 table: "productos",
+                versionKey: "id",
                 where: { id: didProducto },
                 data: { imagen: urlReturn[0] },
+                quien: userId
             });
         }
     }
