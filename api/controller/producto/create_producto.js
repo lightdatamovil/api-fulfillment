@@ -96,12 +96,7 @@ export async function createProducto({ db, req }) {
             db,
             table: "productos_variantes_valores",
             quien: userId,
-            data: combinacioneMapeadas.length > 0 ? combinacioneMapeadas : {
-                did_producto: didProducto,
-                valores: 0,
-                ean: ean,
-                sync: 0,
-            },
+            data: combinacioneMapeadas,
         });
 
         // 3) Con esos DID, armar todas las filas para productos_ecommerce
@@ -132,6 +127,18 @@ export async function createProducto({ db, req }) {
                 data: ecommerceRows,
             });
         }
+    } else {
+        await LightdataORM.insert({
+            db,
+            table: "productos_variantes_valores",
+            quien: userId,
+            data: {
+                did_producto: didProducto,
+                valores: 0,
+                ean: ean,
+                sync: 0,
+            },
+        });
     }
 
     // 🧩 Insumos
