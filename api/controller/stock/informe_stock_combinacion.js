@@ -46,7 +46,8 @@ export async function informeStockCombinacion({ db, req }) {
                 identificadores_especiales: det ? JSON.parse(det.data_ie || "[]") : [],
                 id_venta_pedido: mov.id_venta_pedido || null,
                 movimiento: det ? det.stock : 0,  // cantidad movida
-                acumulado: mov.stock_combinacion
+                acumulado: mov.stock_combinacion,
+                id_venta: mov.id_venta,
             }
         };
     });
