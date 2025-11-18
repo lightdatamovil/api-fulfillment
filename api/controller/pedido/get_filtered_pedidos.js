@@ -1,4 +1,4 @@
-import { toStr, toBool01, pickNonEmpty, toIntList } from "lightdata-tools";
+import { toStr, toBool01, pickNonEmpty, toIntList, executeQuery } from "lightdata-tools";
 import { SqlWhere, makePagination, makeSort, runPagedQuery, buildMeta } from "../../src/functions/query_utils.js";
 
 export async function getFilteredPedidos({ db, req }) {
@@ -48,6 +48,7 @@ export async function getFilteredPedidos({ db, req }) {
         trabajado: "p.trabajado",
         flex: "p.flex",
     };
+
     const { orderSql } = makeSort(qp, sortMap, {
         defaultKey: "fecha",
         byKey: "sort_by",
@@ -66,7 +67,6 @@ export async function getFilteredPedidos({ db, req }) {
         where.add("p.fecha_venta <= ?", `${filtros.fecha_to} 23:59:59`);
     }
 
-
     if (filtros.id_venta) where.likeEscaped("p.number", filtros.id_venta, { caseInsensitive: true });
     if (filtros.comprador) where.likeEscaped("p.buyer_name", filtros.comprador, { caseInsensitive: true });
     if (filtros.estado) where.in("p.status", filtros.estado);
@@ -82,23 +82,25 @@ export async function getFilteredPedidos({ db, req }) {
 
     const { whereSql, params } = where.finalize();
 
+    // ---------------------------------------------------
+    // 1) QUERY PAGINADA
+    // ---------------------------------------------------
     const { rows, total } = await runPagedQuery(db, {
         select: `
-      p.did,
-      p.did_cliente,
-      p.did_logistica,
- 
-      p.fecha_venta      AS fecha,
-      p.status           AS estado,
-      p.number           AS id_venta,
-      p.buyer_name       AS comprador,
-    
-      p.total_amount     AS total,
-      p.armado           AS armado,
-      p.descargado       AS descargado,
-      p.flex, p.trabajado
-   
-    `,
+            p.did,
+            p.did_cliente,
+            p.did_logistica,
+            p.fecha_venta      AS fecha,
+            p.status           AS estado,
+            p.number           AS id_venta,
+            p.buyer_name       AS comprador,
+            p.total_amount     AS total,
+            p.armado           AS armado,
+            p.descargado       AS descargado,
+            p.flex,
+            p.trabajado,
+            p.ml_pack_id
+        `,
         from: "FROM pedidos p",
         whereSql,
         orderSql,
@@ -107,12 +109,93 @@ export async function getFilteredPedidos({ db, req }) {
         offset,
     });
 
+    // ---------------------------------------------------
+    // 2) IDENTIFICAR PACKS EN LA PÁGINA
+    // ---------------------------------------------------
+    const packIds = [...new Set(rows.filter(r => r.ml_pack_id).map(r => r.ml_pack_id))];
+
+    let packPedidos = [];
+
+    // ---------------------------------------------------
+    // 3) QUERY SIN PAGINADO → usando executeQuery
+    // ---------------------------------------------------
+    if (packIds.length > 0) {
+        const placeholders = packIds.map(() => "?").join(",");
+        const sql = `
+        SELECT
+            p.did,
+            p.did_cliente,
+            p.did_logistica,
+            p.fecha_venta      AS fecha,
+            p.status           AS estado,
+            p.number           AS id_venta,
+            p.buyer_name       AS comprador,
+            p.total_amount     AS total,
+            p.armado           AS armado,
+            p.descargado       AS descargado,
+            p.flex,
+            p.trabajado,
+            p.ml_pack_id
+        FROM pedidos p
+        WHERE p.elim = 0 
+          AND p.superado = 0
+          AND p.ml_pack_id IN (${placeholders})
+    `;
+
+        const packRows = await executeQuery({
+            db,
+            query: sql,
+            values: packIds
+        });
+
+        packPedidos = packRows;
+    }
+
+
+    // ---------------------------------------------------
+    // 4) AGRUPAR PACKS
+    // ---------------------------------------------------
+    const sinPack = [];
+    const packs = {};
+
+    for (const pedido of rows) {
+        if (pedido.ml_pack_id) {
+            if (!packs[pedido.ml_pack_id]) packs[pedido.ml_pack_id] = [];
+            packs[pedido.ml_pack_id].push(pedido);
+        } else {
+            sinPack.push(pedido);
+        }
+    }
+
+    for (const pedido of packPedidos) {
+        if (!packs[pedido.ml_pack_id]) packs[pedido.ml_pack_id] = [];
+        packs[pedido.ml_pack_id].push(pedido);
+    }
+
+    const packsFinal = Object.entries(packs).map(([packId, pedidos]) => {
+        const base = { ...pedidos[0] };
+
+        return {
+            ...base,
+            ml_pack_id: Number(packId),
+            ml_pack: pedidos.map(p => {
+                const copy = { ...p };
+                delete copy.ml_pack_id;
+                return copy;
+            })
+        };
+    });
+
+    const dataFinal = [...sinPack, ...packsFinal];
+
+    // ---------------------------------------------------
+    // 5) META
+    // ---------------------------------------------------
     const filtersForMeta = pickNonEmpty({
         did_cliente: filtros.did_cliente,
         did_logistica: filtros.did_logistica,
         fecha_from: filtros.fecha_from,
         fecha_to: filtros.fecha_to,
-
         id_venta: filtros.id_venta,
         comprador: filtros.comprador,
         estado: filtros.estado,
@@ -126,7 +209,12 @@ export async function getFilteredPedidos({ db, req }) {
     return {
         success: true,
         message: "Pedidos obtenidos correctamente",
-        data: rows,
-        meta: buildMeta({ page, pageSize, totalItems: total, filters: filtersForMeta }),
+        data: dataFinal,
+        meta: buildMeta({
+            page,
+            pageSize,
+            totalItems: dataFinal.length,
+            filters: filtersForMeta
+        }),
     };
 }
