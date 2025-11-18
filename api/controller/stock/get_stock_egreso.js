@@ -92,7 +92,7 @@ export async function getStockActualIE({ db, req }) {
                 did_producto_combinacion: item.did_producto_combinacion,
                 did: item.did,
                 cantidad: item.stock ?? 0,
-                identificadores: {},
+                identificadores: [],
             });
             continue;
         }
@@ -116,7 +116,7 @@ export async function getStockActualIE({ db, req }) {
                 did_producto_combinacion: item.did_producto_combinacion,
                 did: item.did,
                 cantidad: item.stock ?? 0,
-                identificadores: {},
+                identificadores: [],
             });
             continue;
         }
@@ -132,7 +132,7 @@ export async function getStockActualIE({ db, req }) {
                 dataIE = {};
             }
 
-            const identificadores = {};
+            const identificadores = [];
             for (const [did_ie, valor] of Object.entries(dataIE)) {
                 identificadores[did_ie] = valor;
             }
