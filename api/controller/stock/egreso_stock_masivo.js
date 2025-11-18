@@ -96,8 +96,24 @@ export async function egresoStockMasivo({ db, req }) {
         // ─────────────────────────────────────────────
         // 4) Egresar stock de ambas tablas
         // ─────────────────────────────────────────────
-        for (const { did_combinacion, cantidad } of combinaciones) {
+        for (const { did_combinacion, cantidad, did_stock_producto_detalle } of combinaciones) {
             const stockRow = stockPorCombinacion.get(did_combinacion);
+
+            /*
+                        if (did_stock_producto_detalle){
+            
+                            // calculo nueva cantidad
+                            const cantidadNueva = stockRow.stock - cantidad;
+                            // descuento de aca
+                            await LightdataORM.update({
+                                db,
+                                table: "stock_producto_detalle",
+                                quien: userId,
+                                where: { did: did_stock_producto_detalle },
+                                data: { stock: cantidad} // ajusta nombre
+                            });
+                        }
+                            */
 
             if (!stockRow) {
                 productos_no_procesados.push({
@@ -134,7 +150,7 @@ export async function egresoStockMasivo({ db, req }) {
                     db,
                     table: "stock_producto_detalle",
                     quien: userId,
-                    where: { did: detalleRow.did },
+                    where: { did: did_stock_producto_detalle },
                     data: { stock: nuevoStockDetalle } // ajusta nombre
                 });
             } else {
