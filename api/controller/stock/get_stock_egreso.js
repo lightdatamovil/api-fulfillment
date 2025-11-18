@@ -16,33 +16,50 @@ async function getIdentificadoresMap(db) {
 
 export async function getStockActualIE({ db, req }) {
 
-    // ------------------------------
-    // 🆕 1) Recibir DIDs desde query: ?dids=123,456,789
-    // ------------------------------
-    const didsQuery = req.query?.dids;
+    // ----------------------------------------------------------
+    // 🆕 1) Obtener IDs desde params o query, flexible para ambos
+    // ----------------------------------------------------------
+    let idsRaw = [];
 
-    if (!didsQuery || typeof didsQuery !== "string") {
-        throw new Error("Debe enviar una query 'dids' con IDs separados por comas. Ej: ?dids=123,456");
+    // a) Si viene por params: /stock/:did_producto
+    if (req.params?.did_producto) {
+        idsRaw.push(req.params.did_producto);
     }
 
-    // Convertir string → array → números
-    const idsParsed = didsQuery
-        .split(",")
-        .map(n => Number(n.trim()))
+    // b) Si viene por query: ?dids=1,2,3
+    if (req.query?.dids) {
+        if (Array.isArray(req.query.dids)) {
+            // Caso: ?dids[]=1&dids[]=2
+            idsRaw.push(...req.query.dids);
+        } else {
+            // Caso: ?dids=1,2,3 o ?dids=1
+            idsRaw.push(...req.query.dids.split(","));
+        }
+    }
+
+    // Validar que haya algo
+    if (!idsRaw.length) {
+        throw new Error("Debe enviar un ID por params o una lista en query 'dids'.");
+    }
+
+    // Limpiar y convertir a números
+    const idsParsed = idsRaw
+        .map(n => Number(String(n).trim()))
         .filter(n => !isNaN(n));
 
     if (!idsParsed.length) {
-        throw new Error("La query 'dids' no contiene valores numéricos válidos.");
+        throw new Error("Los IDs enviados no son válidos.");
     }
 
-    // -------------------------------------------------
-    // 2) Obtener stock de TODOS los did_producto recibidos
-    // -------------------------------------------------
+
+    // ----------------------------------------------------------
+    // 2) Traer stock básico
+    // ----------------------------------------------------------
     const stockProductos = await LightdataORM.select({
         db,
         table: "stock_producto",
         where: {
-            did_producto: idsParsed,   // Soporta array = IN(...)
+            did_producto: idsParsed,
             elim: 0,
             superado: 0,
         },
@@ -58,18 +75,18 @@ export async function getStockActualIE({ db, req }) {
         };
     }
 
-    // Preparar estructura final por producto
+    // Crear estructura de salida por producto
     const resultadoFinal = {};
     for (const did of idsParsed) resultadoFinal[did] = [];
 
-    // -------------------------------------
-    // 3) Procesar cada entrada del stock base
-    // -------------------------------------
-    for (const item of stockProductos) {
 
+    // ----------------------------------------------------------
+    // 3) Procesar cada stock_producto
+    // ----------------------------------------------------------
+    for (const item of stockProductos) {
         const tieneIE = item.tiene_ie == 1;
 
-        // SIN identificadores especiales
+        // Caso SIN IE
         if (!tieneIE) {
             resultadoFinal[item.did_producto].push({
                 did_producto_combinacion: item.did_producto_combinacion,
@@ -80,7 +97,7 @@ export async function getStockActualIE({ db, req }) {
             continue;
         }
 
-        // CON identificadores especiales → traer detalles
+        // Caso CON IE → traer detalles
         const detalles = await LightdataORM.select({
             db,
             table: "stock_producto_detalle",
@@ -95,17 +112,15 @@ export async function getStockActualIE({ db, req }) {
         });
 
         if (!detalles.length) {
-            // Si no hay detalles, se devuelve igual
             resultadoFinal[item.did_producto].push({
                 did_producto_combinacion: item.did_producto_combinacion,
                 did: item.did,
-                identificadores: {},
                 cantidad: item.stock ?? 0,
+                identificadores: {},
             });
             continue;
         }
 
-        // Procesar cada detalle
         for (const det of detalles) {
             let dataIE;
 
@@ -131,9 +146,9 @@ export async function getStockActualIE({ db, req }) {
         }
     }
 
-    // --------------------
-    // 4) Calcular totales
-    // --------------------
+    // ----------------------------------------------------------
+    // 4) Calcular totales por producto
+    // ----------------------------------------------------------
     const totales = {};
     for (const did of idsParsed) {
         totales[did] = resultadoFinal[did].reduce((s, i) => s + i.cantidad, 0);
