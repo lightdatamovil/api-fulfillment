@@ -42,6 +42,7 @@ export async function updateProducto({ db, req }) {
     table: "productos",
     where: { did: didProducto },
     throwIfNotExists: true,
+    log: true
   });
   const curr = currRows[0];
 
@@ -96,6 +97,8 @@ export async function updateProducto({ db, req }) {
     dids_ie: dids_ie_insert
   };
 
+  console.log('Actualizando producto:', didProducto);
+
   await LightdataORM.update({
     db,
     table: "productos",
@@ -103,6 +106,8 @@ export async function updateProducto({ db, req }) {
     data: newData,
     quien,
   });
+
+  console.log('Actualizando1');
 
 
   const hayCombinaciones = getUpdateOpsState(combinaciones);
@@ -142,191 +147,191 @@ export async function updateProducto({ db, req }) {
       });
 
 
-
-      /*
       await LightdataORM.update({
         db,
         table: "productos_variantes_valores",
         where: {
           did: combinacion.did
         },
-        data: {
-          ean,
-          actualizar: 0,
-          sync
-        }
-      });
-      */
-
-      for (const tienda of combinacion.tiendas) {
-        didCuentaUpdate.push(tienda.did);
-        dataUpdateCombinaciones.push({
-          did_producto: didProducto,
-          did_cuenta: tienda.didCuenta,
-          sku: tienda.sku,
-          actualizar: 0,
-        });
-      }
-    }
-
-    // console.log('Actualizando combinacion:', didVarianteUpdate);
-
-
-
-    await LightdataORM.update({
-      db,
-      table: "productos_ecommerce",
-      where: {
-        did: didCuentaUpdate
-      },
-      //! REVISAR
-      throwIfNotExists: false,
-      data: dataUpdateCombinaciones,
-      quien,
-    });
-  }
-  if (hayCombinaciones.hasAdd) {
-    const setKey = (arr) =>
-      Array.from(new Set((Array.isArray(arr) ? arr : []).filter(Number.isInteger)))
-        .sort((a, b) => a - b)
-        .join(",");
-
-    const pvvRows = combinaciones.add.map(e => ({
-      did_producto: didProducto,
-      ean: isNonEmpty(e.ean) ? String(e.ean).trim() : null,
-      valores: setKey(e.valores),
-      sync: e.sync,
-    }));
-
-    //   console.log('pvvRows', pvvRows);
-
-    const insertedPvvs = await LightdataORM.insert({
-      db,
-      table: "productos_variantes_valores",
-      quien: quien,
-      data: pvvRows,
-    });
-
-    const combinacionesRows = [];
-    for (let i = 0; i < combinaciones.add.length; i++) {
-      const e = combinaciones.add[i];
-      const did_pvv = insertedPvvs[i];
-      const tienda = Array.isArray(e.tiendas) ? e.tiendas : [];
-
-      for (const t of tienda) {
-        combinacionesRows.push({
-          did_producto: didProducto,
-          did_cuenta: isNonEmpty(t.didCuenta) ? t.didCuenta : null,
-          did_producto_variante_valor: did_pvv,
-          sku: isNonEmpty(t.sku) ? String(t.sku).trim() : null,
-          actualizar: 0,
-          //   sync: isDefined(e.sync) ? number01(e.sync) : 0,
-        });
-      }
-    }
-
-    if (combinacionesRows.length) {
-      await LightdataORM.insert({
-        db,
-        table: "productos_ecommerce",
+        data: didVarianteUpdate,
+        log: true,
         quien: quien,
-        data: combinacionesRows,
       });
+
+      if (combinacion.tiendas.length > 0) {
+        for (const tienda of combinacion.tiendas) {
+          didCuentaUpdate.push(tienda.did);
+          dataUpdateCombinaciones.push({
+            did_producto: didProducto,
+            did_cuenta: tienda.didCuenta,
+            sku: tienda.sku,
+            actualizar: 0,
+          });
+        }
+
+
+        // console.log('Actualizando combinacion:', didVarianteUpdate);
+
+
+
+        await LightdataORM.update({
+          db,
+          table: "productos_ecommerce",
+          where: {
+            did: didCuentaUpdate
+          },
+          //! REVISAR
+          throwIfNotExists: false,
+          data: dataUpdateCombinaciones,
+          quien,
+        });
+      }
+
     }
-  }
+    if (hayCombinaciones.hasAdd) {
+      const setKey = (arr) =>
+        Array.from(new Set((Array.isArray(arr) ? arr : []).filter(Number.isInteger)))
+          .sort((a, b) => a - b)
+          .join(",");
 
-  const es_combo = productos_hijos != null ? 1 : 0;
+      const pvvRows = combinaciones.add.map(e => ({
+        did_producto: didProducto,
+        ean: isNonEmpty(e.ean) ? String(e.ean).trim() : null,
+        valores: setKey(e.valores),
+        sync: e.sync,
+      }));
 
-  if (es_combo == 1) {
-    const hayProductosHijos = getUpdateOpsState(productos_hijos);
-    if (hayProductosHijos.hasRemove) {
+      //console.log('pvvRows', pvvRows);
+
+      const insertedPvvs = await LightdataORM.insert({
+        db,
+        table: "productos_variantes_valores",
+        quien: quien,
+        data: pvvRows,
+        log: true
+      });
+
+      const combinacionesRows = [];
+      for (let i = 0; i < combinaciones.add.length; i++) {
+        const e = combinaciones.add[i];
+        const did_pvv = insertedPvvs[i];
+        const tienda = Array.isArray(e.tiendas) ? e.tiendas : [];
+
+        for (const t of tienda) {
+          combinacionesRows.push({
+            did_producto: didProducto,
+            did_cuenta: isNonEmpty(t.didCuenta) ? t.didCuenta : null,
+            did_producto_variante_valor: did_pvv,
+            sku: isNonEmpty(t.sku) ? String(t.sku).trim() : null,
+            actualizar: 0,
+            //   sync: isDefined(e.sync) ? number01(e.sync) : 0,
+          });
+        }
+      }
+
+      if (combinacionesRows.length) {
+        await LightdataORM.insert({
+          db,
+          table: "productos_ecommerce",
+          quien: quien,
+          data: combinacionesRows,
+        });
+      }
+    }
+
+    const es_combo = productos_hijos != null ? 1 : 0;
+
+    if (es_combo == 1) {
+      const hayProductosHijos = getUpdateOpsState(productos_hijos);
+      if (hayProductosHijos.hasRemove) {
+        await LightdataORM.delete({
+          db,
+          table: "productos_combos",
+          where: { did: hayProductosHijos.didsRemove },
+          quien,
+        });
+
+      } if (hayProductosHijos.hasUpdate) {
+        const dataUpdate = hayProductosHijos.update.map(c => ({
+          cantidad: Number(c.cantidad),
+        }));
+        await LightdataORM.update({
+          db,
+          table: "productos_combos",
+          where: {
+            did_producto: didProducto,
+            did: hayProductosHijos.didsUpdate
+          },
+          data: dataUpdate,
+          quien,
+        });
+      }
+      if (hayProductosHijos.hasAdd) {
+        const data = hayProductosHijos.add.map(ph => ({
+          did_producto: didProducto,
+          did_producto_combo: ph.didProducto,
+          cantidad: Number(ph.cantidad),
+        }));
+        await LightdataORM.insert({
+          db,
+          table: "productos_combos",
+          data,
+          quien,
+        });
+      }
+    }
+    const hayInsumos = getUpdateOpsState(insumos);
+    if (hayInsumos.hasRemove) {
       await LightdataORM.delete({
         db,
-        table: "productos_combos",
-        where: { did: hayProductosHijos.didsRemove },
+        table: "productos_insumos",
+        where: { did: hayInsumos.didsRemove, did_producto: didProducto },
         quien,
       });
+    }
 
-    } if (hayProductosHijos.hasUpdate) {
-      const dataUpdate = hayProductosHijos.update.map(c => ({
-        cantidad: Number(c.cantidad),
+    if (hayInsumos.hasUpdate) {
+      const didsUpdate = hayInsumos.update.map(i => i.did);
+      const dataUpdate = insumos.update.map(i => ({
+        did_producto: didProducto,
+        cantidad: Number(i.cantidad),
       }));
       await LightdataORM.update({
         db,
-        table: "productos_combos",
-        where: {
-          did_producto: didProducto,
-          did: hayProductosHijos.didsUpdate
-        },
+        table: "productos_insumos",
+        where: { did: didsUpdate },
         data: dataUpdate,
         quien,
       });
     }
-    if (hayProductosHijos.hasAdd) {
-      const data = hayProductosHijos.add.map(ph => ({
+    if (hayInsumos.hasAdd) {
+      //preguntar habilitado
+      const data = hayInsumos.add.map(i => ({
+        habilitado: 1,
+        did_insumo: i.didInsumo,
         did_producto: didProducto,
-        did_producto_combo: ph.didProducto,
-        cantidad: Number(ph.cantidad),
+        cantidad: Number(i.cantidad),
       }));
       await LightdataORM.insert({
         db,
-        table: "productos_combos",
+        table: "productos_insumos",
         data,
         quien,
       });
     }
-  }
-  const hayInsumos = getUpdateOpsState(insumos);
-  if (hayInsumos.hasRemove) {
-    await LightdataORM.delete({
-      db,
-      table: "productos_insumos",
-      where: { did: hayInsumos.didsRemove, did_producto: didProducto },
-      quien,
-    });
-  }
 
-  if (hayInsumos.hasUpdate) {
-    const didsUpdate = hayInsumos.update.map(i => i.did);
-    const dataUpdate = insumos.update.map(i => ({
-      did_producto: didProducto,
-      cantidad: Number(i.cantidad),
-    }));
-    await LightdataORM.update({
-      db,
-      table: "productos_insumos",
-      where: { did: didsUpdate },
-      data: dataUpdate,
-      quien,
-    });
-  }
-  if (hayInsumos.hasAdd) {
-    //preguntar habilitado
-    const data = hayInsumos.add.map(i => ({
-      habilitado: 1,
-      did_insumo: i.didInsumo,
-      did_producto: didProducto,
-      cantidad: Number(i.cantidad),
-    }));
-    await LightdataORM.insert({
-      db,
-      table: "productos_insumos",
-      data,
-      quien,
-    });
-  }
+    return {
+      success: true,
+      message: "Producto versionado correctamente (ORM)",
+      data: {
+        did: didProducto,
+        titulo: newData.titulo,
+        meta: { timestamp: new Date().toISOString() },
+      }
 
-  return {
-    success: true,
-    message: "Producto versionado correctamente (ORM)",
-    data: {
-      did: didProducto,
-      titulo: newData.titulo,
-      meta: { timestamp: new Date().toISOString() },
     }
-
-  }
-};
+  };
+}
 
 function getUpdateOpsState(updateArray) {
   const add = toArray(updateArray?.add);
@@ -360,4 +365,4 @@ const toArray = (v) => Array.isArray(v) ? v : [];
 const setKey = (arr) =>
   Array.from(new Set((Array.isArray(arr) ? arr : []).filter(Number.isInteger)))
     .sort((a, b) => a - b)
-    .join(","); // juntar por ,
+    .join(","); 
