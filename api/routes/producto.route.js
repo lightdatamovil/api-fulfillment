@@ -12,7 +12,7 @@ productos.post(
   "/",
   buildHandlerWrapper({
     requiredParams: ["userId"],
-    optional: ["titulo", "posicion", "productos_hijos", "did_curva", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "files", "habilitado", "insumos", "combinaciones", "did_cliente", "sku", "ean", "dids_ie"], // el resto es opcional (did_cliente, imagen, es_combo, depositos, insumos, variantesValores, ecommerce, combo, etc.)
+    optional: ["titulo", "posicion", "productos_hijos", "did_curva", "cm3", "alto", "ancho", "profundo", "es_combo", "descripcion", "files", "habilitado", "insumos", "combinaciones", "did_cliente", "sku", "dids_ie"], // el resto es opcional (did_cliente, imagen, es_combo, depositos, insumos, variantesValores, ecommerce, combo, etc.)
 
     controller: ({ db, req }) => createProducto({ db, req }),
   })

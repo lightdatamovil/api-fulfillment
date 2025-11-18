@@ -15,7 +15,7 @@ export async function createProducto({ db, req }) {
         profundo,
         did_curva,
         sku,
-        ean,
+
         files,
         combinaciones,
         insumos,
@@ -70,7 +70,7 @@ export async function createProducto({ db, req }) {
             profundo,
             did_curva,
             sku,
-            ean,
+
             tiene_ie,
             dids_ie: dids_ie_insert
 
@@ -134,7 +134,7 @@ export async function createProducto({ db, req }) {
             quien: userId,
             data: {
                 did_producto: didProducto,
-                ean: ean,
+
                 sync: 0,
             },
         });
