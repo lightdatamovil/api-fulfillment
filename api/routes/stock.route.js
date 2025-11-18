@@ -27,7 +27,7 @@ stock.get(
   })
 );
 stock.get(
-  "/productos/stockIE/",
+  "/productos/stockIE/multiple",
   buildHandlerWrapper({
 
     query: ["dids"],
