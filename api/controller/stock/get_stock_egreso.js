@@ -146,19 +146,33 @@ export async function getStockActualIE({ db, req }) {
         }
     }
 
-    // ----------------------------------------------------------
-    // 4) Calcular totales por producto
-    // ----------------------------------------------------------
+    // --------------------
+    // 4) Calcular totales
+    // --------------------
     const totales = {};
     for (const did of idsParsed) {
         totales[did] = resultadoFinal[did].reduce((s, i) => s + i.cantidad, 0);
     }
 
+    // --------------------
+    // 🆕 5) Normalizar salida
+    // --------------------
+    let dataFinal;
+
+    if (idsParsed.length === 1) {
+        // Si es un solo producto, devolver SOLO el array
+        dataFinal = resultadoFinal[idsParsed[0]] || [];
+    } else {
+        // Si son varios, devolver agrupado por producto
+        dataFinal = resultadoFinal;
+    }
+
     return {
         success: true,
         message: "Stock detallado sin agrupación por depósito",
-        data: resultadoFinal,
+        data: dataFinal,
         totales,
         meta: buildMeta({ totalItems: stockProductos.length }),
     };
+
 }
