@@ -49,10 +49,11 @@ export async function egresoStockMasivo({ db, req }) {
         // 2) Traer stock de stock_producto_detalle
         //    (ajusta columnas según tu tabla real)
         // ─────────────────────────────────────────────
+        const did_stock_producto_detalle = combinaciones.map(c => c.did_stock_producto_detalle);
         const stockProductoDetalleRow = await LightdataORM.select({
             db,
             table: "stock_producto_detalle",
-            where: { did_producto_combinacion: didsCombinaciones },
+            where: { did: did_stock_producto_detalle },
             // ajusta los nombres de columnas según tu esquema:
             select: ["did", "did_producto_combinacion", "stock"]
             // por ejemplo: ["did", "did_producto_combinacion", "stock_combinacion_detalle"]
