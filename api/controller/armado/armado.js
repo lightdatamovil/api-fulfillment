@@ -8,7 +8,7 @@ export async function armado({ db, req }) {
 
 
 
-    const updateOT = await LightdataORM.update({
+    await LightdataORM.update({
         db,
         table: "ordenes_trabajo",
         where: { did: did_ot },
@@ -18,8 +18,16 @@ export async function armado({ db, req }) {
         },
     });
 
+    const [selectdidot] = await LightdataORM.select({
+        db,
+        table: "pedidos",
+        where: { did: did_ot },
+        throwIfNotFound: true
+    })
 
-    const updateArmado = await LightdataORM.select({
+    const number = selectdidot.number
+
+    await LightdataORM.update({
         db,
         table: "pedidos",
         where: { did_ot: did_ot },
@@ -31,7 +39,8 @@ export async function armado({ db, req }) {
 
 
 
-    const egreso = await egresoStockMasivoArmado({ db, productos: req.body.productos, userId });
+
+    const egreso = await egresoStockMasivoArmado({ db, productos: req.body.productos, number, userId });
 
     console.log(egreso);
 

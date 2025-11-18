@@ -2,7 +2,7 @@ import { CustomException, LightdataORM } from "lightdata-tools";
 
 
 
-export async function egresoStockMasivoArmado({ db, productos, userId }) {
+export async function egresoStockMasivoArmado({ db, productos, number, userId }) {
 
     if (!productos || !Array.isArray(productos) || productos.length === 0) {
         throw new CustomException({
@@ -31,7 +31,7 @@ export async function egresoStockMasivoArmado({ db, productos, userId }) {
             db,
             table: "stock_producto",
             where: { did_producto_combinacion: didsCombinaciones },
-            select: ["did", "did_producto_combinacion", "stock_combinacion"]
+            select: ["did", "did_producto_combinacion", "stock_combinacion",]
         });
 
         const stockPorCombinacion = new Map(
@@ -93,7 +93,10 @@ export async function egresoStockMasivoArmado({ db, productos, userId }) {
                 table: "stock_producto",
                 quien: userId,
                 where: { did: stockRow.did },
-                data: { stock_combinacion: nuevaCantidad }
+                data: {
+                    stock_combinacion: nuevaCantidad,
+                    id_venta: number
+                }
             });
 
             // stock_producto_detalle

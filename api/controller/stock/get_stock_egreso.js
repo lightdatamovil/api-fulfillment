@@ -15,56 +15,72 @@ async function getIdentificadoresMap(db) {
 }
 
 export async function getStockActualIE({ db, req }) {
-    const didProductoParam = req.params?.did_producto;
-    const didProducto = Number(didProductoParam);
 
-    if (!didProducto || Number.isNaN(didProducto)) {
-        throw new Error("Parámetro 'did_producto' inválido o ausente");
+    // ------------------------------
+    // 🆕 1) Recibir DIDs desde query: ?dids=123,456,789
+    // ------------------------------
+    const didsQuery = req.query?.dids;
+
+    if (!didsQuery || typeof didsQuery !== "string") {
+        throw new Error("Debe enviar una query 'dids' con IDs separados por comas. Ej: ?dids=123,456");
     }
 
+    // Convertir string → array → números
+    const idsParsed = didsQuery
+        .split(",")
+        .map(n => Number(n.trim()))
+        .filter(n => !isNaN(n));
+
+    if (!idsParsed.length) {
+        throw new Error("La query 'dids' no contiene valores numéricos válidos.");
+    }
+
+    // -------------------------------------------------
+    // 2) Obtener stock de TODOS los did_producto recibidos
+    // -------------------------------------------------
     const stockProductos = await LightdataORM.select({
         db,
         table: "stock_producto",
-        where: { did_producto: didProducto, elim: 0, superado: 0 },
+        where: {
+            did_producto: idsParsed,   // Soporta array = IN(...)
+            elim: 0,
+            superado: 0,
+        },
     });
 
     if (!stockProductos.length) {
         return {
             success: true,
-            message: "No se encontró stock para el producto indicado",
-            data: [],
+            message: "No se encontró stock para los productos solicitados",
+            data: {},
+            totales: {},
             meta: buildMeta({ totalItems: 0 }),
         };
     }
 
-    const tieneIE = stockProductos.some((s) => s.tiene_ie == 1);
+    // Preparar estructura final por producto
+    const resultadoFinal = {};
+    for (const did of idsParsed) resultadoFinal[did] = [];
 
-    // 🩵 Caso SIN IE → NO AGRUPAMOS POR DEPÓSITO MÁS
-    if (!tieneIE) {
-        const resultado = [];
+    // -------------------------------------
+    // 3) Procesar cada entrada del stock base
+    // -------------------------------------
+    for (const item of stockProductos) {
 
-        for (const item of stockProductos) {
-            resultado.push({
+        const tieneIE = item.tiene_ie == 1;
+
+        // SIN identificadores especiales
+        if (!tieneIE) {
+            resultadoFinal[item.did_producto].push({
                 did_producto_combinacion: item.did_producto_combinacion,
+                did: item.did,
                 cantidad: item.stock ?? 0,
+                identificadores: {},
             });
+            continue;
         }
 
-        const totalGeneral = resultado.reduce((sum, i) => sum + i.cantidad, 0);
-
-        return {
-            success: true,
-            message: "Stock sin IE",
-            data: resultado,
-            total: totalGeneral,
-            meta: buildMeta({ totalItems: resultado.length }),
-        };
-    }
-
-    // 💛 Caso CON IE → también sin agrupación por depósito
-    const resultado = [];
-
-    for (const item of stockProductos) {
+        // CON identificadores especiales → traer detalles
         const detalles = await LightdataORM.select({
             db,
             table: "stock_producto_detalle",
@@ -79,17 +95,20 @@ export async function getStockActualIE({ db, req }) {
         });
 
         if (!detalles.length) {
-            resultado.push({
+            // Si no hay detalles, se devuelve igual
+            resultadoFinal[item.did_producto].push({
                 did_producto_combinacion: item.did_producto_combinacion,
-                did: item.did,                 // 🔥 CAMBIO
+                did: item.did,
                 identificadores: {},
-                stock: item.stock ?? 0,
+                cantidad: item.stock ?? 0,
             });
             continue;
         }
 
+        // Procesar cada detalle
         for (const det of detalles) {
             let dataIE;
+
             try {
                 const fixed = det.data_ie.replace(/(\w+):/g, '"$1":');
                 dataIE = JSON.parse(fixed);
@@ -98,28 +117,33 @@ export async function getStockActualIE({ db, req }) {
                 dataIE = {};
             }
 
-            // 🔥 CAMBIO → devolver { did_ie: valor }
-            const identificadores = [];
+            const identificadores = {};
             for (const [did_ie, valor] of Object.entries(dataIE)) {
                 identificadores[did_ie] = valor;
             }
 
-            resultado.push({
+            resultadoFinal[item.did_producto].push({
                 did_producto_combinacion: item.did_producto_combinacion,
-                did: det.did,                 // 🔥 CAMBIO: ahora es "did"
+                did: det.did,
                 identificadores,
                 cantidad: det.stock ?? 0,
             });
         }
     }
 
-    const totalGeneral = resultado.reduce((sum, i) => sum + i.cantidad, 0);
+    // --------------------
+    // 4) Calcular totales
+    // --------------------
+    const totales = {};
+    for (const did of idsParsed) {
+        totales[did] = resultadoFinal[did].reduce((s, i) => s + i.cantidad, 0);
+    }
 
     return {
         success: true,
         message: "Stock detallado sin agrupación por depósito",
-        data: resultado,
-        total: totalGeneral,
-        meta: buildMeta({ totalItems: resultado.length }),
+        data: resultadoFinal,
+        totales,
+        meta: buildMeta({ totalItems: stockProductos.length }),
     };
 }
