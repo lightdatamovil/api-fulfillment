@@ -194,9 +194,11 @@ export async function updateProducto({ db, req }) {
     const pvvRows = combinaciones.add.map(e => ({
       did_producto: didProducto,
       ean: isNonEmpty(e.ean) ? String(e.ean).trim() : null,
-      valores: setKey(e.variantes_valores),
+      valores: setKey(e.valores),
       sync: e.sync,
     }));
+
+    //   console.log('pvvRows', pvvRows);
 
     const insertedPvvs = await LightdataORM.insert({
       db,
