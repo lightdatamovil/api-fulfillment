@@ -7,6 +7,8 @@ export function mapMlToPedidoPayload(ml, sellerData, didCliente) {
 
     // DEADLINE (lo agregaste desde processOrderMessage)
     const delivery_deadline = ml?.shipping?.delivery_deadline || null;
+    console.log(delivery_deadline, "dsadsadasdasdad");
+
 
     return {
 
