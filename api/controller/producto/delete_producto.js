@@ -4,7 +4,7 @@ import { LightdataORM } from "lightdata-tools";
  *  - Marca las asociaciones como eliminadas (elim=1).
  *  - Marca el producto principal como eliminado (elim=1).
  */
-export async function deleteProducto(db, req) {
+export async function deleteProducto({ db, req }) {
     const { did } = req.params;
     const quien = req.user.userId;
 

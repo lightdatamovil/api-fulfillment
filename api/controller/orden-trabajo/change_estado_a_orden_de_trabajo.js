@@ -16,6 +16,8 @@ export async function changeEstadoAOrdenDeTrabajo({ db, req }) {
             where: { did: dids_ots },
             quien: userId
         });
+
+        // inserto como envio
     }
 
     //* CANCELADA
