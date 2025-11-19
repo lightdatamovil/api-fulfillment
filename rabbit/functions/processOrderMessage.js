@@ -12,6 +12,7 @@ import { getStatusVigente } from "./getStatusVigente.js";
 import { updatePedidoStatusWithHistory } from "./updatePedidoStatusWithHistory.js";
 import { obtenerClienteCuenta } from "./obtenerCliente.js";
 import { tryLockOrder } from "./redisDedupe.js";
+import { getOrderDeliveryDeadline } from "./ml-shipment-deadline.js";
 
 /* ============== Axios client para ML ============== */
 function mlClient(token) {
@@ -133,6 +134,22 @@ export async function processOrderMessage(rawMsg) {
                 console.warn("No se pudo obtener receiver_address del shipment:", e?.message || e);
             }
         }
+
+        // 👉 Obtener deadline de envío (fecha de entrega estimada)
+        if (mlOrder?.shipping?.id) {
+            try {
+                const deadline = await getOrderDeliveryDeadline(mlOrder.shipping.id, token);
+                if (deadline) {
+                    mlOrder.shipping = { ...(mlOrder.shipping || {}), delivery_deadline: deadline };
+                    console.log("[shipment-deadline]", deadline);
+                } else {
+                    console.warn("[shipment-deadline] vacío para shipping.id:", mlOrder.shipping.id);
+                }
+            } catch (e) {
+                console.warn("No se pudo obtener deadline del shipment:", e?.message || e);
+            }
+        }
+
 
         // Map a payload (incluye shipping.receiver_address si lo obtuvimos)
         const number = String(mlOrder.id);
