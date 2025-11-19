@@ -1,5 +1,6 @@
-import { CustomException, LightdataORM } from "lightdata-tools";
+import { CustomException, executeQuery, LightdataORM } from "lightdata-tools";
 import { createRemito } from "../remito/create_remito.js";
+import { exec } from "child_process";
 
 export async function ajusteStockMasivo({ db, req }) {
     const { did_cliente, productos, observacion, fecha } = req.body;
@@ -72,12 +73,15 @@ export async function ajusteStockMasivo({ db, req }) {
 
         console.log(stockDetallePorCombinacion);
 
+
+
         // ─────────────────────────────────────────────
         // 4) Egresar stock de ambas tablas
         // ─────────────────────────────────────────────
         for (const { did_combinacion, cantidad, did_stock_producto_detalle } of combinaciones) {
             const stockRow = stockPorCombinacion.get(did_combinacion);
 
+            /*
             // Update en stock_producto
             await LightdataORM.update({
                 db,
@@ -87,6 +91,7 @@ export async function ajusteStockMasivo({ db, req }) {
                 data: { stock_combinacion: cantidad, tipo: "AJUSTE" },
                 log: true // ajusta nombre
             });
+            */
 
             // ─────────────────────────────────────────
             // Update en stock_producto_detalle
@@ -129,8 +134,26 @@ export async function ajusteStockMasivo({ db, req }) {
             };
 
             await createRemito({ db, ...remitoBody });
+
+
+            const reajustarAcumulado = await executeQuery({
+                db,
+                query: `SELECT SUM(stock) AS cantidad FROM stock_producto_detalle WHERE did_producto_combinacion = ? AND elim = 0 AND superado = 0`,
+                values: [did_combinacion],
+                log: true
+            });
+
+            await LightdataORM.update({
+                db,
+                table: "stock_producto",
+                quien: userId,
+                where: { did: stockRow.did },
+                data: { stock_combinacion: reajustarAcumulado[0].cantidad, tipo: "AJUSTE" },
+                log: true
+            });
         }
     }
+
 
     return {
         success: true,
