@@ -116,7 +116,7 @@ export async function createPedido(db, payload, userId) {
         );
 
         const pedidoProductoId = insertPedidoProducto.insertId;
-        await executeQuery({ db, query: `UPDATE pedidos_productos SET id = ? WHERE id = ?`, values: [pedidoProductoId, pedidoProductoId] });
+        await executeQuery({ db, query: `UPDATE pedidos_productos SET did = ? WHERE id = ?`, values: [pedidoProductoId, pedidoProductoId] });
     }
 
     // === Dirección de destino ML (pedidos_ordenes_direcciones_destino) ===
