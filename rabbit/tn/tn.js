@@ -139,13 +139,7 @@ async function getSellerDataByStore(storeId) {
     };
 }
 
-// =============== CORE ===============
 
-// Procesa un mensaje TN “crudo” {store_id, event, id}
-// - trae token
-// - baja orden TN
-// - conecta DB empresa
-// - inserta/actualiza pedidos + productos + historial (transacción)
 export async function processTNMessage(rawMsg) {
     // 1) Parsear
     let msg;
@@ -166,10 +160,11 @@ export async function processTNMessage(rawMsg) {
     const orderTN = await obtenerOrdenTN(storeId, orderId, sellerData.tn_token);
 
     // 4) Conectar DB FulFillement de esa empresa/cuenta
-    const cfg = getFFProductionDbConfig(
-        String(sellerData.idempresa ?? sellerData.did_cuenta),
-        hostFulFillement,
-        portFulFillement
+    const cfg = getFFProductionDbConfig({
+        companyId: String(sellerData.idempresa),
+        host: hostFulFillement,
+        port: portFulFillement
+    }
     );
 
     let db;
@@ -258,9 +253,10 @@ if (thisFile === invoked) {
         console.log("[TN] arrancando main…");
         // Simula “llega un mensaje del sistema/cola”
         const demoMsg = {
-            store_id: 47586,
+            store_id: 1681926,
             event: "order/created",
             id: 1798832816,
+            didEmpresa: 97
         };
 
         const r = await processTNMessage(demoMsg);
