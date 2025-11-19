@@ -6,6 +6,7 @@ import { deleteOrdenTrabajo } from "../controller/orden-trabajo/delete_orden_tra
 import { changeEstadoAOrdenDeTrabajo } from "../controller/orden-trabajo/change_estado_a_orden_de_trabajo.js";
 import { getFilteredOrdenesTrabajoByClienteFiltered } from "../controller/orden-trabajo/get_ordenes_trabajo_by_cliente_filtered.js";
 import { getFilteredOrdenesTrabajoByDid } from "../controller/orden-trabajo/get_orden_trabajo_by_id.js";
+import { desasignarOrdenTrabajo } from "../controller/orden-trabajo/desasignar.js";
 
 const ordenes = Router();
 
@@ -65,5 +66,15 @@ ordenes.get(
         controller: ({ db, req }) => getFilteredOrdenesTrabajoByDid({ db, req }),
     })
 );
+
+
+ordenes.get(
+    "/:did",
+    buildHandlerWrapper({
+        requiredParams: ["did"],
+        controller: ({ db, req }) => desasignarOrdenTrabajo({ db, req }),
+    })
+);
+
 
 export default ordenes;
