@@ -127,6 +127,7 @@ export async function egresoStockMasivo({ db, req }) {
             }
 
             const cantidadAnterior = stockRow.stock_combinacion || 0;
+            console.log('cantidadAnterior', cantidadAnterior)
             const nuevaCantidad = cantidadAnterior - cantidad; // EGRESO
 
             // Update en stock_producto
