@@ -2,13 +2,11 @@ export function mapMlToPedidoPayload(ml, sellerData, didCliente) {
     const firstItem = ml?.order_items?.[0];
     const variation_attributes = firstItem?.item?.variation_attributes || null;
 
-    // si processOrderMessage enriqueció ml.shipping.receiver_address, viaja acá
+    // dirección destino
     const receiver_address = ml?.shipping?.receiver_address || null;
-    //console.log(receiver_address, "receiver_address");
-    console.log(sellerData, "dsadasda");
+
+    // DEADLINE (lo agregaste desde processOrderMessage)
     const delivery_deadline = ml?.shipping?.delivery_deadline || null;
-
-
 
     return {
 
@@ -26,13 +24,16 @@ export function mapMlToPedidoPayload(ml, sellerData, didCliente) {
         ml_pack_id: ml?.pack_id ? String(ml.pack_id) : "",
         site_id: ml?.site_id || "",
         currency_id: ml?.currency_id || "",
-        dead_line: delivery_deadline?.date || null,
+
+        // 🔥 DEADLINE acá — como campo root, NO dentro de shipping
+        deadLine: delivery_deadline?.date || null,
+
         observaciones: "",
         armado: 0,
         descargado: 0,
         quien_armado: 0,
 
-        // Para que createPedido inserte en pedidos_ordenes_direcciones_destino
+        // dirección destino
         ...(receiver_address ? { shipping: { receiver_address } } : {}),
 
         items: [
