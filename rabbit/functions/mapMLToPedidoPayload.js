@@ -28,7 +28,7 @@ export function mapMlToPedidoPayload(ml, sellerData, didCliente) {
         currency_id: ml?.currency_id || "",
 
         // 🔥 DEADLINE acá — como campo root, NO dentro de shipping
-        deadLine: delivery_deadline?.date || null,
+        deadline: delivery_deadline?.date || null,
 
         observaciones: "",
         armado: 0,
