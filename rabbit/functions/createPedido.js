@@ -71,7 +71,7 @@ export async function createPedido(db, payload, userId) {
     if (!ins?.insertId) throw new Error("No se pudo insertar pedido");
 
     const id = ins.insertId;
-    await executeQuery({ db, query: `UPDATE pedidos SET did = ? WHERE id = ?`, values: [id, id] });
+    await executeQuery({ db, query: `UPDATE pedidos SET    = ? WHERE id = ?`, values: [id, id] });
     const did = id;
 
     // Insert items (dimensions y variacion NUNCA null)
@@ -107,13 +107,16 @@ export async function createPedido(db, payload, userId) {
         ];
         const queryInsert = `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph})`;
 
-        await executeQuery({
+        const insertPedidoProducto = await executeQuery({
             db,
             query: queryInsert,
             values: ival,
         }
 
         );
+
+        const pedidoProductoId = insertPedidoProducto.insertId;
+        await executeQuery({ db, query: `UPDATE pedidos_productos SET id = ? WHERE id = ?`, values: [pedidoProductoId, pedidoProductoId] });
     }
 
     // === Dirección de destino ML (pedidos_ordenes_direcciones_destino) ===
