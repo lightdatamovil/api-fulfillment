@@ -138,7 +138,8 @@ export async function processOrderMessage(rawMsg) {
         // 👉 Obtener deadline de envío (fecha de entrega estimada)
         if (mlOrder?.shipping?.id) {
             try {
-                const deadline = await getOrderDeliveryDeadline(mlOrder.shipping.id, token);
+                const deadline = await getOrderDeliveryDeadline(mlOrder, token);
+
                 if (deadline) {
                     mlOrder.shipping = { ...(mlOrder.shipping || {}), delivery_deadline: deadline };
                     console.log("[shipment-deadline]", deadline);
