@@ -21,7 +21,15 @@ stock.get(
 stock.get(
   "/productos/stockIE/:did_producto",
   buildHandlerWrapper({
-    optional: ["did_producto"],
+    requiredParams: ["did_producto"],
+
+    controller: ({ db, req }) => getStockActualIE({ db, req }),
+  })
+);
+stock.get(
+  "/productos/stockIE/multiple",
+  buildHandlerWrapper({
+
     query: ["dids"],
     controller: ({ db, req }) => getStockActualIE({ db, req }),
   })
