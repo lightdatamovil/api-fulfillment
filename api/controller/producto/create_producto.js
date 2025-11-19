@@ -70,12 +70,38 @@ export async function createProducto({ db, req }) {
             profundo,
             did_curva,
             sku,
-
             tiene_ie,
             dids_ie: dids_ie_insert
 
         },
     });
+
+    // 1) Buscar los did vigentes de ese seller_sku (y si querés, por empresa también)
+    const rows = await LightdataORM.select({
+        db,
+        table: "pedidos_productos",
+        where: { seller_sku: sku }, // acá sí podés meter más filtros si tu select los soporta
+        select: ["did"],
+        includeHistorical: false,
+    });
+
+    const dids = rows.map(r => r.did);
+    // Nada que versionar
+    if (dids.length > 0) {
+        // 2) Armar data en batch para cada did (como te gusta, sin Promise.all)
+        const dataBatch = dids.map(() => ({ did_producto: didProducto }));
+        await LightdataORM.update({
+            db,
+            table: "pedidos_productos",
+            where: { did: dids },   // ahora sí, versionKey numérico
+            data: dataBatch,
+            quien: userId,
+            log: true,
+        });
+    }
+
+
+
     // =========================
     // 🛒 COMBINACIONES (siempre CREATE de PVV y luego insert de grupos)
     // =========================
@@ -228,6 +254,46 @@ export async function createProducto({ db, req }) {
         }
     }
 
+    const didsPedidosConEsteProducto = await LightdataORM.select({
+        db,
+        table: 'pedidos_productos',
+        where: { seller_sku: sku },
+        select: 'did_pedido'
+    });
+
+    const didsOts = await LightdataORM.select({
+        db,
+        table: 'ordenes_trabajo_pedidos',
+        where: { did_pedido: didsPedidosConEsteProducto.map(p => p.did_pedido) },
+    });
+
+    for (const ot of didsOts) {
+        const pedidosDeLaOT = await LightdataORM.select({
+            db,
+            table: 'pedidos',
+            where: { did_ot: ot.did_orden_trabajo },
+            select: 'did'
+        });
+
+        for (const pedido of pedidosDeLaOT) {
+            const productosNull = await LightdataORM.select({
+                db,
+                table: 'pedidos_productos',
+                where: { did_producto: null, did_pedido: pedido.did },
+                select: 'id'
+            });
+
+            if (productosNull.length == 0) {
+                await LightdataORM.update({
+                    db,
+                    table: 'ordenes_trabajo',
+                    where: { did: ot.did_orden_trabajo },
+                    data: { alertada: 0 },
+                    quien: userId
+                });
+            }
+        }
+    }
 
     return {
         success: true,
