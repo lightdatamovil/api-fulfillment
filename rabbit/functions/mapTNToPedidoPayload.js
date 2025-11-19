@@ -1,5 +1,5 @@
 // functions/mapTNToPedidoPayload.js  (ESM)
-export function mapTNToPedidoPayload(tn, sellerData) {
+export function mapTNToPedidoPayload(tn, sellerData, did_cliente) {
     // 1) Fuente de la dirección de envío (TN puede traerla en shipping_address o en el default del cliente)
     const srcAddr =
         tn?.shipping_address ||
@@ -67,7 +67,7 @@ export function mapTNToPedidoPayload(tn, sellerData) {
     }));
 
     return {
-        did_cuenta: sellerData?.did_cuenta ?? 0,
+        did_cliente: did_cliente || "",
 
         status: tn?.financial_status || tn?.status || "open",
         number: orderNumber,              // ← número visible TN

@@ -25,6 +25,7 @@ import { createPedido } from "../functions/createPedido.js";
 import { getPedidoDidByNumber } from "../functions/getDidPedidoByNumber.js";
 import { updatePedidoStatusWithHistory } from "../functions/updatePedidoStatusWithHistory.js";
 import { mapTNToPedidoPayload } from "../functions/mapTNToPedidoPayload.js";
+import { obtenerClienteCuentaTN } from "../functions/obtenerClienteTn.js";
 
 
 const USER_AGENT = "API Lightdata (administracion@lightdata.com.ar)";
@@ -174,10 +175,13 @@ export async function processTNMessage(rawMsg) {
     let db;
     try {
         db = await connectMySQL(cfg);
-        //     console.log(orderTN, sellerData);
 
+
+        const cuentas = obtenerClienteCuentaTN(db, sellerData.storeId);
+
+        const didCliente = cuentas.didCliente;
         // 5) Mapear payload a tu modelo de tablas
-        const payload = mapTNToPedidoPayload(orderTN, sellerData);
+        const payload = mapTNToPedidoPayload(orderTN, sellerData, didCliente);
         console.log(JSON.stringify(payload, null, 2));
 
 

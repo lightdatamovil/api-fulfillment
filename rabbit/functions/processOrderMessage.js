@@ -30,7 +30,7 @@ async function fetchShipmentReceiverAddress(shippingId, token) {
     // En algunos casos viene en receiver_address, otros en destination.receiver_address
     const rx = data?.receiver_address || data?.destination?.receiver_address || null;
     if (!rx) return null;
-    console.log("rx", rx);
+    // console.log("rx", rx);
 
     const s = (v) => (v == null ? null : String(v).trim());
     const num = (v) => {
@@ -76,11 +76,11 @@ export async function processOrderMessage(rawMsg) {
         const lockAcquired = await tryLockOrder(seller_id, orderNumber);
 
         if (!lockAcquired) {
-            console.log("DUPLICADO DETECTADO. Ignorando:", seller_id, orderNumber);
+            //  console.log("DUPLICADO DETECTADO. Ignorando:", seller_id, orderNumber);
             return { ok: true, skipped: "duplicado" };
         }
 
-        console.log("resource", resource);
+        //   console.log("resource", resource);
 
 
         const sellersPermitidos = ["298477234", "452306476", "23598767", "746339074"];
@@ -117,7 +117,7 @@ export async function processOrderMessage(rawMsg) {
         if (!mlOrder) {
             return { ok: false, error: "ml-order-null" };
         }
-        console.log(mlOrder, "mlOrder");
+        //    console.log(mlOrder, "mlOrder");
 
         // 👉 Completar dirección desde shipments si falta
         if (!mlOrder?.shipping?.receiver_address && mlOrder?.shipping?.id) {
@@ -125,7 +125,7 @@ export async function processOrderMessage(rawMsg) {
                 const rx = await fetchShipmentReceiverAddress(mlOrder.shipping.id, token);
                 if (rx) {
                     mlOrder.shipping = { ...(mlOrder.shipping || {}), receiver_address: rx };
-                    console.log("[shipment-address]", rx);
+                    //   console.log("[shipment-address]", rx);
                 } else {
                     console.warn("[shipment-address] vacío para shipping.id:", mlOrder.shipping.id);
                 }
