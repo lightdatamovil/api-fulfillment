@@ -20,12 +20,12 @@ function n(v) {
 export async function createPedido(db, payload, userId) {
     // ml_id del pedido: nunca null/undefined
     const pedidoMlId = s(payload?.ml_id ?? payload?.number ?? "");
-    console.log(payload, "SDADADASDA");
+    //console.log(payload, "SDADADASDA");
 
 
     // Insert encabezado
     const cols = [
-        "status", "flex", "did_cliente", "trabajado", "number", "fecha_venta", "buyer_id", "buyer_nickname",
+        "status", "flex", "did_cliente", "deadLine", "trabajado", "number", "fecha_venta", "buyer_id", "buyer_nickname",
         "buyer_name", "buyer_last_name", "total_amount", "ml_shipment_id", "ml_id",
         "ml_pack_id", "observaciones", "armado", "descargado",
         "quien_armado", "reference_id", "billing", "quien", "superado", "elim"
@@ -36,6 +36,7 @@ export async function createPedido(db, payload, userId) {
         payload.status,
         1,
         payload.did_cliente ?? 0,
+        payload.deadline ?? 0,
         0,
         payload.number,
         payload.fecha_venta,
@@ -71,7 +72,7 @@ export async function createPedido(db, payload, userId) {
     if (!ins?.insertId) throw new Error("No se pudo insertar pedido");
 
     const id = ins.insertId;
-    await executeQuery({ db, query: `UPDATE pedidos SET did = ? WHERE id = ?`, values: [id, id] });
+    await executeQuery({ db, query: `UPDATE pedidos SET  did  = ? WHERE id = ?`, values: [id, id] });
     const did = id;
 
     // Insert items (dimensions y variacion NUNCA null)
@@ -107,13 +108,16 @@ export async function createPedido(db, payload, userId) {
         ];
         const queryInsert = `INSERT INTO pedidos_productos (${icol.join(",")}) VALUES (${iph})`;
 
-        await executeQuery({
+        const insertPedidoProducto = await executeQuery({
             db,
             query: queryInsert,
             values: ival,
         }
 
         );
+
+        const pedidoProductoId = insertPedidoProducto.insertId;
+        await executeQuery({ db, query: `UPDATE pedidos_productos SET did = ? WHERE id = ?`, values: [pedidoProductoId, pedidoProductoId] });
     }
 
     // === Dirección de destino ML (pedidos_ordenes_direcciones_destino) ===

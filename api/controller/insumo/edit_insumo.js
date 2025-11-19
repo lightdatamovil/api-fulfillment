@@ -1,6 +1,6 @@
 import { isDefined, LightdataORM } from "lightdata-tools";
 
-export async function editInsumo(db, req) {
+export async function editInsumo({ db, req }) {
     const { userId } = req.user;
     const { insumoId } = req.params;
     const { codigo, nombre, unidad, habilitado, clientes_dids } = req.body ?? {};

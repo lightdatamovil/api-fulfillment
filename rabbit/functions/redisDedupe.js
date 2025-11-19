@@ -1,14 +1,27 @@
-// redisDedupe.js
-import { redisClient } from "../db.js";
+// lockLocal.js
+const locks = new Map();
 
-export async function tryLockOrder(sellerId, orderNumber, ttlSec = 30) {
+export function tryLockOrderLocal(sellerId, orderNumber, ttlSec = 30) {
     const key = `ff_lock_${sellerId}_${orderNumber}`;
 
-    // SET key value NX EX ttl  => solo crea si no existe
-    const result = await redisClient.set(key, "1", {
-        NX: true,
-        EX: ttlSec,
-    });
+    const now = Date.now();
 
-    return result === "OK";
+    // Si el lock existe y no expiró → NO adquirimos lock
+    const expiresAt = locks.get(key);
+    if (expiresAt && expiresAt > now) {
+        return false;
+    }
+
+    // Crear el lock con expiración
+    locks.set(key, now + ttlSec * 1000);
+
+    // Programar limpieza automática (opcional)
+    setTimeout(() => {
+        const storedExp = locks.get(key);
+        if (storedExp && storedExp <= Date.now()) {
+            locks.delete(key);
+        }
+    }, ttlSec * 1000);
+
+    return true;
 }
