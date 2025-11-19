@@ -20,7 +20,7 @@ function n(v) {
 export async function createPedido(db, payload, userId) {
     // ml_id del pedido: nunca null/undefined
     const pedidoMlId = s(payload?.ml_id ?? payload?.number ?? "");
-    console.log(payload, "SDADADASDA");
+    //console.log(payload, "SDADADASDA");
 
 
     // Insert encabezado
