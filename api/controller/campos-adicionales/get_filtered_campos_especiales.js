@@ -5,7 +5,7 @@ import { executeQuery } from "lightdata-tools";
 export async function getFilteredCamposEspeciales({ db, req }) {
     const { filtro } = req.query;
     let query = `
-        SELECT nombre, tipo, did
+        SELECT nombre, tipo, did,data
         FROM identificadores_especiales
         WHERE elim = 0
           AND superado = 0

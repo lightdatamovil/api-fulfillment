@@ -17,8 +17,10 @@ export async function getIdentificadoresEspecialesById({ db, req }) {
     const data = {
         did: identificador_especial.did,
         nombre: identificador_especial.nombre,
-        tipo: identificador_especial.tipo
+        tipo: identificador_especial.tipo,
+        data: identificador_especial.data
     }
+
 
     return {
         success: true,
