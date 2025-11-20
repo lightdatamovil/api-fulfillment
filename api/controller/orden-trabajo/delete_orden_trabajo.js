@@ -27,13 +27,20 @@ export async function deleteOrdenTrabajo({ db, req }) {
         quien: userId,
     });
 
-    await LightdataORM.delete({
+    await LightdataORM.update({
         db,
         table: "pedidos",
         data: {
             did_ot: null,
             trabajado: 0,
         },
+        where: { did_ot: did },
+        quien: userId,
+    });
+
+    await LightdataORM.delete({
+        db,
+        table: "pedidos",
         where: { did_ot: did },
         quien: userId,
     });
