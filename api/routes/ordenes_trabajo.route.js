@@ -7,6 +7,7 @@ import { changeEstadoAOrdenDeTrabajo } from "../controller/orden-trabajo/change_
 import { getFilteredOrdenesTrabajoByClienteFiltered } from "../controller/orden-trabajo/get_ordenes_trabajo_by_cliente_filtered.js";
 import { getFilteredOrdenesTrabajoByDid } from "../controller/orden-trabajo/get_orden_trabajo_by_id.js";
 import { desasignarOrdenTrabajo } from "../controller/orden-trabajo/desasignar.js";
+import { informeArmado } from "../controller/orden-trabajo/informe_armado.js";
 
 const ordenes = Router();
 
@@ -59,6 +60,17 @@ ordenes.get(
     })
 );
 
+
+ordenes.get(
+    "/informe-armado",
+    buildHandlerWrapper({
+        requiredParams: ['fecha_from', 'fecha_to'],
+        controller: function ({ db, req }) {
+            console.log("Generando informe de armado desde");
+            return informeArmado({ db, req });
+        },
+    })
+);
 ordenes.get(
     "/:did",
     buildHandlerWrapper({
@@ -67,14 +79,12 @@ ordenes.get(
     })
 );
 
-
-ordenes.get(
-    "/:did",
+ordenes.put(
+    "/:did/desasignar",
     buildHandlerWrapper({
         requiredParams: ["did"],
         controller: ({ db, req }) => desasignarOrdenTrabajo({ db, req }),
     })
 );
-
 
 export default ordenes;
