@@ -52,7 +52,7 @@ export async function getFilteredOrdenesTrabajoByDid({ db, req }) {
                 JSON_ARRAY()
               )
               FROM pedidos_productos AS pp2
-              WHERE pp2.did_pedido = p.id
+              WHERE pp2.did_pedido = p.id AND superado=0 AND elim=0
             )
           )
         ),

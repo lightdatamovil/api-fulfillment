@@ -29,7 +29,7 @@ export async function createProducto({ db, req }) {
 
     await LightdataORM.select({
         db,
-        table: "productos",
+        table: "productos_ecommerce",
         where: { sku },
         throwIfExists: true,
     });
