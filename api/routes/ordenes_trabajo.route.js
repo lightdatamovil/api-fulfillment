@@ -67,14 +67,12 @@ ordenes.get(
     })
 );
 
-
-ordenes.get(
-    "/:did",
+ordenes.put(
+    "/:did/desasignar",
     buildHandlerWrapper({
         requiredParams: ["did"],
         controller: ({ db, req }) => desasignarOrdenTrabajo({ db, req }),
     })
 );
-
 
 export default ordenes;
