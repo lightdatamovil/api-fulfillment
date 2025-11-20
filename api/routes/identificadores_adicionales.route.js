@@ -15,14 +15,14 @@ const identificadoresEspeciales = Router();
 identificadoresEspeciales.post(
     '/',
     buildHandlerWrapper({
-        optional: ['nombre', "tipo"],
+        optional: ['nombre', "tipo", "data"],
         controller: ({ db, req }) => identificadores_especiales({ db, req }),
     })
 );
 identificadoresEspeciales.put(
     '/:identificador_especial_did',
     buildHandlerWrapper({
-        optional: ['nombre', "tipo"],
+        optional: ['nombre', "tipo", "data"],
         controller: ({ db, req }) => editIdentificadoresEspeciales({ db, req }),
     })
 );
