@@ -15,7 +15,6 @@ export async function createProducto({ db, req }) {
         profundo,
         did_curva,
         sku,
-
         files,
         combinaciones,
         insumos,
@@ -27,12 +26,22 @@ export async function createProducto({ db, req }) {
 
     const es_combo = productos_hijos && productos_hijos.length ? 1 : 0;
 
-    await LightdataORM.select({
+    const [productoEcommerceRow] = await LightdataORM.select({
         db,
         table: "productos_ecommerce",
         where: { sku },
         throwIfExists: true,
     });
+
+    const didCuenta = productoEcommerceRow ? productoEcommerceRow.did_cuenta : null;
+
+    const [clientesCuentasRow] = await LightdataORM.select({
+        db,
+        table: "clientes_cuentas",
+        where: { did_cuenta: didCuenta },
+        select: "flex",
+    });
+    const flex = clientesCuentasRow ? clientesCuentasRow.flex : 0;
 
     await LightdataORM.select({
         db,
@@ -271,7 +280,7 @@ export async function createProducto({ db, req }) {
         const pedidosDeLaOT = await LightdataORM.select({
             db,
             table: 'pedidos',
-            where: { did_ot: ot.did_orden_trabajo },
+            where: { did_ot: ot.did_orden_trabajo, flex: flex },
             select: 'did'
         });
 
