@@ -30,7 +30,7 @@ export async function createProducto({ db, req }) {
         db,
         table: "productos_ecommerce",
         where: { sku },
-        throwIfExists: true,
+        log: true
     });
 
     const didCuenta = productoEcommerceRow ? productoEcommerceRow.did_cuenta : null;
@@ -38,8 +38,9 @@ export async function createProducto({ db, req }) {
     const [clientesCuentasRow] = await LightdataORM.select({
         db,
         table: "clientes_cuentas",
-        where: { did_cuenta: didCuenta },
+        where: { did: didCuenta },
         select: "flex",
+        log: true
     });
     const flex = clientesCuentasRow ? clientesCuentasRow.flex : 0;
 
