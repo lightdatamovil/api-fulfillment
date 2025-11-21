@@ -17,8 +17,8 @@ export async function deletePedido({ db, req }) {
         db,
         table: "pedidos_productos",
         where: { did_pedido: did },
-        versionKey: "did_pedido",
         quien: userId,
+        log: true
     })
 
     await LightdataORM.delete({
