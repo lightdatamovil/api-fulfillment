@@ -2,12 +2,12 @@ import { LightdataORM } from "lightdata-tools";
 
 export async function desestimar({ db, req }) {
     const { userId } = req.user;
-    const { did_ot } = req.body ?? {};
+    const { did } = req.params;
 
     await LightdataORM.update({
         db,
         table: "ordenes_trabajo",
-        where: { did: did_ot },
+        where: { did: did },
         quien: userId,
         data: {
             estado: 4
@@ -17,7 +17,7 @@ export async function desestimar({ db, req }) {
     await LightdataORM.update({
         db,
         table: "pedidos",
-        where: { did_ot: did_ot },
+        where: { did_ot: did },
         versionKey: "did_ot",
         quien: userId,
         data: {

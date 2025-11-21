@@ -3,12 +3,13 @@ import { egresoStockMasivoArmado } from "../../src/functions/egreso_stock_armado
 
 export async function armar({ db, req }) {
     const { userId } = req.user;
-    const { did_ot, alertada, productos } = req.body ?? {};
+    const { did } = req.params;
+    const { alertada, productos } = req.body ?? {};
 
     await LightdataORM.update({
         db,
         table: "ordenes_trabajo",
-        where: { did: did_ot },
+        where: { did: did },
         quien: userId,
         data: {
             estado: 3
@@ -18,7 +19,7 @@ export async function armar({ db, req }) {
     await LightdataORM.update({
         db,
         table: "pedidos",
-        where: { did_ot: did_ot },
+        where: { did_ot: did },
         versionKey: "did_ot",
         quien: userId,
         data: {
