@@ -3,7 +3,7 @@ import { egresoStockMasivoArmado } from "../../src/functions/egreso_stock_armado
 
 export async function armado({ db, req }) {
     const { userId } = req.user;
-    const { did_ot, productos } = req.body ?? {};
+    const { did_ot, alertada, productos } = req.body ?? {};
 
     await LightdataORM.update({
         db,
@@ -26,7 +26,9 @@ export async function armado({ db, req }) {
         },
     });
 
-    await egresoStockMasivoArmado({ db, productos, quien: userId });
+    if (!alertada) {
+        await egresoStockMasivoArmado({ db, productos, quien: userId });
+    }
 
     return {
         success: true,
