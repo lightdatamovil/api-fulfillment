@@ -1,9 +1,6 @@
 import { executeQuery } from "lightdata-tools";
 
 export async function egresoStockMasivoArmado({ db, productos }) {
-    const resultados = [];
-    const productos_no_procesados = [];
-
     for (const producto of productos) {
         const { did_producto, combinaciones } = producto;
 
@@ -39,7 +36,7 @@ export async function egresoStockMasivoArmado({ db, productos }) {
             await executeQuery({
                 db,
                 query: q,
-                params: [...paramsStock, did_producto],
+                values: [...paramsStock, did_producto],
             });
         }
 
@@ -71,20 +68,15 @@ export async function egresoStockMasivoArmado({ db, productos }) {
             await executeQuery({
                 db,
                 query: q2,
-                params: [...paramsDetalle, ...ids],
+                values: [...paramsDetalle, ...ids],
             });
         }
-
-        resultados.push({
-            did_producto,
-            combinaciones_actualizadas: combinaciones.length
-        });
     }
 
     return {
         success: true,
         message: "Stock egresado correctamente",
-        data: { resultados, productos_no_procesados },
+        data: {},
         meta: { timestamp: new Date().toISOString() }
     };
 }

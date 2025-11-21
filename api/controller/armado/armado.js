@@ -15,26 +15,18 @@ export async function armado({ db, req }) {
         },
     });
 
-    const [selectdidot] = await LightdataORM.select({
-        db,
-        table: "pedidos",
-        where: { did: did_ot },
-        throwIfNotFound: true
-    })
-
-    const number = selectdidot.number
-
     await LightdataORM.update({
         db,
         table: "pedidos",
         where: { did_ot: did_ot },
+        versionKey: "did_ot",
         quien: userId,
         data: {
             armado: 1
         },
     });
 
-    await egresoStockMasivoArmado({ db, productos, number, userId });
+    await egresoStockMasivoArmado({ db, productos });
 
     return {
         success: true,
