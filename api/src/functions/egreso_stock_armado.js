@@ -94,6 +94,9 @@ export async function egresoStockMasivoArmado({ db, productos, quien }) {
         success: true,
         message: "Egreso masivo versionado correctamente",
         data: {
+            procesados: resultados.length,
+            errores,
+            resultados,
         },
     };
 }

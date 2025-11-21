@@ -26,7 +26,7 @@ export async function armado({ db, req }) {
         },
     });
 
-    await egresoStockMasivoArmado({ db, productos });
+    await egresoStockMasivoArmado({ db, productos, quien: userId });
 
     return {
         success: true,
