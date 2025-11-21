@@ -61,7 +61,7 @@ export async function sincronizacionEnvio({ db, req }) {
         bultos: 1,
         valor_declarado: pedido.total_amount ?? 0,
         monto_total_a_cobrar: 0,
-
+        estimated_delivery_date: pedido.deadline,
         fecha_venta: pedido.fecha_venta,
         lote: "mlia",
         estado: 7,
