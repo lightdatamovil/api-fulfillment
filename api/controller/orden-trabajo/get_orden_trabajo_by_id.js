@@ -34,6 +34,7 @@ export async function getFilteredOrdenesTrabajoByDid({ db, req }) {
             'estado', p.status,
             'did_cliente', p.did_cliente,
             'id_venta', p.number,
+            'eliminado', p.elim,
             'productos', (
               SELECT COALESCE(
                 JSON_ARRAYAGG(
