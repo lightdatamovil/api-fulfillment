@@ -1,82 +1,99 @@
-import { executeQuery } from "lightdata-tools";
+import { LightdataORM } from "lightdata-tools";
 
-export async function egresoStockMasivoArmado({ db, productos }) {
+export async function egresoStockMasivoArmado({ db, productos, quien }) {
+    const resultados = [];
+    const errores = [];
+
     for (const producto of productos) {
         const { did_producto, combinaciones } = producto;
 
-        // ================================
-        // 1️⃣ ARMAR BATCH PARA stock_producto
-        // ================================
-        const paramsStock = [];
-        const casesStock = [];
-
         for (const comb of combinaciones) {
-            const { did_combinacion, cantidad } = comb;
+            const { did_combinacion, cantidad, identificadores_especiales } = comb;
 
-            casesStock.push(`
-                WHEN did_producto = ? 
-                 AND did_producto_combinacion = ?
-                 AND stock_combinacion >= ?
-                THEN stock_combinacion - ?
-            `);
+            try {
+                // ========================================
+                // 1) Buscar fila vigente de stock_producto
+                // ========================================
+                const filas = await LightdataORM.select({
+                    db,
+                    table: "stock_producto",
+                    where: {
+                        did_producto: did_producto,
+                        did_producto_combinacion: did_combinacion,
+                    },
+                    throwIfNotExists: true,
+                });
 
-            paramsStock.push(did_producto, did_combinacion, cantidad, cantidad);
-        }
+                const vigente = filas[0];
 
-        if (casesStock.length > 0) {
-            const q = `
-                UPDATE stock_producto
-                SET stock_combinacion = CASE
-                    ${casesStock.join("\n")}
-                    ELSE stock_combinacion
-                END
-                WHERE did_producto = ?
-            `;
+                // Chequear stock disponible
+                if (vigente.stock_combinacion < cantidad) {
+                    errores.push({
+                        did_producto,
+                        did_combinacion,
+                        motivo: "Stock insuficiente",
+                    });
+                    continue;
+                }
 
-            await executeQuery({
-                db,
-                query: q,
-                values: [...paramsStock, did_producto],
-            });
-        }
+                // ========================================
+                // 2) Versionar stock_producto (restar stock)
+                // ========================================
+                await LightdataORM.update({
+                    db,
+                    table: "stock_producto",
+                    where: { did: vigente.did },
+                    data: {
+                        stock_combinacion: vigente.stock_combinacion - cantidad,
+                    },
+                    quien,
+                });
 
-        // ================================
-        // 2️⃣ ARMAR BATCH PARA stock_producto_detalle
-        // ================================
-        const allDetalles = combinaciones.flatMap(c => c.identificadores_especiales);
+                // ========================================
+                // 3) Versionar stock_producto_detalle
+                // ========================================
+                for (const det of identificadores_especiales) {
+                    const filasDet = await LightdataORM.select({
+                        db,
+                        table: "stock_producto_detalle",
+                        where: { did: det.did },
+                        throwIfNotExists: true,
+                    });
 
-        if (allDetalles.length > 0) {
-            const ids = [];
-            const casesDetalle = [];
-            const paramsDetalle = [];
+                    const vigenteDet = filasDet[0];
 
-            for (const det of allDetalles) {
-                casesDetalle.push(`WHEN ? THEN stock - ?`);
-                paramsDetalle.push(det.did, det.cantidad);
-                ids.push(det.did);
+                    await LightdataORM.update({
+                        db,
+                        table: "stock_producto_detalle",
+                        where: { did: det.did },
+                        data: {
+                            stock: vigenteDet.stock - det.cantidad,
+                        },
+                        quien,
+                    });
+                }
+
+                resultados.push({
+                    did_producto,
+                    did_combinacion,
+                    cantidad,
+                    estado: "OK",
+                });
+
+            } catch (err) {
+                errores.push({
+                    did_producto,
+                    did_combinacion,
+                    error: err.message,
+                });
             }
-
-            const q2 = `
-                UPDATE stock_producto_detalle
-                SET stock = CASE did
-                    ${casesDetalle.join("\n")}
-                    ELSE stock
-                END
-                WHERE did IN (${ids.map(() => '?').join(', ')})
-            `;
-
-            await executeQuery({
-                db,
-                query: q2,
-                values: [...paramsDetalle, ...ids],
-            });
         }
     }
 
     return {
         success: true,
-        message: "Stock egresado correctamente",
-        data: {},
-        meta: { timestamp: new Date().toISOString() }
+        message: "Egreso masivo versionado correctamente",
+        data: {
+        },
     };
 }
