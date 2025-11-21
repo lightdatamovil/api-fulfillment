@@ -35,7 +35,7 @@ export async function preloader({ db, req }) {
 
   FROM productos AS p
   LEFT JOIN productos_variantes_valores AS pvv
-    ON p.did = pvv.did_producto
+    ON p.did = pvv.did_producto AND pvv.elim = 0 AND pvv.superado = 0
 
   -- Subquery que resume stock por combinación
   LEFT JOIN (
