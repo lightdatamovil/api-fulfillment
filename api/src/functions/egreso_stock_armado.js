@@ -1,142 +1,89 @@
-import { CustomException, LightdataORM } from "lightdata-tools";
+import { executeQuery } from "lightdata-tools";
 
-
-
-export async function egresoStockMasivoArmado({ db, productos, number, userId }) {
-
-    if (!productos || !Array.isArray(productos) || productos.length === 0) {
-        throw new CustomException({
-            title: "Datos incompletos",
-            message: "Debes enviar al menos un producto con sus combinaciones."
-        });
-    }
-
+export async function egresoStockMasivoArmado({ db, productos }) {
     const resultados = [];
     const productos_no_procesados = [];
 
     for (const producto of productos) {
         const { did_producto, combinaciones } = producto;
 
-        if (!combinaciones || combinaciones.length === 0) {
-            throw new CustomException({
-                title: "Combinaciones requeridas",
-                message: `El producto ${did_producto} no tiene combinaciones para procesar.`
-            });
+        // ================================
+        // 1️⃣ ARMAR BATCH PARA stock_producto
+        // ================================
+        const paramsStock = [];
+        const casesStock = [];
+
+        for (const comb of combinaciones) {
+            const { did_combinacion, cantidad } = comb;
+
+            casesStock.push(`
+                WHEN did_producto = ? 
+                 AND did_producto_combinacion = ?
+                 AND stock_combinacion >= ?
+                THEN stock_combinacion - ?
+            `);
+
+            paramsStock.push(did_producto, did_combinacion, cantidad, cantidad);
         }
 
-        const didsCombinaciones = combinaciones.map(c => c.did_combinacion);
+        if (casesStock.length > 0) {
+            const q = `
+                UPDATE stock_producto
+                SET stock_combinacion = CASE
+                    ${casesStock.join("\n")}
+                    ELSE stock_combinacion
+                END
+                WHERE did_producto = ?
+            `;
 
-        // STOCK PRODUCTO (general)
-        const stockProductoRow = await LightdataORM.select({
-            db,
-            table: "stock_producto",
-            where: { did_producto_combinacion: didsCombinaciones },
-            select: ["did", "did_producto_combinacion", "stock_combinacion",]
-        });
-
-        const stockPorCombinacion = new Map(
-            stockProductoRow.map(row => [
-                row.did_producto_combinacion,
-                row
-            ])
-        );
-
-        // STOCK DETALLE (si no viene en el body)
-        const stockProductoDetalleRow = await LightdataORM.select({
-            db,
-            table: "stock_producto_detalle",
-            where: { did_producto_combinacion: didsCombinaciones },
-            select: ["did", "did_producto_combinacion", "stock"]
-        });
-
-        const stockDetallePorCombinacion = new Map(
-            stockProductoDetalleRow.map(row => [
-                row.did_producto_combinacion,
-                row
-            ])
-        );
-
-        // VALIDACIÓN DE STOCK
-        const combinacionesSinStock = [];
-
-        for (const { did_combinacion, cantidad } of combinaciones) {
-            const stockRow = stockPorCombinacion.get(did_combinacion);
-            const stockDisponible = stockRow?.stock_combinacion ?? 0;
-
-            if (cantidad > stockDisponible) {
-                combinacionesSinStock.push({
-                    did_combinacion,
-                    requerido: cantidad,
-                    disponible: stockDisponible
-                });
-            }
-        }
-
-        if (combinacionesSinStock.length > 0) {
-            productos_no_procesados.push({
-                did_producto,
-                combinaciones_sin_stock: combinacionesSinStock
-            });
-            continue;
-        }
-
-        // EGRESAR STOCK
-        for (const { did_combinacion, cantidad, did_stock_producto_detalle } of combinaciones) {
-
-            const stockRow = stockPorCombinacion.get(did_combinacion);
-            const cantidadAnterior = stockRow?.stock_combinacion ?? 0;
-            const nuevaCantidad = cantidadAnterior - cantidad;
-
-            // stock_producto (siempre)
-            await LightdataORM.update({
+            await executeQuery({
                 db,
-                table: "stock_producto",
-                quien: userId,
-                where: { did: stockRow.did },
-                data: {
-                    stock_combinacion: nuevaCantidad,
-                    id_venta: number
-                }
-            });
-
-            // stock_producto_detalle
-            let detalleRow;
-
-            // 1) Preferir el pasado por body
-            if (did_stock_producto_detalle) {
-                detalleRow = { did: did_stock_producto_detalle };
-            } else {
-                // 2) fallback al que ya trae la DB
-                detalleRow = stockDetallePorCombinacion.get(did_combinacion);
-            }
-
-            if (detalleRow) {
-                const stockDetalleAnterior = detalleRow.stock ?? 0;
-                const nuevoStockDetalle = stockDetalleAnterior - cantidad;
-
-                await LightdataORM.update({
-                    db,
-                    table: "stock_producto_detalle",
-                    quien: userId,
-                    where: { did: detalleRow.did },
-                    data: { stock: nuevoStockDetalle }
-                });
-
-            } else {
-                console.log(`⚠️ No se encontró stock_producto_detalle para combinación ${did_combinacion}`);
-            }
-
-            resultados.push({
-                did_producto,
-                did_combinacion,
-                did_stock_producto_detalle: detalleRow?.did || null
+                query: q,
+                params: [...paramsStock, did_producto],
             });
         }
+
+        // ================================
+        // 2️⃣ ARMAR BATCH PARA stock_producto_detalle
+        // ================================
+        const allDetalles = combinaciones.flatMap(c => c.identificadores_especiales);
+
+        if (allDetalles.length > 0) {
+            const ids = [];
+            const casesDetalle = [];
+            const paramsDetalle = [];
+
+            for (const det of allDetalles) {
+                casesDetalle.push(`WHEN ? THEN stock - ?`);
+                paramsDetalle.push(det.did, det.cantidad);
+                ids.push(det.did);
+            }
+
+            const q2 = `
+                UPDATE stock_producto_detalle
+                SET stock = CASE did
+                    ${casesDetalle.join("\n")}
+                    ELSE stock
+                END
+                WHERE did IN (${ids.map(() => '?').join(', ')})
+            `;
+
+            await executeQuery({
+                db,
+                query: q2,
+                params: [...paramsDetalle, ...ids],
+            });
+        }
+
+        resultados.push({
+            did_producto,
+            combinaciones_actualizadas: combinaciones.length
+        });
     }
 
     return {
         success: true,
-        message: "Stock egresado",
+        message: "Stock egresado correctamente",
         data: { resultados, productos_no_procesados },
         meta: { timestamp: new Date().toISOString() }
     };

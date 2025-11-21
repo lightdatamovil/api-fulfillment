@@ -65,10 +65,8 @@ ordenes.get(
     "/informe-armado",
     buildHandlerWrapper({
         requiredParams: ['fecha_from', 'fecha_to'],
-        controller: function ({ db, req }) {
-            console.log("Generando informe de armado desde");
-            return informeArmado({ db, req });
-        },
+        controller: ({ db, req }) => informeArmado({ db, req }),
+
     })
 );
 ordenes.get(
