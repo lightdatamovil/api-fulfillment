@@ -1,9 +1,8 @@
 import { LightdataORM } from "lightdata-tools";
-import { egresoStockMasivoArmado } from "../../src/functions/egreso_stock_armado.js";
 
-export async function armado({ db, req }) {
+export async function desestimar({ db, req }) {
     const { userId } = req.user;
-    const { did_ot, alertada, productos } = req.body ?? {};
+    const { did_ot } = req.body ?? {};
 
     await LightdataORM.update({
         db,
@@ -11,7 +10,7 @@ export async function armado({ db, req }) {
         where: { did: did_ot },
         quien: userId,
         data: {
-            estado: 3
+            estado: 4
         },
     });
 
@@ -22,13 +21,10 @@ export async function armado({ db, req }) {
         versionKey: "did_ot",
         quien: userId,
         data: {
-            armado: 1
+            trabajado: 0,
+            did_ot: null
         },
     });
-
-    if (!alertada) {
-        await egresoStockMasivoArmado({ db, productos, quien: userId });
-    }
 
     return {
         success: true,
