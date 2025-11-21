@@ -53,7 +53,7 @@ export async function getFilteredOrdenesTrabajoByDid({ db, req }) {
                 JSON_ARRAY()
               )
               FROM pedidos_productos AS pp2
-              WHERE pp2.did_pedido = p.id AND superado=0 
+              WHERE pp2.did_pedido = p.did AND pp2.superado = 0
             )
           )
         ),
@@ -63,7 +63,8 @@ export async function getFilteredOrdenesTrabajoByDid({ db, req }) {
     LEFT JOIN ordenes_trabajo_pedidos AS otp 
       ON ot.did = otp.did_orden_trabajo
     LEFT JOIN pedidos AS p
-      ON otp.did_pedido = p.id
+      ON otp.did_pedido = p.did
+  AND p.superado = 0
     WHERE ot.did = ?
       AND ot.superado = 0 AND ot.elim = 0
     GROUP BY ot.did
