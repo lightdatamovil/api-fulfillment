@@ -91,6 +91,7 @@ ordenes.put(
     "/:did/armar",
     buildHandlerWrapper({
         requiredParams: ["did"],
+        required: ["productos", "alertada"],
         controller: ({ db, req }) => armar({ db, req }),
     })
 );
